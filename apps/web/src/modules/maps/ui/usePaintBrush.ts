@@ -107,6 +107,10 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
   /** El lienzo de usar y tirar donde se tiñe la pincelada con la textura antes de pegarla. */
   const stampRef = useRef<HTMLCanvasElement | null>(null);
   const dirtyRef = useRef(false);
+  /** ¿Ha pintado algo en ESTE destino? Desde ese momento mandan sus píxeles y la red no los pisa. */
+  const tocadoRef = useRef(false);
+  /** La última pintura que se bajó, para no volver a bajar la misma. */
+  const cargadoRef = useRef<string | null>(null);
   const lastPreview = useRef(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -168,21 +172,46 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
    * `crossOrigin` es obligatorio y no decorativo: sin él el lienzo queda MANCHADO al dibujar una imagen de
    * otro origen y `toBlob` revienta con un error de seguridad — es decir, el pincel dejaría de guardar.
    */
-  useEffect(() => {
+  const cargar = useCallback((src: string | null) => {
     const c = canvasOf();
     const ctx = c?.getContext?.('2d') ?? null;
     if (c && ctx) ctx.clearRect(0, 0, c.width, c.height);
     dirtyRef.current = false;
-    const src = srcRef.current;
+    cargadoRef.current = src;
     setPreview(src);
-    if (!src || !c || !ctx || typeof Image === 'undefined') return;
+    if (!src || !c || !ctx || typeof Image === 'undefined') return undefined;
     let alive = true;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (!alive) return; ctx.drawImage(img, 0, 0, c.width, c.height); repaintPreview(true); };
     img.src = src;
     return () => { alive = false; };
-  }, [targetId, canvasOf, repaintPreview]);
+  }, [canvasOf, repaintPreview]);
+
+  useEffect(() => {
+    tocadoRef.current = false;
+    return cargar(srcRef.current);
+  }, [targetId, cargar]);
+
+  /**
+   * 🐞 **Y SI LA PINTURA GUARDADA LLEGA TARDE, se coge igual** (suyo, 2026-09-16: «*desaparecen habitaciones
+   * cuando quiero pintar*»).
+   *
+   * El arreglo de arriba se pasó de frenada. Al dejar de mirar `src`, un destino elegido ANTES de que su
+   * pintura estuviera cargada se quedaba con el lienzo vacío para siempre — y en el suelo de las salas eso no
+   * es «se ve sin pintar»: mientras el pincel está puesto, el mapa dibuja SÓLO esta vista previa
+   * (`RoomsLayer`), así que con ella vacía la sala entera se esfuma. Con sus mazmorras es literal: 56 salas,
+   * 53 con pintura y NINGUNA con textura — la pintura ES el suelo.
+   *
+   * La regla que distingue los dos casos no es `dirty` —que se pone a falso en cada guardado— sino si él ha
+   * pintado algo en ESTE destino: en cuanto lo toca, mandan sus píxeles y la red no vuelve a pisarlos hasta
+   * que cambie de destino. Antes de tocarlo, lo que llegue es bueno: es su pintura de sesiones anteriores, o
+   * la de otro director en la misma mesa.
+   */
+  useEffect(() => {
+    if (tocadoRef.current || targetSrc === cargadoRef.current) return undefined;
+    return cargar(targetSrc);
+  }, [targetSrc, cargar]);
 
   /**
    * La foto de la textura, cargada una vez y guardada. Devuelve `null` la primera vez —todavía no ha
@@ -274,6 +303,7 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     }
     ctx.restore();
     dirtyRef.current = true;
+    tocadoRef.current = true;
     repaintPreview();
   }, [canvasOf, target, scene, repaintPreview, textureOf]);
 

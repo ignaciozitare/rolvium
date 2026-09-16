@@ -36,6 +36,46 @@ const destino = (src: string | null, id = 'suelo'): PaintTarget =>
 const TINTA = { textureUrl: null, tilePx: 54, color: '#5f8f6a' };
 const TRAZO = { strength: 1, hardness: DEFAULT_MASK_HARDNESS, tip: 'soft' as const, roughness: 0, mode: 'paint' as const };
 
+/**
+ * 🐞 Y SU CONTRAPARTIDA, del día siguiente: «*desaparecen habitaciones cuando quiero pintar*» (2026-09-16).
+ *
+ * El arreglo de arriba se pasó de frenada. Al dejar de mirar `src`, un destino elegido ANTES de que su pintura
+ * estuviera cargada se quedaba con el lienzo vacío PARA SIEMPRE. Y en el suelo de las salas eso no es «se ve
+ * sin pintar»: mientras el pincel está puesto, el mapa dibuja SÓLO esta vista previa, así que con ella vacía
+ * la sala entera se esfuma. En sus mazmorras es literal — 56 salas, 53 con pintura y NINGUNA con textura: la
+ * pintura ES el suelo.
+ *
+ * Los dos casos se distinguen por si ÉL ha pintado algo en este destino, no por `dirty` (que se pone a falso
+ * en cada guardado).
+ */
+describe('🐞 las habitaciones desaparecían al ponerse a pintar (2026-09-16)', () => {
+  it('la pintura que llega TARDE se coge, aunque el destino no haya cambiado de id', async () => {
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino(null) } });
+    // Eligió el pincel antes de que llegara la pintura guardada: de momento no hay nada que enseñar.
+    expect(result.current.preview).toBe(null);
+    // …y llega. Mismo destino, mismo id, pero ahora CON su pintura.
+    rerender({ t: destino('https://x/suelo.png?v=7') });
+    expect(result.current.preview).toBe('https://x/suelo.png?v=7');
+  });
+
+  it('pero en cuanto ÉL ha pintado algo, lo que llegue por la red NO le pisa los píxeles', async () => {
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino(null) } });
+    act(() => { result.current.paint({ x: 0, y: 0 }, { x: 40, y: 0 }, 20, TINTA, TRAZO, true); });
+    await act(async () => { await result.current.flush(); });
+    expect(result.current.preview).toBe('data:image/png;base64,LO-QUE-LLEVO-PINTADO');
+    // Su propio guardado vuelve como versión nueva: no se baja otra vez, que era el parpadeo del 15-09.
+    rerender({ t: destino('https://x/suelo.png?v=8') });
+    expect(result.current.preview).toBe('data:image/png;base64,LO-QUE-LLEVO-PINTADO');
+  });
+
+  it('y al CAMBIAR de destino sí se empieza de la pintura del nuevo', () => {
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino(null) } });
+    act(() => { result.current.paint({ x: 0, y: 0 }, { x: 40, y: 0 }, 20, TINTA, TRAZO, true); });
+    rerender({ t: destino('https://x/roca.png?v=2', 'roca') });
+    expect(result.current.preview).toBe('https://x/roca.png?v=2');
+  });
+});
+
 describe('🐞 el pincel parpadeaba y se borraba solo (2026-09-15)', () => {
   it('DOS pinceladas seguidas: la segunda parte de lo que ya había, no de un lienzo en blanco', async () => {
     const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino(null) } });
