@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Silhouette, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 /**
  * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
@@ -185,6 +185,14 @@ export interface MapsPort {
   updateProp(id: string, patch: PropPatch): Promise<void>;
   /** Con `manage_props`. NO borra lo ya plantado en los mapas: ésos se quedan con su copia de la foto. */
   removeProp(id: string): Promise<void>;
+  /**
+   * LA SILUETA, LLEVADA A LO YA PLANTADO (§ 6.9, la pasada de una vez que pidió el 2026-09-16).
+   *
+   * Lo que él ve en sus mapas son COPIAS: arreglar sólo la biblioteca no cambiaría una sola sombra de las que
+   * ya tiene puestas. Alcanza únicamente a las copias que siguen con la forma DE FÁBRICA —el rectángulo—, así
+   * que nada elegido a mano se pisa, y sólo a las filas que sus permisos le dejen tocar.
+   */
+  applySilhouetteToPlanted(propId: string, silhouette: Silhouette): Promise<void>;
 
   /** Los paquetes, en su orden. Los lee cualquiera; los crea, renombra y borra quien tiene `manage_props`. */
   listPropPacks(): Promise<PropPack[]>;

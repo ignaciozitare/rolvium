@@ -220,6 +220,33 @@ export async function compressImage(
   return { blob: out, originalBytes: file.size, bytes: out.size, compressed: true, width: size.width, height: size.height, alpha };
 }
 
+/**
+ * LA OPACIDAD DE UNA IMAGEN YA SUBIDA, por su dirección.
+ *
+ * Es el camino de la pasada de una vez (mapas § 6.9): los objetos que ya estaban subidos antes de que
+ * existiera la silueta no tienen el fichero delante, así que hay que traerlos. Uno a uno y a `ALPHA_SIDE`, que
+ * es lo que evita que ciento treinta y tres fotos a la vez se lleven la memoria del navegador por delante.
+ *
+ * `crossOrigin` es obligatorio y no decorativo: sin él el lienzo queda MANCHADO al dibujar una imagen de otro
+ * origen y leer sus píxeles revienta con un error de seguridad. Devuelve `null` en vez de lanzar —una foto que
+ * no se deja leer no puede parar una pasada de ciento treinta y tres—; quien llama la deja como estaba.
+ */
+export async function alphaOfUrl(url: string, deps: Pick<CompressDeps, 'alpha'> = browserDeps): Promise<AlphaMap | null> {
+  if (typeof Image === 'undefined' || !deps.alpha) return null;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('no se pudo bajar'));
+      el.src = url;
+    });
+    return deps.alpha(img, img.naturalWidth, img.naturalHeight);
+  } catch {
+    return null;
+  }
+}
+
 /** «2,4 MB», «180 KB» — para poder enseñar cuánto ha adelgazado. Locale del usuario para el separador decimal. */
 export function formatBytes(bytes: number, locale?: string): string {
   if (bytes < 1024) return `${bytes} B`;

@@ -635,6 +635,17 @@ export class SupabaseMapsRepo implements MapsPort {
     const { error } = await this.db.from('maps_props').delete().eq('id', id);
     this.fail(error);
   }
+  /**
+   * LA SILUETA, LLEVADA A LO YA PLANTADO (§ 6.9). Una sola escritura por pieza, no una por mapa: no hace falta
+   * saber en qué escenas está. El `block_shape = 'rect'` del filtro es lo que impide pisar una forma elegida a
+   * mano, y las políticas de la tabla se encargan de que no salga de donde él manda.
+   */
+  async applySilhouetteToPlanted(propId: string, silhouette: Silhouette): Promise<void> {
+    const { error } = await this.db.from('maps_scene_props')
+      .update({ silhouette, block_shape: 'silhouette' })
+      .eq('prop_id', propId).eq('block_shape', 'rect');
+    this.fail(error);
+  }
 
   // ── piezas: LO PLANTADO EN LA ESCENA ──
   async listSceneProps(sceneId: string): Promise<SceneProp[]> {

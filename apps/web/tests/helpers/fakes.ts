@@ -371,7 +371,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
-import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Silhouette, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
 export const SCENE_WAREHOUSE: Scene = {
@@ -604,6 +604,10 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       const i = props.findIndex(p => p.id === id);
       if (i >= 0) props.splice(i, 1);
       for (const sp of sceneProps) if (sp.propId === id) sp.propId = null;
+    },
+    /** La pasada de una vez (§ 6.9): alcanza SÓLO a las copias que siguen con la forma de fábrica. */
+    applySilhouetteToPlanted: async (propId: string, silhouette: Silhouette) => {
+      for (const sp of sceneProps) if (sp.propId === propId && sp.blockShape === 'rect') { sp.silhouette = silhouette; sp.blockShape = 'silhouette'; }
     },
     listSceneProps: async (sid: string) => sceneProps.filter(p => p.sceneId === sid),
     addSceneProp: async (p: NewSceneProp) => { const created: SceneProp = { ...p, id: `sp-new-${++n}`, createdAt: `t${n}`, updatedAt: '' }; sceneProps.push(created); return created; },
