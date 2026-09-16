@@ -101,8 +101,13 @@
 > `roomsLayer.tsx:336` el PNG de máscara se pinta dentro de la máscara SVG y **negro = se quita suelo**. Perder
 > el lienzo devuelve suelo (eso estaba bien), pero un lienzo negro se lo come. No es lo que le pasa —tiene cero
 > máscaras—, pero la razón escrita entonces era la equivocada y no debe volver a usarse para descartar nada.
-> **1-bis. 🚀 EL MISMO FALLO EN LOS TRAZOS — arreglado; ÉL PIDIÓ REMATARLO** («*termina de solucionar y deja
-> todo en prod*», 17-09).
+> **1-bis. 🚀 EL MISMO FALLO EN LOS TRAZOS — v0.12.2, EN PRODUCCIÓN.** Lo pidió él («*termina de solucionar y
+> deja todo en prod*», 17-09) justo después de confirmar el de las salas en producción.
+>
+> Merge `911b7c2`, release `499bc57`, los dos despliegues READY, web y api a 200 — y **comprobado que el
+> paquete que sirve producción lleva LAS TRES redes**, buscadas una a una dentro del JS servido. No se dio por
+> bueno el 200 a secas. ⏳ Falta que lo use él un rato, pero este fallo aún no lo había visto: se arregló antes
+> de que le llegara.
 >
 > Lo encontró la review del arreglo de arriba: `maps_drawings.data` tenía la MISMA causa y era **mucho peor**.
 > Ahí no se pierde un trazo: **se queda la mesa EN BLANCO**. Y se midió antes de tocar nada, por el camino de
@@ -123,7 +128,7 @@
 >    con razón: seguir con un objeto vacío pintaba un `rect` con medidas NaN —cuatro avisos por repintado— y
 >    una `line` sin coordenadas que dejaba **un punto suelto en la esquina del mapa**. No volver a `?? {}`.
 >
-> Rama `fix/el-eco-incompleto-tumba-la-mesa`, tres commits hasta `68f59ec`. Verde: **2.110 tests** (12 humo +
+> Rama `fix/el-eco-incompleto-tumba-la-mesa`, ya mergeada. Verde: **2.110 tests** (12 humo +
 > 2.040 regresión + 58 funcional), `tsc` limpio en web y api, audit 0 duros, las dos builds. Review y QA en
 > modo bloqueo pasados, los dos verificando por su cuenta que un `null` DE VERDAD sigue mandando —quitar una
 > silueta o quitar la pintura— y que las tres redes hacen falta. Sin migraciones.
