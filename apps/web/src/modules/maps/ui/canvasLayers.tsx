@@ -60,8 +60,14 @@ export function DrawingShape({ d, draft = false, selected = false, movable = fal
    * React tira el árbol entero y la mesa se queda EN BLANCO. Quien puede dejarlo sin `data` es un eco de
    * tiempo real al que le falte la columna, y eso ya lo corta `keepUnsent` antes de llegar aquí — pero un
    * trazo que no se vea es infinitamente mejor que una mesa en blanco, así que la red se queda puesta.
+   *
+   * Y se SALE, en vez de seguir con `{}`: con el objeto vacío un `rect` acaba en `Math.min(undefined,
+   * undefined)` y pinta `x="NaN" width="NaN"` —cuatro avisos de React en la consola por cada repintado— y un
+   * `line` sin coordenadas cae en 0,0 y el remate redondo deja un PUNTO suelto en la esquina del mapa. Sin
+   * dibujo no hay nada que dibujar: eso es `null`, para las cinco formas por igual.
    */
-  const data = (d.data ?? {}) as Record<string, unknown>;
+  if (d.data === undefined || d.data === null) return null;
+  const data = d.data as Record<string, unknown>;
   const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''} ${selected ? 'selected' : ''} ${movable ? 'movable' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (d.kind) {
     case 'stroke': {

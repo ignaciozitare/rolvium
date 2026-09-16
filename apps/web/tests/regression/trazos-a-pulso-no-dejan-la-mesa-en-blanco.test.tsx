@@ -58,6 +58,22 @@ describe('🐞 un trazo a pulso no deja la mesa en blanco', () => {
     expect(() => render(<svg><DrawingShape d={sinDibujo} /></svg>)).not.toThrow();
   });
 
+  /*
+   * La red NO pinta basura: ninguna de las cinco formas deja rastro ni ensucia la consola. Con `{}` en vez de
+   * salir, un `rect` pintaba `x="NaN" width="NaN"` (cuatro avisos de React por repintado) y un `line` dejaba
+   * un punto suelto en la esquina 0,0 por el remate redondo. Sin dibujo, nada.
+   */
+  it.each(['stroke', 'line', 'rect', 'circle', 'text'] as const)('un %s sin dibujo no pinta nada ni avisa por consola', kind => {
+    const quejas: unknown[] = [];
+    vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { quejas.push(a); });
+    vi.spyOn(console, 'warn').mockImplementation((...a: unknown[]) => { quejas.push(a); });
+    const sinDibujo = { id: 'dw-x', kind, color: '#8b1a1a', width: 3 } as unknown as Drawing;
+    const { container } = render(<svg data-testid="lienzo"><DrawingShape d={sinDibujo} /></svg>);
+    expect(container.querySelector('[data-drawing-id]')).toBeNull();
+    expect(container.innerHTML).not.toContain('NaN');
+    expect(quejas).toEqual([]);
+  });
+
   it('un trazo normal se sigue pintando igual: la red no cambia nada de lo que ya iba', () => {
     const { container } = render(<svg><DrawingShape d={TRAZO} /></svg>);
     expect(container.querySelector('polyline')).not.toBeNull();

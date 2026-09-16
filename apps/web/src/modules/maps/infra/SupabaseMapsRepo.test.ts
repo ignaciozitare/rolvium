@@ -36,6 +36,22 @@ describe('SupabaseMapsRepo — mappers', () => {
     expect(mapWallRow(WALL_ROW)).toMatchObject({ id: 'w-1', x2: 10, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
     expect(mapDrawingRow(DRAWING_ROW)).toMatchObject({ id: 'd-1', authorId: 'u-pip', kind: 'stroke', data: { points: [[1, 2]] } });
   });
+
+  /*
+   * 🐞 EL CLAVO DE «NO INVENTES UN VALOR POR DEFECTO» (2026-09-17, specs/core/realtime § el eco incompleto).
+   *
+   * Estas dos columnas pueden NO VENIR en un eco de tiempo real (TOAST), y `keepUnsent` sólo sabe conservar
+   * lo que ya teníamos si el mapeador deja salir `undefined`. Un `?? null` o un `?? {}` —que parece una
+   * mejora inofensiva— tapa la ausencia justo donde hay que verla y devuelve la pieza al cuadrado o deja el
+   * trazo sin dibujo en silencio. Por REST no cambia nada: la columna siempre viene, y vacía llega `null`.
+   */
+  it('`data` y `silhouette` salen SIN valor por defecto: «no vino» tiene que poder distinguirse de «vacío»', () => {
+    // Vacío de verdad: `null` llega como valor por la red, y como valor se queda.
+    expect(mapScenePropRow(SCENE_PROP_ROW).silhouette).toBeNull();
+    // No vino: se queda `undefined`, que es la señal que `keepUnsent` necesita.
+    expect(mapScenePropRow({ ...SCENE_PROP_ROW, silhouette: undefined as never }).silhouette).toBeUndefined();
+    expect(mapDrawingRow({ ...DRAWING_ROW, data: undefined as never }).data).toBeUndefined();
+  });
 });
 
 describe('SupabaseMapsRepo — scenes', () => {
