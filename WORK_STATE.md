@@ -64,9 +64,13 @@
 > - Y las 53 comparten **UNA sola URL** de pintura: se dibuja una vez contra el agujero, no una por sala.
 >
 > **Lo que se hizo y lo que NO está cerrado:**
-> - Rama `fix/salas-desaparecen-al-pintar` (`966a321`), en QA: arregla un agujero REAL que abrió el arreglo de
->   esta mañana —la pintura guardada que llega TARDE no se cogía nunca, porque el efecto dejó de mirar `src`—
->   con `tocadoRef` (si él ya pintó en este destino, mandan sus píxeles; si no, lo que llegue es bueno).
+> - Rama `fix/salas-desaparecen-al-pintar`, **DOS commits**, QA automático pasado (16-09):
+>   · `966a321` — arregla un agujero REAL que abrió el arreglo de esta mañana: la pintura guardada que llega
+>     TARDE no se cogía nunca, porque el efecto dejó de mirar `src`. Se distingue con `tocadoRef` (si él ya
+>     pintó en este destino, mandan sus píxeles; si no, lo que llegue por la red es bueno).
+>   · `6bb2762` — **el parpadeo de verdad**: mientras baja una pintura nueva la vista previa ya no se pasa por
+>     la URL remota (que lleva rompe-caché y por tanto NUNCA está en caché), así que el suelo no desaparece
+>     mientras se descarga. Con 56 salas compartiendo un solo PNG, eso era el suelo entero yéndose.
 > - ⚠️ **PERO NO ESTÁ CONFIRMADO QUE FUERA SU FALLO.** Se lo di como arreglado y contestó «sigue pasando»; se
 >   comprobó que sus DOS servidores de desarrollo (5173 y 5174, los dos vivos) sí servían el código nuevo.
 >   Después dijo «ahora ya no lo hace más». **No dárselo por cerrado hasta que lo use un rato.**
