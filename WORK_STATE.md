@@ -17,6 +17,10 @@
 > **1. ✅ EL PINCEL QUE BORRA LAS HABITACIONES — CAZADO, ARREGLADO Y PROBADO POR ÉL: «*en local ahora
 > funciona bien*» (16-09, noche). Review y QA pasados; va a producción.**
 >
+> > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 16-09, por la noche,
+> > sobre los DOS intentos anteriores). Tenía razón las dos veces. Por eso esta vez no se cerró hasta que él
+> > dijo «*en local ahora funciona bien*».
+>
 > **LA CAUSA, MEDIDA Y NO SUPUESTA** (sus dos pistas del 16-09 la partieron por la mitad: «*sólo pasa con las
 > habitaciones en freehand*» y «*si recargo vuelven*»).
 >
