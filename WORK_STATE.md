@@ -46,8 +46,26 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
-> ### 🎯 **LA SILUETA — CONSTRUIDA ENTERA** (rama `feat/silueta-de-los-objetos`, 2026-09-16 tarde)
-Rama sacada de `main`, **sin mergear y sin migración en producción todavía**. El spec § 6.9 va al día en la misma
+> ### 🚀 v0.12.0 EN PRODUCCIÓN (2026-09-16, noche) — **LA SILUETA**
+Merge `23c42ac`, los dos despliegues READY sobre ese commit, web y api a 200, y **comprobado que el paquete que
+sirve producción es el nuevo** (lleva `default_silhouette`; no se dio por bueno el primer 200, que todavía
+servía el viejo). Advisors de seguridad sin un solo ERROR.
+
+**LAS DOS MIGRACIONES, APLICADAS Y VERIFICADAS EN PRODUCCIÓN**, y en el orden que manda:
+1. La columna (antes del despliegue).
+2. El código.
+3. Los datos (después), en siete tandas por MCP.
+
+**El recuento final, leído de la base de producción**: **149 de 149 objetos** con silueta · **95 de 95 copias
+plantadas** con silueta · de las que estorban de verdad, **22 lo hacen ya por su silueta y CERO siguen con el
+cuadrado**.
+
+⚠️ Lo que costó: la migración de datos son 125 KB, y meterla por MCP obliga a pasarla por el chat en trozos —
+unos 150k tokens en total. **Si vuelve a hacer falta una migración de datos grande, enlazar antes el CLI de
+Supabase y hacer `db push`**, que no pasa por el modelo.
+
+### 🎯 LA SILUETA — CÓMO SE CONSTRUYÓ (registro)
+Rama `feat/silueta-de-los-objetos`, ya mergeada. El spec § 6.9 va al día en la misma
 rama (la vieja `docs/spec-silueta` ya viene dentro: `1417222`). Review pasada, `npm run audit` 0 duros, y verde
 entero: web 2023 · api 305 · core 133 · ui 23.
 
