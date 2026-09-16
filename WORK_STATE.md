@@ -14,30 +14,81 @@
 >
 > > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
 >
-> **1. 🔴 EL PINCEL QUE BORRA LAS HABITACIONES — SIGUE PASANDO. SU PRIORIDAD, POR ENCIMA DE TODO.**
+> **1. ✅ EL PINCEL QUE BORRA LAS HABITACIONES — CAZADO Y ARREGLADO. ⏳ FALTA QUE LO PRUEBE ÉL.**
 >
-> > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 2026-09-16, noche)
+> **LA CAUSA, MEDIDA Y NO SUPUESTA** (sus dos pistas del 16-09 la partieron por la mitad: «*sólo pasa con las
+> habitaciones en freehand*» y «*si recargo vuelven*»).
 >
-> **EL ARREGLO DE LA RAMA `fix/salas-desaparecen-al-pintar` NO VALE. NO MERGEARLA.** Esta vez lo probó **con
-> el código bueno delante** —su local se dejó en esa rama, con la silueta dentro, y se comprobó línea a línea
-> que el arreglo estaba en el fichero servido— y el fallo **sigue ahí**. O sea que las dos hipótesis de esa
-> rama (la pintura que llega tarde, y el parpadeo mientras baja) **eran reales pero NO eran su fallo**.
+> Guardar una pincelada de suelo actualiza **las 53 salas excavadas de golpe** —todas apuntan al mismo PNG—, y
+> eso manda **53 ecos de tiempo real** a su propia pantalla. Se suscribió un cliente de verdad a su Supabase
+> local y se contaron: **9 de los 53 llegan SIN la columna `points`**, o sea sin el contorno de la sala. Los 9
+> son de mano alzada y son los más gordos (1.796–3.800 bytes); una rectangular ocupa 200 y no falla nunca.
 >
-> **Lo que eso descarta y lo que deja vivo:**
-> - ❌ Descartado: que fuera sólo la vista previa vaciándose mientras la pintura baja por la red.
-> - ✅ Sigue en pie lo COMPROBADO en su base: **nada se pierde en la base de datos**, es de pantalla. Sus 33
->   salas de mano alzada tienen su pintura guardada; las 53 comparten UNA sola URL.
-> - 🔎 Lo que NO se ha mirado todavía a fondo: por qué el mapa deja de dibujar el suelo. Con el pincel puesto,
->   `RoomsLayer` dibuja SÓLO la vista previa (`floorPaint = paintPreview.href`), así que cualquier camino que
->   deje esa vista previa vacía —o que devuelva `paintTargetOf` a `null` un instante— borra las 53 salas de
->   golpe. **Mirar ahí antes que en el hook del pincel.**
+> Es **TOAST**: Postgres guarda fuera de la fila los valores que pasan de ~2 KB y **no los repite en el aviso
+> de replicación si el `UPDATE` no los ha tocado**. `mapRoomRow` hace `points: (r.points ?? [])` y no puede
+> distinguir «no vino» de «vacío», así que la sala se queda sin contorno y **se esfuma de la pantalla**. En la
+> base está intacta — por eso recargar las devuelve, que es literalmente lo que él dijo.
 >
-> **LO PRIMERO, Y NO ADIVINAR NADA:** hay que preguntarle dos cosas y esperar respuesta —
-> **(a) ¿la habitación que desaparece es la que está pintando, o una de al lado?**
-> **(b) ¿pasa dando toques con el pincel quieto, o sólo al arrastrar cruzando de una habitación a otra?**
-> Con eso se separan las dos familias de causa. Reproducirlo con Playwright contra su escena («test dungeon2»,
-> 56 salas) es el camino que ya funcionó el 15-09. El diagnóstico acumulado está en el bloque 🐞 de más abajo.
+> **Encaja con TODO lo que él describió**: sólo mano alzada · no todas (sólo las 9 gordas) · vuelven al
+> recargar · nada perdido en la base · y el Ctrl+Z la devuelve un segundo porque vuelve a guardar y llega otro
+> eco igual de incompleto.
 >
+> **❌ POR QUÉ LOS DOS ARREGLOS ANTERIORES NO PODÍAN VALER** (y por qué no hay que volver a esa pista): los dos
+> atacan que la **vista previa de la PINTURA** se quede vacía. Pero su escena **tiene textura de suelo**, y
+> distinta de la del muro: una sala sin pintura **se sigue viendo**, sólo pierde la decoración. El problema
+> nunca fue la pintura, era el **contorno**. Los dos commits arreglan agujeros reales de otra cosa y se quedan.
+>
+> **EL ARREGLO** — `keepUnsentLists` en `liveRules.ts`, al lado de `isStaleRow` y por el mismo motivo: **un eco
+> nunca VACÍA una lista que ya teníamos**. Vaciarla no es un cambio legítimo (una sala sin contorno no existe:
+> se borra la fila, y eso llega como `DELETE`). Va **por forma de dato, no por nombre de columna**, así que
+> cualquier columna-lista futura queda cubierta sola. Ficheros: `liveRules.ts`, `useScene.ts` (`applyChange`),
+> y `tests/helpers/fakes.ts` (el doble no sabía emitir ecos de sala).
+>
+> **Probado de verdad**: `tests/regression/salas-a-mano-alzada-no-se-borran-al-pintar.test.ts` (4 casos) —
+> **comprobado que 2 FALLAN si se quita el arreglo**, y los otros 2 (un contorno nuevo sí manda · un `DELETE`
+> sigue borrando) pasan en los dos sentidos, que es lo que los hace guardas y no decoración. Más 6 unitarios en
+> `liveRules.test.ts`. Verde entero: **141 ficheros / 2.097 tests**, `tsc` limpio en web y api, `npm run audit`
+> **0 duros**, y las dos builds OK. Spec actualizado en `specs/core/realtime/SPEC.md` § «Qué se puede creer de
+> un eco».
+>
+> ⏳ **LO QUE FALTA**: que lo pruebe él en `localhost:5173` (su local está en la rama
+> `fix/salas-desaparecen-al-pintar`, con el arreglo ya dentro **sin commitear**). Si dice que va, entonces
+> review → QA → merge. **No darlo por cerrado antes**: ya se dio por cerrado dos veces y las dos falló.
+>
+> ✅ **REVISIÓN PASADA, sin nada que arreglar** (16-09, noche). Comprobó lo importante de verdad: enumeró las
+> **7 columnas jsonb** de las nueve tablas que van por este canal y **sólo DOS son listas** (`maps_rooms.points`
+> y `maps_scene_props.silhouette`); las otras cinco son objetos y la regla ni las mira. De esas dos, **ninguna
+> puede quedar legítimamente vacía**: 315 salas en la base, cero sin contorno, y la silueta la defienden dos
+> CHECK de base más `propRules.ts:471`. O sea: **la regla no puede tapar un cambio de verdad**. Y verificó por
+> su cuenta el «2 de 4 fallan sin el arreglo».
+>
+> 🔴 **DEUDA GRANDE ENCONTRADA Y NO TOCADA — MISMA CAUSA, MUCHO PEOR, Y YA ALCANZABLE.**
+> `maps_drawings.data` (los trazos que dibuja a mano) es un jsonb **objeto**, no lista, así que
+> `keepUnsentLists` **no lo cubre ni puede cubrirlo** —la comprobación de «es una lista» es justo lo que hace
+> segura la regla—. Va por **1.372 bytes de 2.000**, al 75 % del umbral. El disparador existe hoy:
+> `SupabaseMapsRepo.ts:499` cambia un trazo de capa **sin tocar `data`** (arrastrar un trazo a otra capa, desde
+> `SceneTab.tsx:1778`), que es exactamente la forma del fallo.
+> **Y no se queda en «se ve mal»: revienta.** `mapDrawingRow` pasa `data` sin red, `canvasLayers.tsx:60` lee
+> `data.points` sobre `undefined` y explota **durante el pintado**. **No hay ni un ErrorBoundary en todo el
+> repo** (comprobado), así que React tira el árbol entero: **la mesa se queda en blanco**. Recargar lo arregla
+> —la fila está intacta—, o sea **la misma firma desesperante que el fallo de las salas**.
+> ⚠️ Cuando se toque: el arreglo NO es ampliar `keepUnsentLists`. Es darle red a `mapDrawingRow`, o no mandar
+> ese `UPDATE` sin `data`, o poner un ErrorBoundary. Decisión suya, tarea aparte.
+>
+> 🧹 Deuda menor de la misma familia: `maps_scene_props.silhouette` (1.064 bytes, fila 1.380). Si cruza, el
+> `?? null` del mapeo la vuelve `null` —no `[]`—, así que la regla **tampoco la protege**: el objeto volvería a
+> estorbar con el cuadrado en SU pantalla, sin aviso. No afecta al juego (el servidor lee la base), sólo a lo
+> que él ve. Y `maps_fog.explored` son 12 KB pero **la niebla no va por este canal**: confirmado, no le afecta.
+>
+> 🔎 **Pista que se siguió y resultó FALSA, para que nadie la repita**: 20 de sus 33 salas a mano alzada tienen
+> el contorno cruzado consigo mismo (una con 154 puntos y 108 cruces). Parecía la explicación perfecta de «sólo
+> las de freehand», pero su «*si recargo vuelven*» la mató: si fuera la geometría, saldría mal también recién
+> cargado. Los cruces son casi todos de la misma vuelta y SVG los rellena igual.
+>
+> 🔁 **Corrección a la nota del 16-09 sobre la máscara**: va al revés de como quedó escrito. En
+> `roomsLayer.tsx:336` el PNG de máscara se pinta dentro de la máscara SVG y **negro = se quita suelo**. Perder
+> el lienzo devuelve suelo (eso estaba bien), pero un lienzo negro se lo come. No es lo que le pasa —tiene cero
+> máscaras—, pero la razón escrita entonces era la equivocada y no debe volver a usarse para descartar nada.
 > **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
 > Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
 > `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
@@ -115,7 +166,10 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
-> ### 🔴 ABIERTO Y SIN RESOLVER: **«DESAPARECEN HABITACIONES CUANDO QUIERO PINTAR»** (local, 2026-09-16)
+> ### ✅ RESUELTO — **«DESAPARECEN HABITACIONES CUANDO QUIERO PINTAR»** (local, 2026-09-16)
+> ⚠️ **Lo de abajo es el registro de CÓMO SE BUSCÓ, con dos hipótesis que resultaron falsas. La causa de verdad
+> —una columna que no viaja en el eco de tiempo real— y el arreglo están en el bloque 1 de arriba. No usar
+> nada de esta sección para diagnosticar.**
 > **El arreglo de la rama NO lo cerró: lo volvió a probar con el código bueno y sigue pasando.**
 > **Sus palabras exactas, que valen más que cualquier resumen**: «*es el pincel con el que pinto eligiendo una
 > textura, le doy una transparencia y desaparece lo que creo que es la habitación sobre la que estoy pintando.

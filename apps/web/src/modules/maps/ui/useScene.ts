@@ -6,7 +6,7 @@ import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
-import { isStaleRow } from '../domain/useCases/liveRules';
+import { isStaleRow, keepUnsentLists } from '../domain/useCases/liveRules';
 import { useHistory, type History } from './useHistory';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
@@ -19,7 +19,8 @@ function applyChange<T extends { id: string }>(list: T[], c: RowChange<T>): T[] 
   if (i < 0) return [...list, c.row];
   // Un eco que llega tarde no pisa a lo que ya hay: ver `isStaleRow` (el fallo del pincel, 2026-09-15).
   if (isStaleRow(list[i], c.row)) return list;
-  const next = [...list]; next[i] = c.row; return next;
+  // Y un eco no puede BORRAR lo que no trae: ver `keepUnsentLists` (las salas a mano alzada, 2026-09-16).
+  const next = [...list]; next[i] = keepUnsentLists(list[i], c.row); return next;
 }
 
 const DRAG_HZ_MS = 50; // ~20 Hz (specs/core/realtime: broadcast 20–30 Hz)
