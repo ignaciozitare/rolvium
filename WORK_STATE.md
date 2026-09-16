@@ -7,10 +7,17 @@
 > la conversación» y «Abrir la conversación con» — o sea, es la versión nueva, no una cacheada. Sin migraciones
 > en esta entrega.
 >
-> **⏳ LO PRIMERO AL RETOMAR: que él lo pruebe en producción.** Las pastillas y el pincel están probados en
-> pantalla por mí (dos usuarios, con el antes y el después), pero él todavía no los ha visto.
+> **✅ YA LO PROBÓ EN PRODUCCIÓN** (2026-09-16, con captura) y salió UN fallo: al desplegar una pastilla, las
+> barritas de al lado subían hasta su altura en vez de quedarse pegadas abajo. **Arreglado en la rama
+> `fix/pastillas-pegadas-abajo` (`cc8b9f7`), QA en modo bloqueo pasado — pendiente sólo de merge y deploy.**
+> La causa: `.ch-dock` lleva `flex-wrap:wrap-reverse`, que da la vuelta al eje transversal, así que «pegado
+> abajo» se escribe `align-items:flex-start`. Parece una errata y no lo es: hay test de regresión que lo sujeta.
 >
 > **Lo que queda apuntado, pequeño y sin prisa:**
+> - 🟠 **Con TRES pastillas desplegadas a la vez en una ventana estrecha, la de más arriba se sale por arriba**
+>   y no se puede cerrar (medido por el QA en Chromium: `top: -216`). Es de la v0.11.0, no del arreglo de hoy —
+>   sale igual con `flex-end` que con `flex-start`. El rincón se ancla abajo y no tiene tope de altura. Pide
+>   decisión suya: ¿tope con desplazamiento, o que sólo pueda haber una desplegada a la vez?
 > - Quitar el camino muerto `pendingChatOpen` / `onPendingChatOpenConsumed` de `SidePanel`/`SusurrosPanel`:
 >   nadie se lo pasa ya y hace lo contrario del diseño nuevo (tirar de la columna a la pestaña SUSURROS).
 > - La cuarta pastilla puede cerrar una DESPLEGADA en la que estuviera escribiendo.

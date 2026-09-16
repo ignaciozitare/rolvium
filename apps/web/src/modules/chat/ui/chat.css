@@ -66,10 +66,14 @@
    Ventanitas de conversación abajo a la derecha, encima de la mesa, como las de LinkedIn (suyo, 2026-09-16).
    Minimizada = sólo la cabecera; desplegada = la cabecera y el MISMO `.ch-conversation` de la columna dentro.
    Con mensajes sin leer va en sangre, que es lo que se ve sobre un mapa. */
-.ch-dock{position:fixed;right:calc(var(--tb-side-w) + 24px);bottom:16px;z-index:41;display:flex;align-items:flex-end;justify-content:flex-end;
+.ch-dock{position:fixed;right:calc(var(--tb-side-w) + 24px);bottom:16px;z-index:41;display:flex;align-items:flex-start;justify-content:flex-end;
   flex-wrap:wrap-reverse;gap:10px;max-width:calc(100vw - var(--tb-side-w) - 40px);}
 /* `wrap-reverse`: en una ventana estrecha las tres no caben en fila, y sin esto la de más a la izquierda se
-   salía de la pantalla sin forma de cerrarla. Así se apilan hacia arriba, que es hacia donde hay sitio. */
+   salía de la pantalla sin forma de cerrarla. Así se apilan hacia arriba, que es hacia donde hay sitio.
+   ⚠️ Y por eso `align-items` va en `flex-start` aunque las pastillas se peguen ABAJO: `wrap-reverse` da la
+   vuelta al eje transversal, así que aquí «start» ES abajo. Con `flex-end` —que es lo que parece correcto—
+   una pastilla desplegada levantaba a las barritas de al lado hasta su altura, que es justo lo que él vio en
+   pantalla el 16-09. No lo «arregles» al revés: hay un test de regresión que lo sujeta. */
 .ch-pill{flex:0 0 auto;width:min(248px,86vw);display:flex;flex-direction:column;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
 .ch-pill.open{height:min(360px,60vh);}
 .ch-pill.alert{background:var(--sys-blood);}
