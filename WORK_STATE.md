@@ -2,7 +2,7 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-17, tarde)
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-17, noche)
 >
 > ## 🚀 LO QUE SÍ ESTÁ EN PRODUCCIÓN HOY
 > - **v0.12.1** — «desaparecen habitaciones cuando pinto». **Cerrado por él: «*en prod lo veo todo bien*»**.
@@ -10,7 +10,7 @@
 >   columna grande (TOAST) y el mapeo la convertía en vacío.
 > - **v0.12.2** — el mismo fallo en los TRAZOS, que era peor (mesa en blanco). Arreglado antes de que le llegara.
 >
-> ## 🚧 LO QUE ESTÁ EN RAMA Y **NO MERGEADO**: `feat/red-de-seguridad-al-pintar` (`94f64fd`, 15 commits)
+> ## 🚧 LO QUE ESTÁ EN RAMA Y **NO MERGEADO**: `feat/red-de-seguridad-al-pintar` (`7367010`, 19 commits)
 > ⚠️ **SU LOCAL SE QUEDA EN ESA RAMA.** Producción NO tiene nada de esto.
 > Vista previa: `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
 >
@@ -23,9 +23,20 @@
 >    va y deja al party colgado*»).
 > 4. **CAMBIO DE HARNESS, orden suya con enfado y con razón** (ver los dos bloques de abajo).
 >
-> ⏳ **EL QA DE LA CUARTA VUELTA ESTABA CORRIENDO AL CERRAR EL CHAT — NO SE SABE SI PASÓ.** Las tres vueltas
-> anteriores bloquearon y las tres tenían razón (dos con filo de seguridad). **NO MERGEAR sin releer su
-> informe o relanzarlo.** Él pidió «*súbelo a prod*»; el merge quedó pendiente sólo del QA.
+> 🔴 **EL QA HA BLOQUEADO CUATRO VECES Y LAS CUATRO TENÍA RAZÓN** (dos con filo de seguridad). Los bloqueos de
+> la CUARTA están **todos corregidos**, pero eso significa que **hace falta una QUINTA vuelta**: nadie ha
+> auditado el código tal y como está ahora. **NO MERGEAR sin ella.** Él pidió «*súbelo a prod*»; el merge
+> quedó pendiente sólo del QA.
+>
+> Lo que cazó la cuarta, por si sirve de aviso de lo que se me escapa:
+> - **B4** — un test mío dejaba `tsc` ROJO y no se veía: **ni la build ni vitest comprueban tipos**. Yo había
+>   dicho «tsc limpio» porque lo pasé ANTES de escribir el test. **Pasar `npm run typecheck` DESPUÉS de tocar
+>   tests, siempre.**
+> - **B5** — el spec que creó esta rama (`core/errors`) **no llegaba a su propio listón**: títulos en inglés
+>   con cuerpo en castellano, el antipatrón que el mismo commit prohibía.
+> - **B6** — y el chequeo `specs` que monté **no podía proteger ningún `core/*`**: sólo miraba `modules/`, así
+>   que `shared/**` y `packages/**` —donde vive la red de errores— eran invisibles para su propio guardián.
+>   Lo demostró ejecutándolo. Arreglado con `CORE_DE` en `audit.mjs`.
 > ⚠️ **No consta que él haya probado la vista previa.** Se le preguntó una vez.
 >
 > ## 🔒 EL JUGADOR NUNCA VE EL MAPA DESPEJADO — **AGUJERO REAL, YA TAPADO**
@@ -80,8 +91,11 @@
 >   fila, sin `domain/infra/ui`) cuando se dijo «un hexágono por sistema». Mover ficheros, riesgo bajo.
 >
 > ## ⏭️ EL SIGUIENTE PASO CONCRETO
-> 1. Mirar el informe del QA de la cuarta vuelta (o relanzarlo). Si pasa → merge y producción.
-> 2. Meter el chequeo `module-index` y los `index.ts` de `maps` y `table`.
+> 1. **Lanzar el QA (quinta vuelta)** sobre el HEAD actual. Si pasa → merge y producción. Él ya lo pidió.
+> 2. **La puerta `index.ts`**: el chequeo `module-index` en `audit.mjs` (duro para lo que la rama toque) y los
+>    `index.ts` de `maps` y `table`. ⚠️ **`CLAUDE.md` y `specs/SPEC.md` YA AFIRMAN que ese chequeo existe y NO
+>    EXISTE** — lo señaló el QA: «regla anunciada, guardián ausente». O se implementa o se quita la afirmación;
+>    lo primero.
 > 3. (Lo de las luces lo retiró él: NO es un fallo, no perseguirlo.)
 >
 > ## 🧹 Deuda viva, medida y no cerrada
@@ -90,6 +104,10 @@
 >   QA compila las apps pero no pasa ese typecheck.
 > - `.rv-safe-cta` duplica `.tb-btn-blood`; candidato al botón de mesa de `@rolvium/ui`.
 > - `mapTokenRow.state ?? {}` es el último mapeador que inventa valor por defecto en una columna grande.
+> - **`npm run typecheck` de la raíz sólo cubre web y api**: `packages/core` y `packages/ui` **no pasan por
+>   ninguna puerta**, y los dos están rojos de antes (`Sheet.tsx:531` y dos en `core`).
+> - `ARCHITECTURE.md` dice «four seams» (cuatro TIPOS) y el parte «ocho costuras» (ocho INSTANCIAS). Las dos
+>   cuentas son ciertas; la palabra no ayuda.
 > - `onScene` no pasa por `keepUnsent`; `propKey` no incluye `silhouette`.
 > - `maps` son **16.363 líneas, el 64 % de todo el código de módulos**, con once subdominios sin separar en
 >   carpetas. Separarlos en hexágonos distintos **sería un error** (todos tocan la misma escena); separarlos en
