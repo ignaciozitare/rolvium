@@ -1,6 +1,6 @@
-# La escena · mapas (H7) — SPEC
+# Maps (H7) — SPEC
 
-## Propósito
+## Purpose
 La escena: un plano de fondo, muros invisibles, niebla por línea de visión, tokens, dibujos compartidos y pin de
 enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramientas son solo del director.
 
@@ -85,9 +85,9 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - 🔜 **Siguiente tanda, dicha por él**: «*una vez tengamos esto listo ya veremos los pinceles*» — repintar el
     suelo de UNA sala. Y coger, mover y borrar una forma ya levantada, que hoy sólo existe por debajo.
 
-## Qué puede hacer el usuario
+## What the user can do
 
-> Índice de **QUÉ HAY**, escrito el 2026-09-17 con el molde de `CLAUDE.md` § «Specs». El **porqué** de cada
+> Index of **WHAT EXISTS**, escrito el 2026-09-17 con el molde de `CLAUDE.md` § «Specs». El **porqué** de cada
 > cosa está en las secciones por rebanadas de más abajo, que es lo que este spec tenía y le sobra bien.
 
 **Cualquier miembro**
@@ -113,7 +113,7 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   por área, y sobre lo ya puesto: coger, mover, escalar, girar, copiar y reordenar la pila.
 - **Deshacer y rehacer**.
 
-## Pantallas
+## Screens
 
 | Pantalla / parte | Qué es | Lámina |
 |---|---|---|
@@ -131,7 +131,17 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 ⚠️ **Pendiente**: los nombres exactos de cada lámina se rellenan la próxima vez que el `.pen` esté abierto (el
 2026-09-17 no era accesible). Las secciones sí están confirmadas.
 
-## Estados y errores
+## Out of scope
+
+- **Light/dark inside the scene.** Does not exist: the system theme rules (`--sys-*`). See `modules/table`.
+- **A second physics engine in the browser.** Blocking geometry is computed once in `@rolvium/core` and used by
+  both the browser and the API; they must never diverge.
+- **Editing a silhouette by hand.** The outline is derived when the image is uploaded; an oval set by hand is
+  respected but there is no editor for it.
+- **Eager preloading of every scene.** Rejected on measurement: 20 scenes would be 160 queries on opening the
+  table, most never used. Only what he has actually opened is kept.
+
+## States & errors
 
 | Estado | Cuándo | Qué ve él |
 |---|---|---|
@@ -141,7 +151,7 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 | Sin suelo que pintar | Pincel sobre sala sin ninguna sala excavada | El panel lo dice en vez de quedarse mudo |
 | Un trozo roto | Algo revienta al pintarse | La red del § `core/errors`: se cae ese trozo, no la mesa |
 
-## Permisos
+## Permissions
 
 | Acción | Quién | Clave |
 |---|---|---|
@@ -151,7 +161,50 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 | Subir y ordenar **objetos** | Director con permiso | `manage_props` |
 | Ordenar la barra de herramientas para todos | Admin | `manage_settings` |
 
-## Qué puede hacer el usuario — detalle histórico
+## Data model
+
+Every table is `maps_*`, all with RLS, all in the realtime publication. Full column-by-column detail lives in
+the «Modelo de datos» sections further down, one per slice; this is the map of which is which.
+
+| Table | Holds | Written by |
+|---|---|---|
+| `maps_scenes` | The scene row: size, grid, background, presets, fog mode, rock paint | GM |
+| `maps_rooms` | Rooms and wall fills: `shape`, `points`, floor, mask and paint | GM |
+| `maps_room_openings` | Doors and windows annotated on a room outline | GM |
+| `maps_walls` | Free-standing walls, doors and windows | GM |
+| `maps_drawings` | Freehand strokes, shapes and text | **GM and players** |
+| `maps_layers` | The terrain stack with its masks, plus the fixed layers | GM |
+| `maps_lights` | Ambient lights | GM |
+| `maps_tokens` | Characters and creatures on the board | GM; players move their own |
+| `maps_props` · `maps_prop_packs` | The prop library, per user pack | GM with `manage_props` |
+| `maps_scene_props` | Props placed on a scene, with `z` and their blocking shape | GM |
+| `maps_fog` | What each player has explored, **one row per scene and per user** | The API |
+
+⚠️ Two things that bit hard and belong here:
+- **`maps_fog.explored` is per scene AND per user.** Switching scenes and coming back does not lose it; only
+  the in-memory copy is dropped.
+- **Large columns may not arrive in a realtime echo** (`points`, `data`, `silhouette`). See `core/realtime`
+  § «Qué se puede creer de un eco» — this cost three weeks and two failed fixes.
+
+## Decisions
+
+The «why» of this module is long and lives in the slice sections below, each with his own words and the date.
+The ones that outrank everything else:
+
+- **The rulebook wins** over anything written here (owner, 2026-08-17: «*con respecto a las reglas el manual
+  manda*»).
+- **Painting never changes the map.** Not sight, not movement, not light. The brush writes a PNG and nothing
+  else, so it can always be undone.
+- **Floor paint is for every dug shape, not one.** A room is usually several shapes fused; one file per shape
+  cut the stroke at every seam (owner, 2026-09-10).
+- **The GM collides too when dragging** (owner, 2026-09-16, revoking a decision from 2026-08-22). Placing a
+  token with one click still ignores it: that is a different gesture, and he said so himself.
+- **The scene shield rules** over per-prop blocking: if walls are passable, nothing blocks (owner, 2026-09-17,
+  closing the question: «*esto está solucionado en prod*»).
+- **Scale is remembered per category, not per piece** (owner, 2026-09-16, said twice).
+
+
+## What the user can do — historical detail
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
 - **Fondo del mapa** (popover, solo DJ): **color de base** (el mismo bloque que el Pincel: muestras, TUS COLORES
   por campaña, hex y cuentagotas; se ve donde no llega la imagen) y el **catálogo de fondos** a pantalla completa

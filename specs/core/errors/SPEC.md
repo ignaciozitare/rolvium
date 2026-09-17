@@ -1,70 +1,106 @@
-# Errores al pintar — la red de seguridad — SPEC
+# Errors while painting — the safety net — SPEC
 
 ## Purpose
 
-Que un error **al pintarse la pantalla** estropee **sólo el trozo afectado** y no tumbe la mesa entera.
+So that an error **while the screen is being painted** breaks **only the affected part**, never the whole table.
 
-Su frase, 2026-09-17: «*cualquier error al pintar te tumba la mesa entera en vez de estropear un trozo*».
+His words, 2026-09-17: «*cualquier error al pintar te tumba la mesa entera en vez de estropear un trozo*».
 
-**El fallo que lo destapó** (v0.12.2, § `core/realtime`): un eco de tiempo real llegaba sin la columna `data`
-de un trazo, `DrawingShape` leía `data.points` sobre nada y lanzaba **durante el pintado**. Como no había ni un
-`ErrorBoundary` en todo `apps/web`, React desmonta el árbol ENTERO ante un error de render no capturado: la
-mesa se quedaba **en blanco**, con la partida en marcha y la base de datos intacta. Recargar lo arreglaba, que
-es la parte que más desespera — parecía que se había perdido todo y no se había perdido nada.
+**What exposed it** (v0.12.2, see § `core/realtime`): a realtime echo arrived without the `data` column of a
+stroke, `DrawingShape` read `data.points` on nothing and threw **during render**. With no `ErrorBoundary`
+anywhere in `apps/web`, React unmounts the **entire** tree on an uncaught render error: the table went
+**blank**, mid-session, with the database perfectly intact. Reloading fixed it — which is the maddening part.
 
-Aquel caso ya está cortado en su origen. Esto es la red para **el siguiente**, que llegará: el fallo era de
-una sola línea y la consecuencia fue total.
+That particular hole is now closed at its source. This is the net for **the next one**, which will come: the
+bug was one line and the consequence was total.
 
-## Quién lo usa
+**Who uses it:** everyone, without doing anything. It is not a feature you turn on; it is a net you only ever
+see when something has already gone wrong. **GM and players see the same thing.** No permissions involved.
 
-Todo el mundo, y sin hacer nada: no es una función que se active, es una red que sólo se ve cuando algo falla.
-**El director y los jugadores ven lo mismo.** No hay permisos de por medio.
+## What the user can do
 
-## How it works
+- Nothing, until something breaks. Then, in the hole left by the broken part: **read what happened** and press
+  **Retry**, which remounts that part without reloading the page.
+- In the last-resort, full-screen variant there is a second button: **Reload the page**.
+- Everything else on screen keeps working and can still be used.
 
-### Dónde va la red, de fuera hacia dentro
+## Screens
 
-El valor está en el **radio de la explosión**: una sola red en la raíz convierte «página en blanco» en «página
-con un mensaje», que es mejor pero sigue siendo perderlo todo. Las de dentro son las que salvan la partida.
-
-| Red | Si revienta lo de dentro… | …esto sigue vivo |
+| Screen / part | What it is | Plate |
 |---|---|---|
-| **La app entera** | último recurso | una página con aviso y un botón de recargar, en vez de blanco |
-| **Cada pestaña de la mesa** (grupo · escena · ficha) | se cae esa pestaña | las otras pestañas y la navegación |
-| **El mapa** | se cae el mapa | la barra de herramientas, los paneles y el resto de la mesa |
-| **Cada panel flotante** | se cae ese panel | el mapa y los demás paneles |
+| Broken part, inside the table | Paper card in the system theme, caps title, italic body, blood-red button | `rolvium.pen` § 11 · «Mesa/Un trozo se ha roto» |
+| Broken screen, app chrome | `EmptyState` in amber, Retry + Reload the page | § 11 · «Error/La pantalla se ha roto» |
 
-### Qué ve él
-
-En el hueco de lo roto, un aviso discreto y un botón para **reintentar**, que vuelve a montar ese trozo sin
-recargar la página. Si al reintentar sigue roto —porque el dato malo sigue ahí—, recargar.
-
-La forma exacta del aviso la fija el Design Agent en `rolvium.pen` y **la aprueba él con capturas** antes de
-escribir una línea de UI. Se construye con lo que ya existe en `@rolvium/ui`; no se inventa una pieza nueva si
-una existente sirve.
-
-### Qué se registra
-
-El error queda escrito en la consola del navegador (mensaje y pila), para poder diagnosticarlo. Nada más.
+⚠️ **Two suits, and it is not a whim.** The four seams inside the table mount on the board, which is nearly
+black under **any** theme; app tokens there measured **1.12:1** contrast — invisible — so inside the table only
+`--sys-*` is used, which is what `table.css` mandates anyway.
 
 ## Rules & limits
 
-- 🔑 **La red NO puede ser la excusa para dejar de arreglar la causa.** Un trozo que se cae es un fallo, no un
-  estado aceptable: cuando salte, se arregla lo que lo hizo saltar. La red sólo compra que la partida no se
-  pierda mientras tanto.
-- ⚠️ **No atrapa todo, y no debe venderse como que sí.** Una red de React coge lo que lanza **al pintarse**.
-  **NO** coge: lo que falla dentro de un manejador de eventos (pulsar un botón), lo que falla en una promesa o
-  en un `async`, ni lo que falla en el servidor. Esos caminos siguen necesitando su propio manejo de errores.
-- Reintentar vuelve a montar el trozo desde cero. Lo que ese trozo tuviera sin guardar **se pierde** — igual
-  que ahora, sólo que ahora se pierde la mesa entera.
-- Un trozo caído **no** debe arrastrar a los de al lado: cada red es independiente.
+### Where the nets go, outside in
 
-## Out of scope (decidido con él, 2026-09-17)
+The value is the **blast radius**. One net at the root turns «blank page» into «page with a message», which is
+better but still loses everything. The inner ones are what save the session.
 
-- ❌ **Mandar los errores a un servicio externo de vigilancia** (Sentry o similar). Es otra cosa, con su coste
-  y su decisión de privacidad. Si algún día se quiere, la red ya es el sitio natural donde engancharlo.
-- ❌ Reintentos automáticos, cuentas de fallos, o apagar un trozo «que falla mucho». Complejidad sin caso.
+| Net | If what is inside throws… | …this stays alive |
+|---|---|---|
+| The whole app (`AppRouter`) | last resort | a page with a notice and a reload button, instead of blank |
+| Each table tab (`TablePage`, `key={tab}`) | that tab falls | the other tabs and the navigation |
+| The map (`SceneTab`) | the map falls | the toolbar, the panels and the rest of the table |
+| Each floating panel (brush · builder · lights · props) | that panel falls | the map and the other panels |
+| The layers panel | it falls | everything else |
 
-## Modelo de datos
+**Eight instances, five kinds.** Removing one of them today breaks no test — see § Out of scope.
 
-No lleva datos: no toca la base, no guarda nada y no viaja por la red. Sin migraciones.
+### The rules themselves
+
+- 🔑 **The net is never an excuse to stop fixing the cause.** A part that falls is a bug, not an acceptable
+  state. When it fires, whatever made it fire gets fixed. The net only buys that the session is not lost.
+- ⚠️ **It does not catch everything, and must not be sold as if it did.** A React net catches what throws
+  **while painting** (and in lifecycle). It does **not** catch failures inside an event handler, inside a
+  promise or an `async`, or on the server. Those paths still need their own error handling.
+- Retry remounts the part from scratch. Anything unsaved in that part **is lost** — as it is today, except
+  today the whole table is lost instead.
+- A fallen part **must not drag its neighbours**: each net is independent.
+
+## States & errors
+
+| State | What he sees |
+|---|---|
+| Nothing broken | Nothing at all: the net adds no DOM when there is no error |
+| A part broke, inside the table | Paper card: «Este trozo se ha roto» + «El resto de la mesa sigue funcionando…» + **Reintentar** |
+| The screen broke | Amber notice: «Algo se ha roto en esta pantalla» + «No has perdido nada…» + **Reintentar** · **Recargar la página** |
+| Retry, and it breaks again | The same card again. The underlying data is still bad; reloading is the next step |
+
+The error is written to the browser console with the label of the part (`maps:canvas`, `table:scene`…), so it
+can be diagnosed without guessing which one fell.
+
+## Permissions
+
+None. The net is not gated: GM and players get the same behaviour and the same wording.
+
+## Data model
+
+None. It touches no table, stores nothing and travels over no wire. No migrations.
+
+## Out of scope
+
+- ❌ **Sending errors to an external watchdog** (Sentry or similar). Decided with him on 2026-09-17: it is a
+  separate thing with its own cost and its own privacy call. If it is ever wanted, `onError` on
+  `ErrorBoundary` is the hook already waiting for it.
+- ❌ Automatic retries, failure counters, or switching off a part «that fails a lot». Complexity with no case.
+- ⏳ **Known debt, not closed:** the *placement* of the eight seams is pinned by no test — remove a
+  `SafeRegion` from `AppRouter` and the suite stays green. The behaviour is covered; the wiring is not.
+
+## Decisions
+
+- **Why a render prop and not a node** for the fallback: `@rolvium/ui` knows nothing about translations, the
+  same way `Sheet` receives its own `t`. The package holds the behaviour; `apps/web` dresses it.
+- **Amber, not red** (approved in the plate). Red in this family means «you did something wrong» — an invalid
+  campaign code. This is not his fault and nothing is lost, and red would suggest otherwise.
+- **Blood-red button inside the table, not gold.** The plate inherited gold from «Mesa/Reserva vacía», which
+  is where it was copied from, but his standing rule wins: in the table, the active thing is blood. The
+  `.pen` was corrected to match the code, not the other way round.
+- **No reload button inside the table**: it would throw away the whole session over one broken part.
+- **No global boundary beyond these eight.** His call; a net around everything would hide exactly the kind of
+  bug this module exists to make visible.

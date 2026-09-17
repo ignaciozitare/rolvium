@@ -46,11 +46,19 @@
 >
 > ## 📏 LAS DOS ÓRDENES DE HOY SOBRE CÓMO SE TRABAJA — YA EN EL SISTEMA, NO EN MI CRITERIO
 >
+> **0. LOS SPECS VAN EN INGLÉS** — preguntado y contestado por él (17-09): «*mm el spec tiene que estar en
+> inglés, ¿por qué dices en castellano?*» → «*inglés*». Yo había elegido castellano por mi cuenta al leer su
+> queja; **la decisión es suya y es inglés, títulos y cuerpo**. Única excepción: **sus frases se citan
+> literales en castellano**, que son la prueba de por qué algo es como es. Ya cambiado en `CLAUDE.md`, en el
+> chequeo del auditor y en los cuatro specs escritos hoy.
+>
 > **1. LOS SPECS SON PARA RECONSTRUIR, NO UN DIARIO.** «*sin ella yo no puedo vender esta herramienta, me has
 > costado muchísimo dinero por flojo*». Nueve secciones obligatorias en castellano (`CLAUDE.md` § «Specs»).
 > `npm run audit` gana el chequeo `specs`: **DURO** para lo que la rama toque, aviso para el resto.
-> Hecho ya: `modules/table` **reescrito entero** como muestra del molde (43 → 130 líneas) y `modules/maps` con
-> las cuatro secciones que le faltaban. **Backlog completo en `specs/SPEC.md`**: los once subdominios de `maps`
+> **Hechos ya, los cuatro al listón y en inglés**: `modules/table` (reescrito entero, 43 → 150 líneas, es la
+> MUESTRA del molde) · `modules/maps` (las secciones de «qué hay», que es lo que no tenía) ·
+> `core/errors` (reescrito: lo escribió esta rama y no llegaba a su propio listón, lo cazó el QA) ·
+> `core/testing` (reescrito; incluye por qué `tsc` puede estar rojo con todo lo demás verde). **Backlog completo en `specs/SPEC.md`**: los once subdominios de `maps`
 > (pincel, constructor, texturas, objetos, capas y luces, escenas, fondo, niebla, barra, lienzo, escena en
 > vivo) y los 16 specs por debajo del listón, cada uno con lo que le falta.
 >

@@ -379,21 +379,27 @@ Lo que pasó por no cumplirlo: donde se trabajó hay 3.058 líneas y el resto se
 43—, con los títulos en inglés y el cuerpo en castellano. Se escribieron como registro de decisiones, que es
 otra cosa.
 
-### Las nueve secciones OBLIGATORIAS, en este orden y en castellano
+### Las nueve secciones OBLIGATORIAS, en este orden y **EN INGLÉS**
+
+**Los specs van EN INGLÉS, enteros — títulos y cuerpo** (decisión suya, 2026-09-17, preguntada y contestada:
+«*mm el spec tiene que estar en inglés, ¿por qué dices en castellano?*» → «*inglés*»). El código está en
+inglés y estos documentos tienen que poder viajar a otro equipo. **Lo que no vale es la mezcla**, que es lo que
+había: `## Purpose` con el cuerpo en castellano.
 
 | # | Sección | Qué va dentro |
 |---|---|---|
-| 1 | `## Propósito` | Qué problema resuelve, y **quién lo usa** (todos · director · jugador · admin) |
-| 2 | `## Qué puede hacer el usuario` | **Todas** las acciones, una por línea. Si no está aquí, no existe |
-| 3 | `## Pantallas` | Cada vista/panel/modal, **con su lámina de `rolvium.pen`** («§ 5 · `Maps/Escena · dark`») |
-| 4 | `## Reglas y límites` | Invariantes, topes, lo que NUNCA puede pasar |
-| 5 | `## Estados y errores` | Cada estado (vacío, cargando, error, sin permiso) y **qué ve él** en cada uno |
-| 6 | `## Permisos` | Quién puede qué, y con qué clave del motor de roles |
-| 7 | `## Modelo de datos` | Tablas, columnas, RLS y a qué migración corresponden |
-| 8 | `## Fuera de alcance` | Lo que se decidió NO construir, y por qué |
-| 9 | `## Decisiones` | El **porqué**: sus frases con fecha, qué se probó y falló. Esto es lo único que hoy sobra bien |
+| 1 | `## Purpose` | Qué problema resuelve, y **quién lo usa** (everyone · GM · player · admin) |
+| 2 | `## What the user can do` | **Todas** las acciones, una por línea. Si no está aquí, no existe |
+| 3 | `## Screens` | Cada vista/panel/modal, **con su lámina de `rolvium.pen`** («§ 5 · `Maps/Escena · dark`») |
+| 4 | `## Rules & limits` | Invariantes, topes, lo que NUNCA puede pasar |
+| 5 | `## States & errors` | Cada estado (empty, loading, error, no permission) y **qué ve él** en cada uno |
+| 6 | `## Permissions` | Quién puede qué, y con qué clave del motor de roles |
+| 7 | `## Data model` | Tablas, columnas, RLS y a qué migración corresponden |
+| 8 | `## Out of scope` | Lo que se decidió NO construir, y por qué |
+| 9 | `## Decisions` | El **porqué**: sus frases con fecha (**se citan tal cual, en castellano**), qué falló |
 
 Las 1-8 dicen **QUÉ hay**. La 9 dice **POR QUÉ**. Hoy sobra la 9 y faltan las demás.
+⚠️ **Sus frases se citan literales**, no se traducen: son la prueba de por qué algo es como es.
 
 ### Cómo se cumple
 
@@ -401,7 +407,7 @@ Las 1-8 dicen **QUÉ hay**. La 9 dice **POR QUÉ**. Hoy sobra la 9 y faltan las 
   módulo o área core que la rama TOQUE —faltan secciones o menos de 80 líneas y no se mergea— y **aviso** para
   el resto, con la deuda medida. Así lo nuevo nace bien y lo viejo se cierra poco a poco, que es lo que pidió.
 - **Un hexágono nuevo no se da por terminado sin su spec completo.** Las nueve secciones, o no está hecho.
-- **Un idioma: castellano**, títulos incluidos. Nada de títulos en inglés con cuerpo en castellano.
+- **Un idioma: INGLÉS**, títulos y cuerpo. La única excepción son sus citas, que van literales.
 - Sigue en pie lo de **no regenerar todos los specs de golpe**: se cierran a medida que se tocan los módulos.
 
 ---

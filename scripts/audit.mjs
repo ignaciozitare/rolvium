@@ -370,15 +370,32 @@ const SECTIONS = [
 //
 // Sólo es DURO para lo que la rama TOCA. Lo demás sale como aviso con su deuda medida, para ir cerrándola
 // poco a poco («*de a poco iras acomodando la documentacion*») sin bloquear todo el repo de golpe.
-const SPEC_SECCIONES = ['Propósito', 'Qué puede hacer', 'Pantallas', 'Reglas y límites', 'Estados y errores', 'Permisos', 'Modelo de datos', 'Fuera de alcance', 'Decisiones'];
+// En INGLÉS desde el 2026-09-17, decisión suya: el código está en inglés y esto tiene que poder viajar.
+const SPEC_SECCIONES = ['Purpose', 'What the user can do', 'Screens', 'Rules & limits', 'States & errors', 'Permissions', 'Data model', 'Out of scope', 'Decisions'];
 const SPEC_MIN_LINEAS = 80;
+/** Qué ruta pertenece a qué área `specs/core/*`. Sin esto el chequeo sólo veía `modules/`. */
+const CORE_DE = [
+  [/^apps\/web\/src\/shared\/ui\/SafeRegion|^packages\/ui\/src\/components\/ErrorBoundary/, 'errors'],
+  [/^apps\/web\/src\/modules\/[^/]+\/(domain\/useCases\/liveRules|infra\/Supabase[^/]*Repo)/, 'realtime'],
+  [/^packages\/core\/src\/gameSystem|^packages\/system-/, 'game-system'],
+  [/^apps\/web\/src\/modules\/auth\/|^apps\/web\/src\/modules\/identity\//, 'auth'],
+  [/^packages\/ui\/vitest|^apps\/web\/tests\/helpers\//, 'testing'],
+  [/compressImage|^packages\/ui\/src\/lib\/.*image/i, 'images'],
+];
 {
   const tocados = new Set();
   try {
     const base = execSync('git merge-base HEAD main', { encoding: 'utf8' }).trim();
     for (const f of execSync(`git diff --name-only ${base}...HEAD`, { encoding: 'utf8' }).split('\n')) {
-      const m = f.match(/^apps\/web\/src\/modules\/([^/]+)\//) || f.match(/^apps\/api\/src\/(?:.*\/)?([^/]+)\.ts$/);
-      if (m) tocados.add(m[1]);
+      const m = f.match(/^apps\/web\/src\/modules\/([^/]+)\//);
+      if (m) { tocados.add(m[1]); continue; }
+      /*
+       * 🐞 Y LAS ÁREAS `core/*`, que se quedaban fuera (lo cazó el QA en cuarta vuelta EJECUTÁNDOLO: dejó
+       * `core/errors/SPEC.md` en cuatro líneas sin secciones y el audit seguía diciendo 0 duros). La red de
+       * errores vive en `shared/` y en `packages/`, así que nada de eso marcaba su área como tocada — el
+       * guardián no alcanzaba justo lo que la rama estaba cambiando.
+       */
+      for (const [patron, area] of CORE_DE) if (patron.test(f)) tocados.add(area);
     }
   } catch { /* sin git o sin main: todo sale como aviso */ }
 

@@ -1,125 +1,125 @@
-# La mesa (H3) — SPEC
+# Table (H3) — SPEC
 
-> **Este spec está escrito para RECONSTRUIR el módulo desde cero**, no como diario de decisiones. Es la primera
-> pieza escrita con el molde de nueve secciones que manda `CLAUDE.md` § «Specs» desde el 2026-09-17.
+> **Written to REBUILD the module from scratch**, not as a decisions diary. First spec written with the
+> nine-section template that `CLAUDE.md` § «Specs» mandates since 2026-09-17. English throughout; his own
+> words are quoted verbatim in Spanish, because they are the evidence for why something is the way it is.
 
-## Propósito
+## Purpose
 
-La sesión en vivo: el sitio donde se juega. Al entrar en una campaña la mesa **se viste con el sistema de
-juego** (papel, tipografías, lunas en Plenilunio) y reúne en una sola pantalla la ficha, la escena, los dados,
-el chat, las notas y el panel del director.
+The live session: the place where people actually play. On entering a campaign the table **dresses itself in
+the game system** (paper, typefaces, moons in Plenilunio) and gathers the sheet, the scene, the dice, the chat,
+the notes and the GM panel into one screen.
 
-**Quién lo usa:** los miembros de la campaña, y sólo ellos. Hay dos papeles con vistas distintas —**director**
-(uno por campaña, el que la creó) y **jugador**—, y lo que ve uno no se le sirve nunca al otro.
+**Who uses it:** the members of that campaign, and nobody else. Two roles with different views — **GM** (one
+per campaign, whoever created it) and **player** — and what one sees is never served to the other.
 
-## Qué puede hacer el usuario
+## What the user can do
 
-**Cualquier miembro**
-- Entrar en la mesa de una campaña de la que es miembro (`/table/:id`).
-- Ver **quién está conectado**: el director con borde dorado, los jugadores con halo verde si están, atenuados
-  si no; el suyo propio marcado. Y en cuántos aparatos está él mismo conectado.
-- Moverse entre **pestañas**. Jugador: Ficha · Escena · Crear personaje. Director: Ficha · El grupo · Escena ·
-  Bestiario · Crear personaje.
-- Abrir y cerrar el **lanzador de dados**, que es un panel flotante que se arrastra.
-- Usar el **lateral**: Registro de tiradas · Chat · Notas · Bitácora. Y plegarlo para ganar sitio.
-- **Coger y devolver** recursos compartidos del sistema (en Plenilunio, la Reserva de Destino).
-- Abrir **su ficha en una ventana aparte** (`/table/:id/sheet/:charId`), sincronizada con la mesa.
+**Any member**
+- Enter the table of a campaign they belong to (`/table/:id`).
+- See **who is connected**: the GM with a gold ring, players with a green halo when present and dimmed when
+  away, their own marked. And on how many devices they themselves are connected.
+- Move between **tabs**. Player: Sheet · Scene · Create character. GM: Sheet · The group · Scene · Bestiary ·
+  Create character.
+- Open and close the **dice roller**, a floating panel that can be dragged.
+- Use the **side rail**: roll log · chat · notes · campaign journal. And fold it away for room.
+- **Take and return** the system's shared resources (in Plenilunio, the Fate pool).
+- Open **their sheet in a separate window** (`/table/:id/sheet/:charId`), synced with the table.
 
-**Sólo el director**
-- Ver el panel **«El grupo»**: cada jugador con su personaje, su resistencia, su estado de salud, sus recursos,
-  y el **registro de cambios** de las fichas.
-- Ver la ficha de cualquier jugador en modo lectura.
-- **Reiniciar** un recurso compartido.
-- Todo lo de la pestaña Escena que lleva permiso (ver § Permisos).
+**GM only**
+- See **«The group»**: every player with their character, resistance, health state, resources, and the
+  **change log** of the sheets.
+- Open any player's sheet read-only.
+- **Reset** a shared resource.
+- Everything in the Scene tab that carries a permission (see § Permissions).
 
-## Pantallas
+## Screens
 
-| Pantalla / parte | Qué es | Lámina |
+| Screen / part | What it is | Plate |
 |---|---|---|
-| La mesa | El caparazón entero: barra Rolvium, cabecera, pestañas, cuerpo y lateral | `rolvium.pen` § 4 · LA MESA |
-| Barra Rolvium | Fina, arriba: ← Campañas · nombre · chip de sistema · aparatos · avisos · avatar | § 4 · LA MESA |
-| Cabecera de la mesa | Sistema + campaña · conectados · papel (JUGADOR/DIRECTOR) · abrir ficha aparte | § 4 · LA MESA |
-| Recursos compartidos | Centrados bajo la cabecera. En Plenilunio: lunas grandes, «en tu mano», Devolver | § 4 · LA MESA |
-| Lateral (272 px) | Lanzador de dados + Registro · Chat · Notas · Bitácora | § 4 · LA MESA |
-| El grupo (director) | Un jugador por fila, con la etiqueta «SOLO DIRECTOR» | § 4 · LA MESA |
-| Ficha en ventana aparte | `/table/:id/sheet/:charId`, con el aviso «sincronizada con la mesa» | § 4 · LA MESA |
-| Estados vacíos y de error | Sin escena activa · sin ficha · reserva agotada · sin conexión | § 11 · ESTADOS VACÍOS Y ERRORES |
+| The table | The whole shell: Rolvium bar, header, tabs, body, side rail | `rolvium.pen` § 4 · LA MESA |
+| Rolvium bar | Thin, on top: ← Campaigns · name · system chip · devices · alerts · avatar | § 4 · LA MESA |
+| Table header | System + campaign · who is connected · role · open sheet apart | § 4 · LA MESA |
+| Shared resources | Centred under the header. Plenilunio: big moons, «in your hand», Return | § 4 · LA MESA |
+| Side rail (272 px) | Dice roller + roll log · chat · notes · journal | § 4 · LA MESA |
+| The group (GM) | One row per player, labelled «SOLO DIRECTOR» | § 4 · LA MESA |
+| Sheet in its own window | `/table/:id/sheet/:charId`, with the «synced with the table» note | § 4 · LA MESA |
+| Empty and error states | No active scene · no sheet · pool empty · offline | § 11 · ESTADOS VACÍOS Y ERRORES |
 
-⚠️ **Pendiente**: los nombres exactos de cada lámina de la § 4 se rellenan la próxima vez que el `.pen` esté
-abierto (el 2026-09-17 no era accesible al escribir esto). La sección y el contenido sí están confirmados.
+⚠️ **Pending**: the exact plate names inside § 4 go in next time `rolvium.pen` is reachable (it was not, on
+2026-09-17). The section and the contents are confirmed.
 
-## Reglas y límites
+## Rules & limits
 
-- **Un director por campaña.** El papel se da una sola vez, automáticamente, al crearla; todo el que entra
-  después entra como jugador, y **no hay forma en la app de nombrar a otro**. La base no lo prohíbe con una
-  restricción, pero nada puede crear un segundo.
-- **La vista del director no se le sirve nunca a un jugador**: el filtrado es de servidor, no de pantalla.
-- Los recursos compartidos se descuentan **de forma atómica en el servidor** (`UPDATE … WHERE pool >= n`, con
-  bloqueo de fila). Si dos piden el último, uno recibe un error y se le dice.
-- Un personaje **que ya está al máximo** de un recurso no puede coger más; se bloquea y se explica por qué.
-- **Sólo el director reinicia** un recurso. El director **no coge dados**.
-- **«Mejorar» NO es una pestaña**: es un botón dentro de la ficha (dueño, 2026-08-20). Ver § Decisiones.
+- **One GM per campaign.** The role is granted once, automatically, when the campaign is created; everyone who
+  joins later joins as a player, and **there is no way in the app to appoint another**. The database does not
+  forbid it with a constraint, but nothing can create a second one.
+- **The GM view is never served to a player**: the filtering is server-side, not screen-side.
+- Shared resources are spent **atomically on the server** (`UPDATE … WHERE pool >= n`, row lock). If two people
+  ask for the last one, one gets an error and is told why.
+- A character **already at the cap** of a resource cannot take more; it is blocked and explained.
+- **Only the GM resets** a resource. The GM **does not take dice**.
+- **«Mejorar» is NOT a tab**: it is a button inside the sheet (owner, 2026-08-20). See § Decisions.
 
-## Estados y errores
+## States & errors
 
-| Estado | Cuándo | Qué ve él |
+| State | When | What he sees |
 |---|---|---|
-| Cargando | Mientras se pide la campaña y el sistema | «Cargando…» a pantalla completa |
-| No eres miembro | Entra en una campaña a la que no pertenece | Candado + «No eres miembro de esta campaña» |
-| Sistema no instalado | La campaña usa un sistema que no está en el registro | Icono de extensión + el aviso |
-| Error | Falla la carga, o falta campaña/sistema/usuario | Icono de error + «Ha habido un error» |
-| Sin escena activa | El director no ha activado ninguna | «El director aún no ha activado ninguna escena» |
-| Reserva agotada | Se han gastado todos los dados de la aventura | Se dice, y se aclara que sólo el director reinicia |
-| Un trozo roto | Algo revienta al pintarse dentro de una pestaña | La red del § `core/errors`: se cae ese trozo y no la mesa |
+| Loading | While the campaign and the system are fetched | «Cargando…», full screen |
+| Not a member | Entering a campaign they do not belong to | Padlock + «No eres miembro de esta campaña» |
+| System not installed | The campaign uses a system missing from the registry | Extension icon + the notice |
+| Error | The load fails, or campaign/system/user is missing | Error icon + «Ha habido un error» |
+| No active scene | The GM has not activated one | «El director aún no ha activado ninguna escena» |
+| Pool empty | All the adventure's dice are spent | Said plainly, and that only the GM can reset |
+| A broken part | Something throws while painting inside a tab | The net from § `core/errors`: that part falls, not the table |
 
-## Permisos
+## Permissions
 
-| Acción | Quién | Clave del motor de roles |
+| Action | Who | Role-engine key |
 |---|---|---|
-| Entrar en la mesa | Miembro de la campaña | — (membresía, por RLS) |
-| Ver «El grupo» y las fichas ajenas | Director | — (papel `dm` de la campaña) |
-| Reiniciar un recurso compartido | Director | — (comprobado en la función de base) |
-| Subir y ordenar texturas del mapa | Director con permiso | `manage_textures` |
-| Subir y ordenar objetos del mapa | Director con permiso | `manage_props` |
-| Ordenar la barra de herramientas para todos | Admin | `manage_settings` |
+| Enter the table | Campaign member | — (membership, via RLS) |
+| See «The group» and other people's sheets | GM | — (campaign role `dm`) |
+| Reset a shared resource | GM | — (checked inside the DB function) |
+| Upload and order map textures | GM with permission | `manage_textures` |
+| Upload and order map props | GM with permission | `manage_props` |
+| Order the toolbar for everyone | Admin | `manage_settings` |
 
-Los permisos se resuelven **en el caparazón** (`usePermissions`) y bajan por parámetro: `maps` no tiene por qué
-saber cómo se leen los roles.
+Permissions are resolved **in the shell** (`usePermissions`) and passed down as props: `maps` has no business
+knowing how roles are read.
 
-## Modelo de datos
+## Data model
 
-**Sin tablas propias.** El estado de los recursos compartidos vive en
-`campaigns_campaigns.shared_resources` (jsonb `{ id: { value, max, hands: { userId: n } } }`).
-Migración: `20260817130000_table_shared_resources.sql`.
+**No tables of its own.** The shared-resource state lives in `campaigns_campaigns.shared_resources`
+(jsonb `{ id: { value, max, hands: { userId: n } } }`). Migration:
+`20260817130000_table_shared_resources.sql`.
 
-Los jugadores **no escriben esa columna directamente**: pasan por funciones `SECURITY DEFINER` atómicas, con
-bloqueo de fila.
+Players **never write that column directly**: everything goes through atomic `SECURITY DEFINER` functions
+with a row lock.
 
-| Función | Qué hace | Errores |
+| Function | What it does | Errors |
 |---|---|---|
-| `table_take_resource(cid, rid, n)` | Coger n del recurso (el máximo por tirada sale del propio recurso) | `pool_empty` · `per_take_max` · `not_member` |
-| `table_return_resource` | Devolver lo que tiene en la mano | — |
-| `table_reset_resource` | Reiniciar (sólo director) | `forbidden` |
-| `table_spend_hand` | Consumir los dados al tirar (**sólo `service_role`**: lo llama la API) | — |
+| `table_take_resource(cid, rid, n)` | Take n (the per-take cap is read from the stored resource) | `pool_empty` · `per_take_max` · `not_member` |
+| `table_return_resource` | Return what is in hand | — |
+| `table_reset_resource` | Reset (GM only) | `forbidden` |
+| `table_spend_hand` | Spend the dice on a roll (**`service_role` only**: called by the API) | — |
 
-**Tiempo real:** `campaigns_campaigns` y `campaigns_members` están en la publicación; la presencia va por el
-canal `campaign:{id}`.
+**Realtime:** `campaigns_campaigns` and `campaigns_members` are in the publication; presence rides the
+`campaign:{id}` channel.
 
-## Fuera de alcance
+## Out of scope
 
-- **Más de un director por campaña.** No se construye mientras él no lo pida: hoy la campaña es de quien la
-  crea (ver § Reglas).
-- **Claro/oscuro dentro de la mesa.** No existe: manda el tema del sistema (`--sys-*`). Los colores de la app
-  (`--tx`, `--sf`…) **no se usan por debajo de `.tb-table`**.
-- Voz y vídeo. Nunca se ha pedido.
+- **More than one GM per campaign.** Not built until he asks: today a campaign belongs to whoever created it.
+- **Light/dark inside the table.** It does not exist: the system theme rules (`--sys-*`). App tokens
+  (`--tx`, `--sf`…) **are not used below `.tb-table`**.
+- Voice and video. Never requested.
 
-## Decisiones
+## Decisions
 
-- **«Mejorar» no es una pestaña** (dueño, 2026-08-20). Mejorar es algo que le haces a la ficha que estás
-  mirando, no un sitio aparte al que ir; como pestaña te sacaba de la ficha para volver a cargarla al lado.
-  Es un botón dentro de la ficha, al lado de «Editar» y «Abrir ficha aparte», y abre el panel encima.
-- **El descuento de recursos es de servidor y atómico** desde el principio: con dos jugadores pidiendo el
-  último dado a la vez, cualquier cosa hecha en el navegador se lo daría a los dos.
-- **La mesa se viste con el sistema, no con la marca.** Todo lo que hay debajo de `.tb-table` usa sólo
-  `--sys-*`, y por eso un sistema nuevo se ve distinto sin tocar una línea de este módulo.
-- **El director no coge dados** de la reserva: la reserva es de los jugadores.
+- **«Mejorar» is not a tab** (owner, 2026-08-20). Improving is something you do *to the sheet you are looking
+  at*, not a place you go; as a tab it pulled you out of the sheet only to load it again beside you. It is a
+  button inside the sheet, next to «Editar» and «Abrir ficha aparte», and it opens the panel on top.
+- **Resource spending is server-side and atomic** from day one: with two players asking for the last die at
+  once, anything done in the browser hands it to both.
+- **The table wears the system, not the brand.** Everything under `.tb-table` uses only `--sys-*`, which is
+  why a new system looks different without touching a line of this module.
+- **The GM does not take dice** from the pool: the pool belongs to the players.
