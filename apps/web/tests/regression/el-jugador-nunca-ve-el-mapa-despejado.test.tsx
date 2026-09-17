@@ -16,10 +16,16 @@ import { SCENE_WAREHOUSE } from '../helpers/fakes';
 const base = {
   scene: SCENE_WAREHOUSE, tokens: [], walls: [], drawings: [], layers: [], lights: [], sceneProps: [],
   drags: {}, pin: null, tool: 'select' as const,
-  stroke: { color: '#8b1a1a', width: 3 }, me: 'u-pip', view: { x: 0, y: 0, zoom: 1 },
+  stroke: { color: '#8b1a1a', width: 3 }, me: 'u-pip', view: { panX: 0, panY: 0, zoom: 1 },
   brush: 2, wallKind: 'wall' as const, wallShape: 'line' as const, snapGrid: true, chainNodes: false,
   showWalls: false, probe: null, nameOf: () => '',
   onViewChange: () => undefined,
+  /* Los diez obligatorios. Sin ellos `tsc` estaba ROJO y no se notaba: ni la build ni vitest comprueban tipos. */
+  onDragToken: () => undefined, onMoveToken: () => undefined, onAddDrawing: () => undefined,
+  onErase: () => undefined, onAddWall: () => undefined, onMoveWall: () => undefined,
+  onPatchWall: () => undefined, onRemoveWall: () => undefined, onPin: () => undefined,
+  onSelectWall: () => undefined, onToggleWall: () => undefined, onPaintFog: () => undefined,
+  selectedTokenIds: [], onSelectToken: () => undefined,
 };
 
 describe('🔒 el jugador nunca ve el mapa despejado', () => {
