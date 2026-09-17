@@ -170,15 +170,50 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setFog(withProbeMemory(next));
   }, [withProbeMemory]);
 
+  /**
+   * LO QUE YA TRAJIMOS DE CADA ESCENA, para que volver a una no cueste ocho consultas. Vive en el hook, así
+   * que se muere al salir de la mesa: no hay nada que limpiar ni que pueda crecer entre campañas.
+   *
+   * ⚠️ SIN FICHAS a propósito — ver el comentario del efecto de carga.
+   */
+  const cacheEscenas = useRef<Map<string, { walls: Wall[]; drawings: Drawing[]; layers: Layer[]; lights: Light[]; rooms: Room[]; roomOpenings: RoomOpening[]; sceneProps: SceneProp[] }>>(new Map());
+  /**
+   * A QUÉ ESCENA pertenece lo que hay ahora mismo en pantalla. Sin esto, al cambiar de escena se guardaría en
+   * el hueco de la NUEVA lo que todavía es de la ANTERIOR, y volver enseñaría el mapa equivocado.
+   */
+  const cargadoPara = useRef<string | null>(null);
+
   useEffect(() => { setLive(scene); }, [scene]);
 
   useEffect(() => {
-    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setSceneProps([]); setStatus('ready'); return; }
+    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setSceneProps([]); cargadoPara.current = null; setStatus('ready'); return; }
     let alive = true;
     setStatus('loading');
-    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)])
-      .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); setStatus('ready'); })
-      .catch(() => { if (alive) setStatus('error'); });
+    /*
+     * 🔑 VOLVER A UNA ESCENA NO LA VUELVE A PEDIR ENTERA (suyo, 2026-09-17: «*¿por qué no haces una precarga y
+     * lo dejas en memoria?*»). Se guarda lo que YA trajimos y se reusa.
+     *
+     * **Se guarda lo que no se mueve solo, y NUNCA las fichas.** Muros, dibujos, capas, luces, habitaciones,
+     * vanos y objetos los cambia SÓLO el director —el rol se da una vez, al crear la campaña, y nadie más
+     * puede tenerlo—, así que mientras él está en otra escena nadie los toca. Y es la parte gorda: 53 salas de
+     * las suyas son 4 KB cada una. Las FICHAS se piden siempre frescas porque es lo único que se mueve sin él
+     * (sus jugadores, en la escena que tenga activada), y es la consulta más barata de las ocho.
+     *
+     * Así volver a un piso cuesta UNA consulta en vez de OCHO, y lo que se ve es verdad: el mapa no puede
+     * haber cambiado, y las fichas están donde están.
+     */
+    const guardado = cacheEscenas.current.get(sceneId);
+    if (guardado) {
+      setWalls(guardado.walls); setDrawings(guardado.drawings); setLayers(guardado.layers); setLights(guardado.lights);
+      setRooms(guardado.rooms); setRoomOpenings(guardado.roomOpenings); setSceneProps(guardado.sceneProps);
+      void repo.listTokens(sceneId)
+        .then(t => { if (!alive) return; setTokens(t); cargadoPara.current = sceneId; setStatus('ready'); })
+        .catch(() => { if (alive) setStatus('error'); });
+    } else {
+      void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)])
+        .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); cargadoPara.current = sceneId; setStatus('ready'); })
+        .catch(() => { if (alive) setStatus('error'); });
+    }
     const off = repo.subscribe(sceneId, {
       onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(prev => (prev && isStaleRow(prev, c.row) ? prev : c.row)); },
       onToken: c => { setTokens(l => applyChange(l, c)); if (c.type !== 'INSERT') setDrags(d => { if (!d[c.id]) return d; const n = { ...d }; delete n[c.id]; return n; }); },
@@ -265,6 +300,20 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const announceVision = useCallback(() => {
     if (sceneId && live) repo.broadcast(sceneId, { type: 'fog.updated', campaignId: live.campaignId, sceneId, userId: me });
   }, [repo, sceneId, live, me]);
+
+  /**
+   * EL GUARDADO SE MANTIENE AL DÍA SOLO. Cada vez que cambia algo de la escena que hay en pantalla —lo dibuja
+   * él, o llega por el canal en vivo— se vuelve a guardar. Así volver a un piso enseña lo ÚLTIMO que había,
+   * incluido lo que él acabara de dibujar antes de irse.
+   *
+   * 🔑 `cargadoPara` es lo que impide el fallo bobo y grave: al cambiar de escena, este efecto corre con el id
+   * NUEVO pero con las listas VIEJAS —todavía no han llegado las suyas—, y sin la comprobación se guardaría el
+   * mapa de la escena anterior en el hueco de la nueva.
+   */
+  useEffect(() => {
+    if (!sceneId || cargadoPara.current !== sceneId) return;
+    cacheEscenas.current.set(sceneId, { walls, drawings, layers, lights, rooms, roomOpenings, sceneProps });
+  }, [sceneId, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps]);
 
   useEffect(() => { setFog(null); }, [sceneId]);
   /**
