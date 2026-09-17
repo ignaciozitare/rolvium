@@ -142,34 +142,34 @@
 > `apps/web`.** O sea que CUALQUIER error al pintar —no sólo éste— tumba la mesa entera en vez de un trozo. La
 > red de `DrawingShape` es un parche de UN sitio, no la solución. Merece tarea propia.
 >
-> **1-ter. 🚧 LA RED DE SEGURIDAD + EL CAMBIO DE ESCENA — EN RAMA, PEDIDO SUBIR A PROD, QA PASADO EN SEGUNDA.**
-> Rama `feat/red-de-seguridad-al-pintar`. Él dijo «*súbelo a prod*» (17-09). Vista previa:
+> **1-ter. 🚧 LA RED + EL CAMBIO DE ESCENA — EN RAMA. ÉL PIDIÓ «*súbelo a prod*». QA BLOQUEÓ DOS VECES.**
+> Rama `feat/red-de-seguridad-al-pintar`. Vista previa:
 > `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
 >
-> **TRES COSAS ENCADENADAS, las tres suyas:**
-> 1. **La red** («*como te dije... arreglalo*»). `ErrorBoundary` en `@rolvium/ui` + `SafeRegion` en `apps/web`,
->    cuatro costuras: la app · cada pestaña · el mapa · cada panel. Spec `specs/core/errors/SPEC.md`, maqueta
->    `rolvium.pen` § 11.
-> 2. **El mapa aparece hecho** (queja suya probando la rama). NO era de esta rama: comprobado contra `main`.
-> 3. **Volver a una escena no se espera** (idea suya: «*¿por qué no haces una precarga?*»).
+> **TRES COSAS, las tres suyas:** la RED (`ErrorBoundary` + `SafeRegion`, **seis** costuras: la app · cada
+> pestaña · el mapa · y los cuatro paneles flotantes) · **el mapa aparece hecho** al cambiar de escena (no era
+> de esta rama: comprobado contra `main`) · **volver a una escena no se espera**.
 >
-> 🔴 **EL QA BLOQUEÓ LA PRIMERA VERSIÓN DEL GUARDADO, Y TENÍA RAZÓN. NO REPETIRLO:**
-> se fiaba de lo guardado con la excusa de que «eso sólo lo cambia el director». **Falso por dos sitios**: los
-> DIBUJOS los hacen los jugadores (`PLAYER_TOOLS` + `maps_drawings_insert`), y sobre todo **`useScene` corre
-> también en la pantalla de los jugadores**, donde el que cambia las cosas mientras ellos están en otra escena
-> es ÉL. Les habría devuelto la escena como estaba: una puerta abierta cerrada, y **un muro oculto visible
-> otra vez** — el agujero cerrado el 2026-09-03.
-> **Ahora lo guardado es SÓLO para no esperar**: se pinta al instante y se vuelven a pedir las ocho listas
-> igual. Hay test que lo ata y **cae con la versión que el QA bloqueó**. Tope de 32 escenas, como la memoria de
-> encuadre.
+> 🔴 **EL QA BLOQUEÓ DOS VECES Y LAS DOS TENÍA RAZÓN. Esto es lo que no debe repetirse:**
+> 1ª — el guardado en memoria se fiaba de sí mismo («eso sólo lo cambia el director»). **FALSO**: los DIBUJOS
+>    los hacen los jugadores, y `useScene` corre TAMBIÉN en su pantalla, donde quien edita otra escena es él.
+>    Un muro que él ocultara volvería a verse. → Ahora se pinta lo guardado y **se vuelven a pedir las ocho
+>    listas igual**.
+> 2ª — y si ese refresco **fallaba**, las fichas ya habían abierto la pantalla, así que lo guardado se quedaba
+>    **haciéndose pasar por la verdad sin un aviso**: el mismo agujero por la puerta de atrás. → Ahora falla a
+>    `error` y el hueco del mapa lo dice. Más: faltaban `PropsPanel` y `LayersPanel` por envolver, el parte
+>    mentía, y un párrafo de `ARCHITECTURE.md` quedó partido en dos.
 >
-> 🔴 **Y ANTES, LA REVIEW CAZÓ OTRO**: el aviso de dentro de la mesa iba con los colores de la APP sobre el
-> tablero, casi negro siempre → **1,12:1 con el tema claro: invisible**. Ahora va con `--sys-*` y **el botón en
-> SANGRE, no en oro** (la lámina heredó el oro; manda su regla). Corregido código y `.pen`.
+> 🔴 **Y ANTES LA REVIEW CAZÓ OTRO**: el aviso de la mesa iba con los colores de la APP sobre el tablero, casi
+> negro siempre → **1,12:1 con el tema claro: invisible**. Ahora `--sys-*` y **botón en SANGRE**; corregidos
+> código y `.pen` (guardado por él a las 16:22, `c45cba2`, +1/−1).
 >
-> ⏳ **LO QUE FALTA PARA MERGEAR**: (a) que él **guarde el `.pen`** — el commiteado es de las 09:56 y todavía
-> tiene el botón en ORO, o sea el maestro miente; (b) repasar el QA en segunda vuelta.
-> ⚠️ **NO consta que haya probado la vista previa.** Se le preguntó una vez; pidió subirlo igual.
+> 🧹 **Deuda anotada por el QA y NO cerrada** (decisión aparte): la colocación de las seis costuras **no la
+> ata ningún test** —quitar un `SafeRegion` de `AppRouter` y la suite sigue verde—, y la tapa `.mp-loading`
+> tampoco. Y `npm -w packages/ui run typecheck` sigue rojo de antes (`Sheet.tsx:531`).
+>
+> ⏳ **Falta**: QA de tercera vuelta y el merge. **NO consta que él haya probado la vista previa**; se le
+> preguntó una vez y pidió subirlo igual.
 >
 > **2. ✅ EL FRENO DE LOS OBJETOS — CERRADO POR ÉL, SIN CAMBIO. NO VOLVER A PREGUNTARLO.**
 > Se le preguntó en firme (17-09) si un objeto marcado «corta el paso» debe frenar SIEMPRE aunque las paredes

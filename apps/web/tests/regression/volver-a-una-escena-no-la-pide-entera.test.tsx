@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { Room, Scene } from '@/modules/maps/domain/entities/Scene';
 import { useScene } from '@/modules/maps/ui/useScene';
 import { fakeMapsRepo, fakeVisionPort, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
@@ -69,32 +69,60 @@ describe('🔑 volver a una escena no la pide entera', () => {
 
   it('🐞 cambiar de piso SIN ESPERAR no guarda el mapa de uno en el hueco del otro', async () => {
     /*
-     * El fallo bobo y grave, y sólo salta si se va antes de que termine de cargar — o sea, pinchando rápido
-     * entre pisos, que es justo lo que él hace. Al cambiar de escena, el efecto que guarda corre con el id
-     * NUEVO y las listas VIEJAS; si termina la carga, se corrige solo, pero si te vas antes, el mapa
-     * equivocado se queda guardado y la próxima vez sale ÉSE. `cargadoPara` es lo que lo impide.
+     * El fallo bobo y grave, y sólo salta pinchando rápido entre pisos, que es como él los recorre: al cambiar
+     * de escena, el efecto que guarda corre con el id NUEVO y las listas VIEJAS. Si te vas antes de que
+     * termine de cargar, el mapa equivocado se queda guardado. `cargadoPara` es lo que lo impide.
+     *
+     * 🔑 Y hay que mirarlo EN EL INSTANTE JUSTO (lo cazó el QA: la versión anterior de este test no ataba
+     * nada). Desde que el refresco por detrás corrige siempre, el final es bueno en los dos casos; lo que
+     * cambia es lo que se VE mientras tanto — y eso era su queja original. Con el guardado envenenado, la
+     * pantalla se abre en cuanto llegan las fichas y enseña el mapa del OTRO piso; sin envenenar, no hay nada
+     * guardado que pintar y la pantalla espera tapada.
      */
     const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2] });
     const original = repo.listRooms;
-    let soltar: (() => void) | null = null;
+    const colgadas: (() => void)[] = [];
     repo.listRooms = async (sid: string) => {
-      if (sid === PISO_2.id && !soltar) { await new Promise<void>(res => { soltar = res; }); }
+      if (sid === PISO_2.id) await new Promise<void>(res => { colgadas.push(res); });
       return original(sid);
     };
 
     const { result, rerender } = montar(repo, SCENE_WAREHOUSE);
     await waitFor(() => expect(result.current.rooms.map(r => r.id)).toEqual([SALA_1.id]));
 
-    rerender({ sc: PISO_2 });                    // la carga del piso 2 se queda a medias…
-    await waitFor(() => expect(soltar).not.toBeNull());
-    rerender({ sc: SCENE_WAREHOUSE });           // …y él ya se ha ido al 1 otra vez
+    rerender({ sc: PISO_2 });                       // la carga del piso 2 se queda colgada…
+    await waitFor(() => expect(colgadas).toHaveLength(1));
+    rerender({ sc: SCENE_WAREHOUSE });              // …y él ya se ha ido al 1 otra vez
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    soltar!();
+    colgadas[0]!();
 
-    rerender({ sc: PISO_2 });                    // ahora sí abre el 2
+    rerender({ sc: PISO_2 });                       // abre el 2, y su carga se vuelve a colgar
+    await waitFor(() => expect(colgadas).toHaveLength(2));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    // Sin la guarda habría un guardado envenenado: la pantalla estaría ABIERTA con la sala del piso 1.
+    expect(result.current.status).toBe('loading');
+    colgadas[1]!();
+    await waitFor(() => expect(result.current.rooms.map(r => r.id)).toEqual([SALA_2.id]));
+  });
+
+  it('🔒 si el refresco FALLA se dice, no se deja lo guardado pasando por verdad', async () => {
+    /*
+     * Lo paró el QA en segunda vuelta, y tiene filo de seguridad: las fichas ya habían abierto la pantalla, así
+     * que sin esto se seguiría viendo la geometría GUARDADA sin un solo aviso — **un muro que el director
+     * ocultó seguiría a la vista** para un jugador, porque a él no le llega notificación de una fila que su
+     * RLS le esconde y el aviso que le haría volver a pedirlos sonó mientras estaba en otra escena.
+     */
+    const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2] });
+    const { result, rerender } = montar(repo, SCENE_WAREHOUSE);
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    // Sin la guarda, aquí saldría la sala del PISO 1 guardada en el hueco del 2.
-    expect(result.current.rooms.map(r => r.id)).toEqual([SALA_2.id]);
+    rerender({ sc: PISO_2 });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    repo.listRooms = async () => { throw new Error('se cayó la red'); };
+
+    rerender({ sc: SCENE_WAREHOUSE });   // vuelve: se pinta lo guardado, pero el refresco revienta
+    await waitFor(() => expect(result.current.status).toBe('error'));
   });
 
   it('lo que él dibuja antes de irse está al volver: el guardado se mantiene solo', async () => {

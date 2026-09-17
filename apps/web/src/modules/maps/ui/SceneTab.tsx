@@ -1289,8 +1289,17 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
            * quedaría un instante DESTAPADO, y un jugador vería lo que no debe. Y tapar la pestaña entera se
            * llevaría la barra y los paneles, que no tienen nada que esperar.
            */}
-          {st.status === 'loading'
-            ? <div className="mp-loading" data-testid="mp-loading">{t('maps.loading')}</div>
+          {st.status !== 'ready'
+            ? (
+              /*
+               * 🔒 Y EL ERROR TAMBIÉN TAPA, no sólo la espera (QA, segunda vuelta). Volviendo a una escena la
+               * pantalla se abre con lo guardado en cuanto llegan las fichas; si las demás listas fallan,
+               * mirar sólo `loading` dejaría lo guardado haciéndose pasar por la verdad y sin un aviso.
+               */
+              <div className="mp-loading" data-testid={st.status === 'error' ? 'mp-load-error' : 'mp-loading'}>
+                {t(st.status === 'error' ? 'maps.error' : 'maps.loading')}
+              </div>
+            )
             : <SafeRegion label="maps:canvas">
               <MapCanvas scene={shown!} tokens={fichas} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
                 playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush.size} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
@@ -1478,21 +1487,23 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * desde la rebanada 3 — una franja a lo ancho cuesta altura de mapa.
             */}
           {isDm && !playerView && (
-            <LayersPanel layers={st.layers} activeId={activeLayerId} collapsed={!layersOpen} onCollapse={() => setLayersOpen(o => !o)}
-              onActivate={l => setActiveLayerId(l.id)}
-              onToggleVisible={l => run(st.patchLayer(l.id, { visible: !l.visible }))}
-              onToggleLocked={l => run(st.patchLayer(l.id, { locked: !l.locked }))}
-              onReorder={(l, dir) => run(st.reorderLayer(l.id, dir))}
-              onReorderTo={(id, targetId) => run(st.reorderLayerTo(id, targetId))}
-              onAddTerrain={async () => {
-                const name = await dialog.prompt(t('maps.layers.newName'));
-                if (name?.trim()) { const created = await st.addTerrainLayer({ name: name.trim() }); if (created) setActiveLayerId(created.id); }
-              }}
-              onRemove={async l => {
-                if (!(await dialog.confirm(t('maps.layers.deleteConfirm', { name: l.name || t('maps.layers.kind.terrain') })))) return;
-                if (activeLayerId === l.id) setActiveLayerId(null);
-                run(st.removeLayer(l.id));
-              }} />
+            <SafeRegion label="maps:layers-panel">
+              <LayersPanel layers={st.layers} activeId={activeLayerId} collapsed={!layersOpen} onCollapse={() => setLayersOpen(o => !o)}
+                onActivate={l => setActiveLayerId(l.id)}
+                onToggleVisible={l => run(st.patchLayer(l.id, { visible: !l.visible }))}
+                onToggleLocked={l => run(st.patchLayer(l.id, { locked: !l.locked }))}
+                onReorder={(l, dir) => run(st.reorderLayer(l.id, dir))}
+                onReorderTo={(id, targetId) => run(st.reorderLayerTo(id, targetId))}
+                onAddTerrain={async () => {
+                  const name = await dialog.prompt(t('maps.layers.newName'));
+                  if (name?.trim()) { const created = await st.addTerrainLayer({ name: name.trim() }); if (created) setActiveLayerId(created.id); }
+                }}
+                onRemove={async l => {
+                  if (!(await dialog.confirm(t('maps.layers.deleteConfirm', { name: l.name || t('maps.layers.kind.terrain') })))) return;
+                  if (activeLayerId === l.id) setActiveLayerId(null);
+                  run(st.removeLayer(l.id));
+                }} />
+            </SafeRegion>
           )}
           {/*
             * LA BARRA DEL PINCEL, la misma para los tres sitios donde se pinta. Sale con cualquiera de las
@@ -1546,20 +1557,22 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * Seleccionar; el sello se queda en memoria por si vuelve, y Esc lo suelta.
             */}
           {isDm && !playerView && (tool === 'props' || (propsOpen && tool === 'select')) && (
-            <PropsPanel stamp={stamp} isFavorite={!!stamp && favorites.includes(stamp.id)}
-              onToggleFavorite={() => { if (stamp) alternarFavorito(stamp.id); }}
-              onPick={() => setCatalogOpen(true)} onDrop={soltarSello}
-              scale={stampScale} onScale={setStampScale} onScaleEnd={() => { if (stamp) recordarEscala(stamp, stampScale); }}
-              rotation={stampRotation} onRotation={setStampRotation} onRandomRotation={() => setStampRotation(randomRotation(Math.random))}
-              quick={quickShelf} onQuick={setQuickShelf} quickProps={quickProps} onQuickPick={elegirSello}
-              layers={st.layers} layerId={plantLayerId} onLayer={setPlantLayerId}
-              mode={plantMode} onMode={setPlantMode} sow={sow} onSow={patch => setSow(x => ({ ...x, ...patch }))}
-              picked={picked}
-              onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
-              onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
-              onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
-              family={family} familyPackName={familyPackName} onFamilyPick={elegirSelloDeLaFamilia}
-              onClose={() => { setPropsOpen(false); setTool('select'); }} />
+            <SafeRegion label="maps:props-panel">
+              <PropsPanel stamp={stamp} isFavorite={!!stamp && favorites.includes(stamp.id)}
+                onToggleFavorite={() => { if (stamp) alternarFavorito(stamp.id); }}
+                onPick={() => setCatalogOpen(true)} onDrop={soltarSello}
+                scale={stampScale} onScale={setStampScale} onScaleEnd={() => { if (stamp) recordarEscala(stamp, stampScale); }}
+                rotation={stampRotation} onRotation={setStampRotation} onRandomRotation={() => setStampRotation(randomRotation(Math.random))}
+                quick={quickShelf} onQuick={setQuickShelf} quickProps={quickProps} onQuickPick={elegirSello}
+                layers={st.layers} layerId={plantLayerId} onLayer={setPlantLayerId}
+                mode={plantMode} onMode={setPlantMode} sow={sow} onSow={patch => setSow(x => ({ ...x, ...patch }))}
+                picked={picked}
+                onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
+                onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
+                onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
+                family={family} familyPackName={familyPackName} onFamilyPick={elegirSelloDeLaFamilia}
+                onClose={() => { setPropsOpen(false); setTool('select'); }} />
+            </SafeRegion>
           )}
           {/*
             * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora

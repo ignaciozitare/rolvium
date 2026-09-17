@@ -141,14 +141,14 @@ escenas— no se tiene que duplicar, sólo se tienen que adaptar estilos». The 
 
 **Component reuse — duplicated table-side UI**
 - ✅ Resolved 2026-09-11 (owner's OK): the map's floating panels (`BuilderPanel`, `BrushPanel`, `LightEditor`) each
-- **`packages/ui` prueba componentes de React desde 2026-09-17** (el primero, `ErrorBoundary`): su vitest corre
-  en `jsdom` con el mismo `cleanup` que `apps/web`, y su tsconfig incluye `vitest.setup.ts` para que los
-  matchers tengan tipos.
   re-implemented the same shell and sliders came in three shapes. They are now built from `@rolvium/ui`'s
   `FloatingPanel` (+ `PanelSection`, `PanelHint`, `PanelNote`, `PanelIconButton`), `Slider` and `OptionGroup`, themed
   only through `--sys-*`. `npm run audit` (`ui-panels`) fails hard on a hand-made slider or a panel piece defined in a
   module, and the `check-ui-dup` hook warns when a hand-made floating panel is written. A hand-made draggable panel
   with no slider still passes the audit: the dice roller (`dice/ui/DiceRoller.tsx`) is one today.
+- **`packages/ui` prueba componentes de React desde 2026-09-17** (el primero, `ErrorBoundary`): su vitest corre
+  en `jsdom` con el mismo `cleanup` que `apps/web`, y su tsconfig incluye `vitest.setup.ts` para que los matchers
+  tengan tipos. Sus tests entran en `npm run test:regression` desde el mismo día.
 - The table primitives (`tb-btn`, `tb-btn-blood`, `tb-rotulo`) live in `table.css` but are used by `maps` (12 files) and
   `characters`; they belong in `@rolvium/ui` as `--sys-*`-themed components.
 - 8 hand-made overlays instead of `Modal` (bestiary ×3, characters, chat, dice, maps ×2); `@rolvium/ui` adoption is

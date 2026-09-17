@@ -227,7 +227,17 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       // …y lo demás llega por detrás y CORRIGE lo guardado sin que se note.
       void restoP
         .then(([w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); })
-        .catch(() => { /* Si falla, se queda lo guardado y el canal en vivo lo irá corrigiendo. */ });
+        .catch(() => {
+          /*
+           * 🔒 SI EL REFRESCO FALLA, SE DICE — no se deja lo guardado haciéndose pasar por la verdad (lo paró
+           * el QA en segunda vuelta). Las fichas ya habían puesto la pantalla en `ready`, así que sin esto se
+           * seguiría viendo la geometría guardada sin un solo aviso: **un muro que el director ocultó
+           * seguiría a la vista** para un jugador, porque a él no le llega notificación de una fila que su RLS
+           * le esconde, y el aviso `walls.updated` que le haría volver a pedirlos sonó mientras estaba en otra
+           * escena. El camino sin guardado hace exactamente esto: falla → `error`.
+           */
+          if (alive) setStatus('error');
+        });
     } else {
       void Promise.all([fichasP, restoP])
         .then(([t, [w, d, ly, li, rm, ro, sp]]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); cargadoPara.current = sceneId; setStatus('ready'); })

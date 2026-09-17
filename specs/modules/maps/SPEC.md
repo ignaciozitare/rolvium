@@ -2862,6 +2862,11 @@ falso, y lo paró el QA antes de producción.** Queda escrito por qué, que es l
   la escena como estaba: una puerta abierta seguiría cerrada, y **un muro que él ocultó volvería a verse**,
   que es justo el agujero que se cerró el 2026-09-03 volviendo a pedir los muros.
 
+🔒 **Y si ese refresco FALLA, se dice** (`status: 'error'`, y el hueco del mapa lo enseña). Sin eso, las fichas
+ya habían abierto la pantalla y lo guardado se quedaba haciéndose pasar por la verdad **sin un solo aviso** —
+el mismo agujero por la puerta de atrás, y con el mismo filo: a un jugador no le llega notificación de una fila
+que su RLS le esconde, así que un muro ocultado seguiría a la vista hasta recargar.
+
 🔑 **Y el guardado lleva la marca de a qué escena pertenece lo que hay en pantalla** (`cargadoPara`). Sin ella,
 al cambiar de escena se guardaría el mapa de un piso en el hueco del otro —el efecto corre con el id nuevo y
 las listas viejas—, y sólo se nota **pinchando rápido entre pisos**, que es como él los recorre.
