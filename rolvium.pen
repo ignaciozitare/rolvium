@@ -138456,6 +138456,114 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "frame",
+              "id": "LMfoZ",
+              "name": "Error/La pantalla se ha roto",
+              "width": 440,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": [
+                40,
+                32
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FHdiG",
+                  "name": "Icon",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "$amber-dim",
+                  "cornerRadius": 28,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "r6fvxM",
+                      "name": "I",
+                      "width": 26,
+                      "height": 26,
+                      "icon": "warning",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$amber"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "H0kku",
+                  "name": "T",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Algo se ha roto en esta pantalla",
+                  "textAlign": "center",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "h5FywM",
+                  "name": "D",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "No has perdido nada: la partida y tus datos están a salvo. Vuelve a intentarlo y, si sigue igual, recarga la página.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-xs",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "h3HZfB",
+                  "name": "A",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "u79NUl",
+                      "type": "ref",
+                      "ref": "Nq63f",
+                      "name": "CTA",
+                      "padding": [
+                        9,
+                        16
+                      ],
+                      "descendants": {
+                        "MkRqy": {
+                          "content": "Reintentar",
+                          "fontSize": "$fs-xs"
+                        }
+                      }
+                    },
+                    {
+                      "id": "AbRPV",
+                      "type": "ref",
+                      "ref": "MOgla",
+                      "name": "CTA2",
+                      "padding": [
+                        9,
+                        16
+                      ],
+                      "descendants": {
+                        "EJMG8": {
+                          "content": "Recargar la página",
+                          "fontSize": "$fs-xs"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -138702,6 +138810,86 @@
                         "K8OxW": {
                           "content": "CREAR PERSONAJE",
                           "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "puhjy",
+                  "name": "Mesa/Un trozo se ha roto",
+                  "width": 440,
+                  "fill": "#f2f0ea80",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#13131040",
+                    "offset": {
+                      "x": 0,
+                      "y": 3
+                    },
+                    "blur": 10
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": [
+                    36,
+                    28
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "EGL3d",
+                      "name": "I",
+                      "width": 28,
+                      "height": 28,
+                      "icon": "warning",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    },
+                    {
+                      "type": "text",
+                      "id": "gyoAW",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "ESTE TROZO SE HA ROTO",
+                      "textAlign": "center",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "XdRqM",
+                      "name": "D",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El resto de la mesa sigue funcionando. Vuelve a intentarlo: no se ha perdido nada de la partida.",
+                      "lineHeight": 1.55,
+                      "textAlign": "center",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12.5,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    },
+                    {
+                      "id": "ASei3",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "CTA",
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "Reintentar",
+                          "fill": "#1a1508"
                         }
                       }
                     }
