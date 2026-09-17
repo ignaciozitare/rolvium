@@ -142,16 +142,14 @@
 > `apps/web`.** O sea que CUALQUIER error al pintar —no sólo éste— tumba la mesa entera en vez de un trozo. La
 > red de `DrawingShape` es un parche de UN sitio, no la solución. Merece tarea propia.
 >
-> **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
-> Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
-> `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
-> y objetos— **pero no la vista**. Por eso veía las sombras perfectas mientras nada frenaba. Se le dijo dónde
-> está el escudo y lo dio por bueno («vale todo bien»).
-> **Lo que sigue SIN decidir, y es lo primero que hay que preguntarle**: cuando él marca «corta el paso» en un
-> objeto concreto, ¿debe frenar SIEMPRE aunque las paredes estén atravesables, o el escudo sigue mandando
-> sobre todo? **No interpretar su «vale todo bien» como respuesta**: contestaba a que ya le funcionaba, no a la
-> pregunta. Si elige lo primero, es quitar el `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su
-> gemelo del servidor (`sceneVision.ts`), con test.
+> **2. ✅ EL FRENO DE LOS OBJETOS — CERRADO POR ÉL, SIN CAMBIO. NO VOLVER A PREGUNTARLO.**
+> Se le preguntó en firme (17-09) si un objeto marcado «corta el paso» debe frenar SIEMPRE aunque las paredes
+> estén atravesables, o si el escudo de la escena sigue mandando sobre todo. **Su respuesta: «*esto está
+> solucionado en prod*».** O sea: **manda el escudo, se queda como está y no se toca nada.**
+> 👉 **El `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su gemelo del servidor (`sceneVision.ts`)
+> SE QUEDAN.** Si algún día se queja de que un objeto no frena, mirar primero si la escena tiene el escudo en
+> «Paredes atravesables» —ese interruptor apaga el freno de todo pero NO la vista, que es lo que le despistó la
+> primera vez— antes de tocar esa línea.
 >
 > Su local corre en `localhost:5173` y `5174`, con el servidor en `3001`; los tres estaban vivos.
 >
