@@ -222,7 +222,22 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       setRooms(guardado.rooms); setRoomOpenings(guardado.roomOpenings); setSceneProps(guardado.sceneProps);
       // …las FICHAS abren la pantalla, que son lo único que no se guarda nunca…
       void fichasP
-        .then(t => { if (!alive) return; setTokens(t); cargadoPara.current = sceneId; setStatus('ready'); })
+        .then(t => {
+          if (!alive) return;
+          setTokens(t);
+          cargadoPara.current = sceneId;
+          /*
+           * 🔒 ABRIR LA PANTALLA NO PUEDE BORRAR UN ERROR YA DICHO (lo cazó el QA en tercera vuelta,
+           * ejecutándolo). Aquí hay DOS promesas escribiendo el estado sin coordinarse, y `restoP` es un
+           * `Promise.all` de siete: revienta con la PRIMERA que falle, o sea tan rápido como la más rápida en
+           * fallar. Una respuesta de error (403, RLS, sesión caducada, un 5xx pasajero) es diminuta y vuelve
+           * antes que una lista de fichas pedida en el mismo instante. Sin esta comprobación:
+           *   revienta la geometría → `error` → llegan las fichas → `ready` y el error desaparece.
+           * O sea el mismo agujero de antes: lo guardado pasando por verdad, y un muro que el director ocultó
+           * a la vista de un jugador. El `loading` de la entrada es quien limpia el error, no esto.
+           */
+          setStatus(actual => (actual === 'error' ? actual : 'ready'));
+        })
         .catch(() => { if (alive) setStatus('error'); });
       // …y lo demás llega por detrás y CORRIGE lo guardado sin que se note.
       void restoP

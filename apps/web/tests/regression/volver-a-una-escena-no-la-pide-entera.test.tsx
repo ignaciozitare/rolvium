@@ -125,6 +125,39 @@ describe('🔑 volver a una escena no la pide entera', () => {
     await waitFor(() => expect(result.current.status).toBe('error'));
   });
 
+  it('🔒 …y abrir la pantalla NO borra un error ya dicho (la carrera por orden de llegada)', async () => {
+    /*
+     * Lo cazó el QA en tercera vuelta, EJECUTÁNDOLO. Hay dos promesas escribiendo el estado sin coordinarse, y
+     * la de la geometría es un `Promise.all` de siete: revienta con la PRIMERA que falle. Una respuesta de
+     * error es diminuta y vuelve antes que una lista de fichas pedida a la vez, así que el orden natural es:
+     * revienta → `error` → llegan las fichas → `ready`, y el aviso desaparece. Mismo agujero, otra puerta.
+     */
+    const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2] });
+    const { result, rerender } = montar(repo, SCENE_WAREHOUSE);
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    rerender({ sc: PISO_2 });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    /*
+     * La geometría falla YA; las fichas se sueltan A MANO después. Sin relojes: un test de carreras hecho con
+     * `setTimeout` es intermitente, y una prueba intermitente en la puerta del merge no sujeta nada.
+     */
+    repo.listRooms = async () => { throw new Error('se cayó la red'); };
+    const fichasOriginal = repo.listTokens;
+    let soltarFichas: (() => void) | null = null;
+    repo.listTokens = async (sid: string) => {
+      await new Promise<void>(res => { soltarFichas = res; });
+      return fichasOriginal(sid);
+    };
+
+    rerender({ sc: SCENE_WAREHOUSE });
+    await waitFor(() => expect(result.current.status).toBe('error'));   // la geometría ya ha reventado
+    await waitFor(() => expect(soltarFichas).not.toBeNull());
+    await act(async () => { soltarFichas!(); await Promise.resolve(); await Promise.resolve(); });
+    // Y sigue en error con las fichas ya dentro: abrir la pantalla no destapa la mentira.
+    expect(result.current.status).toBe('error');
+  });
+
   it('lo que él dibuja antes de irse está al volver: el guardado se mantiene solo', async () => {
     const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2] });
     const { result, rerender } = montar(repo, SCENE_WAREHOUSE);

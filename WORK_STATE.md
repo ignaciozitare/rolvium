@@ -146,8 +146,9 @@
 > Rama `feat/red-de-seguridad-al-pintar`. Vista previa:
 > `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
 >
-> **TRES COSAS, las tres suyas:** la RED (`ErrorBoundary` + `SafeRegion`, **seis** costuras: la app · cada
-> pestaña · el mapa · y los cuatro paneles flotantes) · **el mapa aparece hecho** al cambiar de escena (no era
+> **TRES COSAS, las tres suyas:** la RED (`ErrorBoundary` + `SafeRegion`, **OCHO** costuras: la app · cada
+> pestaña de la mesa · el mapa · los CUATRO paneles flotantes (pincel, constructor, luces y objetos) · y el
+> panel de capas) · **el mapa aparece hecho** al cambiar de escena (no era
 > de esta rama: comprobado contra `main`) · **volver a una escena no se espera**.
 >
 > 🔴 **EL QA BLOQUEÓ DOS VECES Y LAS DOS TENÍA RAZÓN. Esto es lo que no debe repetirse:**
@@ -164,9 +165,12 @@
 > negro siempre → **1,12:1 con el tema claro: invisible**. Ahora `--sys-*` y **botón en SANGRE**; corregidos
 > código y `.pen` (guardado por él a las 16:22, `c45cba2`, +1/−1).
 >
-> 🧹 **Deuda anotada por el QA y NO cerrada** (decisión aparte): la colocación de las seis costuras **no la
-> ata ningún test** —quitar un `SafeRegion` de `AppRouter` y la suite sigue verde—, y la tapa `.mp-loading`
-> tampoco. Y `npm -w packages/ui run typecheck` sigue rojo de antes (`Sheet.tsx:531`).
+> 🧹 **Deuda anotada por el QA y NO cerrada** (decisión aparte): la colocación de las OCHO costuras **no la
+> ata ningún test** —quitar un `SafeRegion` de `AppRouter` y la suite sigue verde—. La tapa del mapa SÍ quedó
+> atada en la tercera vuelta.
+> ⚠️ Y si la carga falla, el mapa se queda en «error» **sin botón de reintentar**: sólo sale cambiando de
+> escena y volviendo. Mejor que el silencio de antes, pero a él le deja el mapa muerto con una palabra.
+> 🧹 `.rv-safe-cta` duplica `.tb-btn-blood` de `table.css`; candidato al botón de mesa que ya está apuntado. Y `npm -w packages/ui run typecheck` sigue rojo de antes (`Sheet.tsx:531`).
 >
 > ⏳ **Falta**: QA de tercera vuelta y el merge. **NO consta que él haya probado la vista previa**; se le
 > preguntó una vez y pidió subirlo igual.

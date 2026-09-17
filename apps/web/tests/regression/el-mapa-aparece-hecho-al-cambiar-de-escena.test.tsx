@@ -47,3 +47,31 @@ describe('🐞 el mapa aparece hecho al cambiar de escena', () => {
     expect(Array.isArray(result.current.sceneProps)).toBe(true);
   });
 });
+
+/**
+ * 🔒 LA TAPA DEL MAPA, ATADA (deuda F8 del QA, cerrada en la tercera vuelta).
+ *
+ * Es **la mitad visible** del arreglo de seguridad: si la geometría falla al volver a una escena, lo guardado
+ * se quedaría pasando por verdad. El QA demostró que se podía borrar la tapa ENTERA y no caía ni una de las
+ * 2.053 pruebas. Esto lo cierra: se mira lo que se pinta, no sólo lo que dice el hook.
+ */
+describe('🔒 la tapa del hueco del mapa', () => {
+  it('mientras carga tapa con «cargando», y al fallar lo DICE en vez de enseñar lo guardado', async () => {
+    const { renderWithProviders, screen, waitFor } = await import('../helpers/render');
+    const { fakeMapsRepo, fakeVisionPort, fakeCharactersRepo, SCENE_WAREHOUSE } = await import('../helpers/fakes');
+    const { SceneTab } = await import('@/modules/maps/ui/SceneTab');
+    const { plenilunio } = await import('@rolvium/system-plenilunio');
+
+    const repo = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] });
+    repo.listRooms = async () => { throw new Error('se cayó la red'); };
+
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={[]}
+        activeSceneId={SCENE_WAREHOUSE.id} charactersRepo={fakeCharactersRepo([])} repo={repo}
+        vision={fakeVisionPort()} canManageTextures canManageProps canOrderToolbar={false} />,
+    );
+
+    // Si la tapa no existiera, aquí se pintaría el mapa con lo que hubiera — que es justo lo que no puede pasar.
+    await waitFor(() => expect(screen.getByTestId('mp-load-error')).toBeInTheDocument());
+  });
+});
