@@ -2,224 +2,96 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-16, noche)
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-17, tarde)
 >
-> ## ✅ LA SILUETA — EN PRODUCCIÓN Y **PROBADA POR ÉL**: «*la silueta funciona perfecto*»
-> v0.12.0, merge `23c42ac`. Las sombras de los objetos ya recortan por el dibujo y no por un cuadrado. Los
-> números, leídos de la base de producción: **149/149 objetos** y **95/95 copias plantadas** con silueta; de
-> los que estorban de verdad, **22 por su contorno y CERO con el cuadrado**. Detalle completo en el bloque
-> «v0.12.0» de más abajo.
+> ## 🚀 LO QUE SÍ ESTÁ EN PRODUCCIÓN HOY
+> - **v0.12.1** — «desaparecen habitaciones cuando pinto». **Cerrado por él: «*en prod lo veo todo bien*»**.
+>   Tres semanas de fallo y dos arreglos que no valían. La causa era un eco de tiempo real que llega SIN una
+>   columna grande (TOAST) y el mapeo la convertía en vacío.
+> - **v0.12.2** — el mismo fallo en los TRAZOS, que era peor (mesa en blanco). Arreglado antes de que le llegara.
 >
-> ## 🔀 LO SIGUIENTE, POR ORDEN — **LO DIJO ÉL AL CERRAR EL CHAT**
+> ## 🚧 LO QUE ESTÁ EN RAMA Y **NO MERGEADO**: `feat/red-de-seguridad-al-pintar` (`94f64fd`, 15 commits)
+> ⚠️ **SU LOCAL SE QUEDA EN ESA RAMA.** Producción NO tiene nada de esto.
+> Vista previa: `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
 >
-> > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
+> Lleva, todo suyo y todo pedido hoy:
+> 1. **LA RED DE SEGURIDAD** — un error al pintar se queda en su trozo y no tumba la mesa. **OCHO costuras**.
+>    Spec `specs/core/errors/SPEC.md`, maqueta `rolvium.pen` § 11 aprobada por él.
+> 2. **El mapa aparece hecho** al cambiar de escena (no era de esta rama: se comprobó contra `main`).
+> 3. **Volver a una escena no se espera** (idea suya). Lo guardado es SÓLO para no esperar: se vuelve a pedir
+>    todo igual, y si falla **se dice y hay botón de Reintentar** («*¿qué hace el usuario? deja de jugar y se
+>    va y deja al party colgado*»).
+> 4. **CAMBIO DE HARNESS, orden suya con enfado y con razón** (ver los dos bloques de abajo).
 >
-> **1. 🚀 EL PINCEL QUE BORRA LAS HABITACIONES — v0.12.1, EN PRODUCCIÓN.** Probado por él («*en local ahora
-> funciona bien*»), review y QA en modo bloqueo pasados, merge `b610c59`, los dos despliegues READY sobre ese
-> commit, web y api a 200 — y **comprobado que el paquete que sirve producción lleva el arreglo**, con la misma
-> forma minificada que la compilación local (no se dio por bueno el 200 a secas). Sin migraciones.
+> ⏳ **EL QA DE LA CUARTA VUELTA ESTABA CORRIENDO AL CERRAR EL CHAT — NO SE SABE SI PASÓ.** Las tres vueltas
+> anteriores bloquearon y las tres tenían razón (dos con filo de seguridad). **NO MERGEAR sin releer su
+> informe o relanzarlo.** Él pidió «*súbelo a prod*»; el merge quedó pendiente sólo del QA.
+> ⚠️ **No consta que él haya probado la vista previa.** Se le preguntó una vez.
 >
-> ✅ **CERRADO DEL TODO: LO PROBÓ EN PRODUCCIÓN Y VA** — «*en prod lo veo todo bien*» (17-09). Tres semanas
-> de fallo y dos arreglos fallidos por delante; esta vez se cerró con su palabra, en local y en producción.
+> ## 🐞 NUEVO Y SIN TOCAR: **LAS LUCES DELATAN SITIOS QUE LA SONDA NO HA VISTO**
+> Suyo, 2026-09-17, con captura: «*anota que la has cagado con las luces, porque en el modo de prueba del dm se
+> ven iluminados lugares que no he visto con la sonda*».
+> En su captura hay **dos manchas de luz sueltas arriba a la izquierda**, con muebles visibles, separadas de
+> todo lo que la sonda ha recorrido. O sea que **la luz enseña lo que la niebla esconde**: si eso le pasa a un
+> jugador, ve dónde hay habitaciones amuebladas sin haber entrado.
+> 🔎 **Por dónde empezar, SIN dar nada por cierto** (`MapCanvas.tsx:1760`):
+> `<LightsLayer … lit={fog.lit} />` recorta la luz por lo que está ILUMINADO AHORA, no por lo que la sonda ha
+> visto. Y `paintedLights(p.lights, layers, dmSight)` (`:1632`) elige qué luces se pintan según `dmSight`.
+> **Comprobar primero** si con la sonda puesta `dmSight` es falso de verdad, y si `fog.lit` de la sonda excluye
+> lo no visto. La memoria de la sonda se acumula en `withProbeMemory` / `probeSeen` (`useScene.ts`).
+> **No es lo mismo «iluminado» que «visto», y ahí está el fallo.**
 >
-> > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 16-09, por la noche,
-> > sobre los DOS intentos anteriores). Tenía razón las dos veces. Por eso esta vez no se cerró hasta que él
-> > dijo «*en local ahora funciona bien*».
+> ## 📏 LAS DOS ÓRDENES DE HOY SOBRE CÓMO SE TRABAJA — YA EN EL SISTEMA, NO EN MI CRITERIO
 >
-> **LA CAUSA, MEDIDA Y NO SUPUESTA** (sus dos pistas del 16-09 la partieron por la mitad: «*sólo pasa con las
-> habitaciones en freehand*» y «*si recargo vuelven*»).
+> **1. LOS SPECS SON PARA RECONSTRUIR, NO UN DIARIO.** «*sin ella yo no puedo vender esta herramienta, me has
+> costado muchísimo dinero por flojo*». Nueve secciones obligatorias en castellano (`CLAUDE.md` § «Specs»).
+> `npm run audit` gana el chequeo `specs`: **DURO** para lo que la rama toque, aviso para el resto.
+> Hecho ya: `modules/table` **reescrito entero** como muestra del molde (43 → 130 líneas) y `modules/maps` con
+> las cuatro secciones que le faltaban. **Backlog completo en `specs/SPEC.md`**: los once subdominios de `maps`
+> (pincel, constructor, texturas, objetos, capas y luces, escenas, fondo, niebla, barra, lienzo, escena en
+> vivo) y los 16 specs por debajo del listón, cada uno con lo que le falta.
 >
-> Guardar una pincelada de suelo actualiza **las 53 salas excavadas de golpe** —todas apuntan al mismo PNG—, y
-> eso manda **53 ecos de tiempo real** a su propia pantalla. Se suscribió un cliente de verdad a su Supabase
-> local y se contaron: **9 de los 53 llegan SIN la columna `points`**, o sea sin el contorno de la sala. Los 9
-> son de mano alzada y son los más gordos (1.796–3.800 bytes); una rectangular ocupa 200 y no falla nunca.
+> **2. CLARO/OSCURO NO SE LE PREGUNTA NUNCA.** «*es increíble que me toques los huevos con el claro oscuro en
+> esta herramienta que prácticamente no lo usa, incluso me lo pides cuando no hay*». **BORRADO** del paso 4 de
+> `commands/qa.md` y de `agents/qa.md`. Si hay que comprobar un token, **se lee el CSS**.
 >
-> Es **TOAST**: Postgres guarda fuera de la fila los valores que pasan de ~2 KB y **no los repite en el aviso
-> de replicación si el `UPDATE` no los ha tocado**. `mapRoomRow` hace `points: (r.points ?? [])` y no puede
-> distinguir «no vino» de «vacío», así que la sala se queda sin contorno y **se esfuma de la pantalla**. En la
-> base está intacta — por eso recargar las devuelve, que es literalmente lo que él dijo.
+> ## 🚪 Y LO QUE ÉL ORDENÓ AL FINAL: LA PUERTA DE CADA MÓDULO (`index.ts`)
+> «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
+> cosas sin él*». Lo cazó mirando las carpetas contra su otro proyecto.
+> - Regla escrita en `CLAUDE.md`; backlog en `specs/SPEC.md` con la cara pública de cada módulo **ya medida**
+>   (entre 1 y 8 cosas: es abordable).
+> - **98 importaciones entran dentro de otro módulo** (`characters` 30 · `campaigns` 17 · `dice` 14 · `maps` 12),
+>   y **7 entran directamente en la `ui` ajena**.
+> - ⏳ **FALTA, y es lo primero que hay que hacer en el chat nuevo**: el chequeo `module-index` en
+>   `scripts/audit.mjs` (duro para lo que la rama toque) y los `index.ts` de `maps` y `table`. **Se aplazó a
+>   propósito**: el QA estaba corriendo y usa el auditor; cambiárselo a mitad invalida su informe.
+> - Lo suyo también anotado y **sin decidir**: `packages/system-plenilunio/src` es PLANO (nueve ficheros en
+>   fila, sin `domain/infra/ui`) cuando se dijo «un hexágono por sistema». Mover ficheros, riesgo bajo.
 >
-> **Encaja con TODO lo que él describió**: sólo mano alzada · no todas (sólo las 9 gordas) · vuelven al
-> recargar · nada perdido en la base · y el Ctrl+Z la devuelve un segundo porque vuelve a guardar y llega otro
-> eco igual de incompleto.
+> ## ⏭️ EL SIGUIENTE PASO CONCRETO
+> 1. Mirar el informe del QA de la cuarta vuelta (o relanzarlo). Si pasa → merge y producción.
+> 2. Meter el chequeo `module-index` y los `index.ts` de `maps` y `table`.
+> 3. El 🐞 de las luces, empezando por preguntarle si le pasa **también como jugador de verdad** o sólo con la
+>    sonda: cambia el diagnóstico entero.
 >
-> **❌ POR QUÉ LOS DOS ARREGLOS ANTERIORES NO PODÍAN VALER** (y por qué no hay que volver a esa pista): los dos
-> atacan que la **vista previa de la PINTURA** se quede vacía. Pero su escena **tiene textura de suelo**, y
-> distinta de la del muro: una sala sin pintura **se sigue viendo**, sólo pierde la decoración. El problema
-> nunca fue la pintura, era el **contorno**. Los dos commits arreglan agujeros reales de otra cosa y se quedan.
+> ## 🧹 Deuda viva, medida y no cerrada
+> - La colocación de las ocho costuras **no la ata ningún test**: quitar un `SafeRegion` y la suite sigue verde.
+> - `npm -w packages/ui run typecheck` está **rojo de antes** (`Sheet.tsx:531`), y nadie se enteraba porque el
+>   QA compila las apps pero no pasa ese typecheck.
+> - `.rv-safe-cta` duplica `.tb-btn-blood`; candidato al botón de mesa de `@rolvium/ui`.
+> - `mapTokenRow.state ?? {}` es el último mapeador que inventa valor por defecto en una columna grande.
+> - `onScene` no pasa por `keepUnsent`; `propKey` no incluye `silhouette`.
+> - `maps` son **16.363 líneas, el 64 % de todo el código de módulos**, con once subdominios sin separar en
+>   carpetas. Separarlos en hexágonos distintos **sería un error** (todos tocan la misma escena); separarlos en
+>   carpetas dentro de `maps`, no. Es tarea propia y **la decide él**.
 >
-> **EL ARREGLO** — `keepUnsentLists` en `liveRules.ts`, al lado de `isStaleRow` y por el mismo motivo: **un eco
-> nunca VACÍA una lista que ya teníamos**. Vaciarla no es un cambio legítimo (una sala sin contorno no existe:
-> se borra la fila, y eso llega como `DELETE`). Va **por forma de dato, no por nombre de columna**, así que
-> cualquier columna-lista futura queda cubierta sola. Ficheros: `liveRules.ts`, `useScene.ts` (`applyChange`),
-> y `tests/helpers/fakes.ts` (el doble no sabía emitir ecos de sala).
->
-> **Probado de verdad**: `tests/regression/salas-a-mano-alzada-no-se-borran-al-pintar.test.ts` (4 casos) —
-> **comprobado que 2 FALLAN si se quita el arreglo**, y los otros 2 (un contorno nuevo sí manda · un `DELETE`
-> sigue borrando) pasan en los dos sentidos, que es lo que los hace guardas y no decoración. Más 6 unitarios en
-> `liveRules.test.ts`. Verde entero: **141 ficheros / 2.097 tests**, `tsc` limpio en web y api, `npm run audit`
-> **0 duros**, y las dos builds OK. Spec actualizado en `specs/core/realtime/SPEC.md` § «Qué se puede creer de
-> un eco».
->
-> ✅ **LO PROBÓ ÉL EN LOCAL Y VA** («*vale en local ahora funciona bien*»), que es lo que faltaba: las dos
-> veces anteriores se dio por cerrado sin su palabra y las dos falló. Commit del arreglo `f30f6d2`, merge a
-> `main` `b610c59`. **QA en modo bloqueo pasado** (los 12 pasos; repitió por su cuenta el «2 de 4 fallan sin el
-> arreglo» y le salió igual, con 26 de 53 salas perdiendo el contorno). Las dos vistas previas READY sobre
-> `f375642` ANTES del merge, que es la puerta obligatoria. Sin migraciones.
->
-> ✅ **REVISIÓN PASADA, sin nada que arreglar** (16-09, noche). Comprobó lo importante de verdad: enumeró las
-> **7 columnas jsonb** de las nueve tablas que van por este canal y **sólo DOS son listas** (`maps_rooms.points`
-> y `maps_scene_props.silhouette`); las otras cinco son objetos y la regla ni las mira. De esas dos, **ninguna
-> puede quedar legítimamente vacía**: 315 salas en la base, cero sin contorno, y la silueta la defienden dos
-> CHECK de base más `propRules.ts:471`. O sea: **la regla no puede tapar un cambio de verdad**. Y verificó por
-> su cuenta el «2 de 4 fallan sin el arreglo».
->
-> 🔴 **DEUDA GRANDE ENCONTRADA Y NO TOCADA — MISMA CAUSA, MUCHO PEOR, Y YA ALCANZABLE.**
-> `maps_drawings.data` (los trazos que dibuja a mano) es un jsonb **objeto**, no lista, así que
-> `keepUnsentLists` **no lo cubre ni puede cubrirlo** —la comprobación de «es una lista» es justo lo que hace
-> segura la regla—. Va por **1.372 bytes de 2.000**, al 75 % del umbral. El disparador existe hoy:
-> `SupabaseMapsRepo.ts:499` cambia un trazo de capa **sin tocar `data`** (arrastrar un trazo a otra capa, desde
-> `SceneTab.tsx:1778`), que es exactamente la forma del fallo.
-> **Y no se queda en «se ve mal»: revienta.** `mapDrawingRow` pasa `data` sin red, `canvasLayers.tsx:60` lee
-> `data.points` sobre `undefined` y explota **durante el pintado**. **No hay ni un ErrorBoundary en todo el
-> repo** (comprobado), así que React tira el árbol entero: **la mesa se queda en blanco**. Recargar lo arregla
-> —la fila está intacta—, o sea **la misma firma desesperante que el fallo de las salas**.
-> ⚠️ Cuando se toque: el arreglo NO es ampliar `keepUnsentLists`. Es darle red a `mapDrawingRow`, o no mandar
-> ese `UPDATE` sin `data`, o poner un ErrorBoundary. Decisión suya, tarea aparte.
->
-> 🧹 Deuda menor de la misma familia: `maps_scene_props.silhouette` (1.064 bytes, fila 1.380). Si cruza, el
-> `?? null` del mapeo la vuelve `null` —no `[]`—, así que la regla **tampoco la protege**: el objeto volvería a
-> estorbar con el cuadrado en SU pantalla, sin aviso. No afecta al juego (el servidor lee la base), sólo a lo
-> que él ve. Y `maps_fog.explored` son 12 KB pero **la niebla no va por este canal**: confirmado, no le afecta.
->
-> 🔎 **Pista que se siguió y resultó FALSA, para que nadie la repita**: 20 de sus 33 salas a mano alzada tienen
-> el contorno cruzado consigo mismo (una con 154 puntos y 108 cruces). Parecía la explicación perfecta de «sólo
-> las de freehand», pero su «*si recargo vuelven*» la mató: si fuera la geometría, saldría mal también recién
-> cargado. Los cruces son casi todos de la misma vuelta y SVG los rellena igual.
->
-> 🔁 **Corrección a la nota del 16-09 sobre la máscara**: va al revés de como quedó escrito. En
-> `roomsLayer.tsx:336` el PNG de máscara se pinta dentro de la máscara SVG y **negro = se quita suelo**. Perder
-> el lienzo devuelve suelo (eso estaba bien), pero un lienzo negro se lo come. No es lo que le pasa —tiene cero
-> máscaras—, pero la razón escrita entonces era la equivocada y no debe volver a usarse para descartar nada.
-> **1-bis. 🚀 EL MISMO FALLO EN LOS TRAZOS — v0.12.2, EN PRODUCCIÓN.** Lo pidió él («*termina de solucionar y
-> deja todo en prod*», 17-09) justo después de confirmar el de las salas en producción.
->
-> Merge `911b7c2`, release `499bc57`, los dos despliegues READY, web y api a 200 — y **comprobado que el
-> paquete que sirve producción lleva LAS TRES redes**, buscadas una a una dentro del JS servido. No se dio por
-> bueno el 200 a secas. ⏳ Falta que lo use él un rato, pero este fallo aún no lo había visto: se arregló antes
-> de que le llegara.
->
-> Lo encontró la review del arreglo de arriba: `maps_drawings.data` tenía la MISMA causa y era **mucho peor**.
-> Ahí no se pierde un trazo: **se queda la mesa EN BLANCO**. Y se midió antes de tocar nada, por el camino de
-> verdad (arrastrar un trazo a otra capa hace `update({layer_id})`, que no toca `data`):
-> **60 puntos → llega · 120 → llega · 200 → llega · 400 → ❌ NO VIENE.** O sea que un trazo a pulso largo de
-> los suyos lo dispara. `DrawingShape` leía `data.points` sobre nada y reventaba AL PINTAR; como **no hay ni un
-> ErrorBoundary en toda la app**, React tira el árbol entero.
->
-> **Tres cosas, y las tres hacen falta** (comprobado quitándolas una a una, cada una tumba un test distinto):
-> 1. `keepUnsentLists` → **`keepUnsent`**, con la segunda mitad de la regla: un eco tampoco convierte en
->    `undefined` algo que teníamos. `undefined` NO es un valor —por REST siempre vienen todas las columnas—,
->    mientras que un `null` de verdad SÍ manda: quitar una silueta tiene que seguir funcionando, y hay test.
-> 2. `mapScenePropRow.silhouette` pierde su `?? null`: convertía «no vino» en `null` y **devolvía la pieza al
->    cuadrado en silencio**. Queda escrito en el spec que un mapeador NO debe inventar un valor por defecto
->    para una columna grande — es justo lo que tapa la ausencia donde la regla tiene que verla.
-> 3. Red en `DrawingShape`: **si no hay dibujo, se sale con `null`** y no se pinta nada. Un trazo que no se
->    vea es infinitamente mejor que una mesa en blanco. ⚠️ Se probó primero con `?? {}` y la review lo tumbó
->    con razón: seguir con un objeto vacío pintaba un `rect` con medidas NaN —cuatro avisos por repintado— y
->    una `line` sin coordenadas que dejaba **un punto suelto en la esquina del mapa**. No volver a `?? {}`.
->
-> Rama `fix/el-eco-incompleto-tumba-la-mesa`, ya mergeada. Verde: **2.110 tests** (12 humo +
-> 2.040 regresión + 58 funcional), `tsc` limpio en web y api, audit 0 duros, las dos builds. Review y QA en
-> modo bloqueo pasados, los dos verificando por su cuenta que un `null` DE VERDAD sigue mandando —quitar una
-> silueta o quitar la pintura— y que las tres redes hacen falta. Sin migraciones.
->
-> 🔎 **Se probó, y se DESCARTÓ, arreglarlo en la base** (`SET STORAGE MAIN` para que la columna no se salga de
-> la fila). Habría cubierto también objetos y textos largos, pero es un cambio de ESQUEMA con reescritura de
-> tabla, el clasificador lo bloqueó —con razón— y no es lo que él aprobó. **Sigue disponible como opción si
-> algún día hace falta**; el arreglo de cliente no depende de ella.
->
-> 🔴 **DEUDA GORDA DESTAPADA POR ESTO, NO TOCADA Y ES DECISIÓN SUYA**: **no hay ni un `ErrorBoundary` en
-> `apps/web`.** O sea que CUALQUIER error al pintar —no sólo éste— tumba la mesa entera en vez de un trozo. La
-> red de `DrawingShape` es un parche de UN sitio, no la solución. Merece tarea propia.
->
-> **1-ter. 🚧 LA RED + EL CAMBIO DE ESCENA — EN RAMA. ÉL PIDIÓ «*súbelo a prod*». QA BLOQUEÓ DOS VECES.**
-> Rama `feat/red-de-seguridad-al-pintar`. Vista previa:
-> `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
->
-> **TRES COSAS, las tres suyas:** la RED (`ErrorBoundary` + `SafeRegion`, **OCHO** costuras: la app · cada
-> pestaña de la mesa · el mapa · los CUATRO paneles flotantes (pincel, constructor, luces y objetos) · y el
-> panel de capas) · **el mapa aparece hecho** al cambiar de escena (no era
-> de esta rama: comprobado contra `main`) · **volver a una escena no se espera**.
->
-> 🔴 **EL QA BLOQUEÓ DOS VECES Y LAS DOS TENÍA RAZÓN. Esto es lo que no debe repetirse:**
-> 1ª — el guardado en memoria se fiaba de sí mismo («eso sólo lo cambia el director»). **FALSO**: los DIBUJOS
->    los hacen los jugadores, y `useScene` corre TAMBIÉN en su pantalla, donde quien edita otra escena es él.
->    Un muro que él ocultara volvería a verse. → Ahora se pinta lo guardado y **se vuelven a pedir las ocho
->    listas igual**.
-> 2ª — y si ese refresco **fallaba**, las fichas ya habían abierto la pantalla, así que lo guardado se quedaba
->    **haciéndose pasar por la verdad sin un aviso**: el mismo agujero por la puerta de atrás. → Ahora falla a
->    `error` y el hueco del mapa lo dice. Más: faltaban `PropsPanel` y `LayersPanel` por envolver, el parte
->    mentía, y un párrafo de `ARCHITECTURE.md` quedó partido en dos.
->
-> 🔴 **Y ANTES LA REVIEW CAZÓ OTRO**: el aviso de la mesa iba con los colores de la APP sobre el tablero, casi
-> negro siempre → **1,12:1 con el tema claro: invisible**. Ahora `--sys-*` y **botón en SANGRE**; corregidos
-> código y `.pen` (guardado por él a las 16:22, `c45cba2`, +1/−1).
->
-> 🧹 **Deuda anotada por el QA y NO cerrada** (decisión aparte): la colocación de las OCHO costuras **no la
-> ata ningún test** —quitar un `SafeRegion` de `AppRouter` y la suite sigue verde—. La tapa del mapa SÍ quedó
-> atada en la tercera vuelta.
-> ⚠️ Y si la carga falla, el mapa se queda en «error» **sin botón de reintentar**: sólo sale cambiando de
-> escena y volviendo. Mejor que el silencio de antes, pero a él le deja el mapa muerto con una palabra.
-> 🧹 `.rv-safe-cta` duplica `.tb-btn-blood` de `table.css`; candidato al botón de mesa que ya está apuntado. Y `npm -w packages/ui run typecheck` sigue rojo de antes (`Sheet.tsx:531`).
->
-> ⏳ **Falta**: QA de tercera vuelta y el merge. **NO consta que él haya probado la vista previa**; se le
-> preguntó una vez y pidió subirlo igual.
->
-> **1-quater. 🔴 ARQUITECTURA — DOS FUGAS REALES QUE ÉL CAZÓ MIRANDO LAS CARPETAS (17-09). SIN DECIDIR.**
-> Preguntó dónde estaba el hexágono del sistema de juego y por qué esto no se parece a Worksuite. **Tenía razón
-> en dos cosas**; lo de «un solo dominio» no (hay 12 módulos, 10 con `container.ts domain infra ui`, el mismo
-> patrón que Worksuite).
->
-> 1. **`packages/system-plenilunio/src` es PLANO**: nueve ficheros en fila, sin `domain/infra/ui`. Se dijo «un
->    hexágono por sistema». Funciona —son reglas puras, no habla con nadie, por eso no tiene infra— pero **no se
->    parece al resto** y él lo vio de un vistazo. Mover ficheros, riesgo bajo.
-> 2. **NINGÚN módulo tiene `index.ts`**, que en Worksuite es lo que declara qué es público. Consecuencia
->    MEDIDA: **98 importaciones entran dentro de otro módulo** — `characters` 30, `campaigns` 17, `dice` 14,
->    `maps` 12 — y **7 entran directamente en la `ui` ajena**. No está roto, pero se filtra, y cada fuga
->    encarece separar nada.
->
-> **Propuesto y NO empezado, esperando su orden**: (a) `index.ts` por módulo + que `npm run audit` BLOQUEE lo
-> que no pase por él — la más importante; (b) ordenar `system-plenilunio` como los demás; (c) cerrar las 98
-> según se toque cada módulo, como los specs. Dijo «vale ya lo vi» y **no dio orden todavía**.
->
-> **2. ✅ EL FRENO DE LOS OBJETOS — CERRADO POR ÉL, SIN CAMBIO. NO VOLVER A PREGUNTARLO.**
-> Se le preguntó en firme (17-09) si un objeto marcado «corta el paso» debe frenar SIEMPRE aunque las paredes
-> estén atravesables, o si el escudo de la escena sigue mandando sobre todo. **Su respuesta: «*esto está
-> solucionado en prod*».** O sea: **manda el escudo, se queda como está y no se toca nada.**
-> 👉 **El `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su gemelo del servidor (`sceneVision.ts`)
-> SE QUEDAN.** Si algún día se queja de que un objeto no frena, mirar primero si la escena tiene el escudo en
-> «Paredes atravesables» —ese interruptor apaga el freno de todo pero NO la vista, que es lo que le despistó la
-> primera vez— antes de tocar esa línea.
->
-> Su local corre en `localhost:5173` y `5174`, con el servidor en `3001`; los tres estaban vivos.
->
-> **3. Lo pequeño que sigue anotado**: las tres pastillas desplegadas en ventana estrecha (la de arriba se
-> sale), el camino muerto `pendingChatOpen`, y traer una tirada del Registro a una conversación.
->
-> ## ⚠️ DOS LECCIONES DE HOY, PARA NO REPETIRLAS
-> - **Una migración de DATOS grande no va por MCP.** La de las siluetas eran 125 KB y hubo que partirla en
->   siete tandas por el chat: ~150k tokens. La próxima, **enlazar el CLI de Supabase y `db push`**.
-> - **Al cambiar de rama se le cambia el local sin avisar.** Pasó hoy: probó el pincel media hora contra el
->   código viejo por culpa mía. **Decirle siempre en qué rama queda su local.**
->
-> ## 🧹 Menudencias
-> - `siluetas-comprobacion.local.png` (raíz): la comprobación visual de seis objetos suyos. Está ignorada por
->   git; se puede borrar cuando ya no la quiera.
-> - Deuda anotada y NO tocada: la clave de recálculo de niebla (`useScene.ts:296`) no incluye la silueta —hoy
->   no se manifiesta—, y el pincel de máscara puede perder un trozo de brochazo al cruzar de sala (ver el 🐞
->   del pincel, más abajo).
-> - El `.pen` está guardado y limpio: las dos láminas del botón que él mató se borraron en `1b55613`.
-
+> ## 🔑 LO QUE HE APRENDIDO HOY Y NO DEBE PERDERSE
+> - **Medir antes que razonar.** Dos arreglos razonados desde el código fallaron donde una medición acertó a la
+>   primera. Sus pistas en lenguaje llano («sólo las de freehand», «si recargo vuelven») descartan familias
+>   enteras de causa en un segundo: **pedirlas siempre**.
+> - **Un test que no cae al quitar el arreglo no vale nada.** Hoy tres «pruebas» mías no probaban lo que decían,
+>   y una salió intermitente por estar hecha con relojes. Comprobarlo SIEMPRE con mutación.
+> - **El QA bloqueó cuatro veces y tenía razón las cuatro.** Dos con filo de seguridad. No discutirle.
 ---
 
 > ## 🚀 v0.11.0 EN PRODUCCIÓN (2026-09-16, mañana) — **LAS PASTILLAS y el pincel arreglado**
