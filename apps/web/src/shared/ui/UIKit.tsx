@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip, FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup } from '@rolvium/ui';
+import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip, FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup, ErrorBoundary } from '@rolvium/ui';
 import type { SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
@@ -8,7 +8,14 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
  * Live catalogue of @rolvium/ui. Every new shared component gets an example
  * here (rule in CLAUDE.md). Route: /ui-kit (authenticated).
  */
+/** El trozo de mentira del ejemplo: revienta AL PINTARSE, que es lo único que una red de React puede parar. */
+function Reventon({ roto, onRomper }: { roto: boolean; onRomper: () => void }): JSX.Element {
+  if (roto) throw new Error('ejemplo del UI Kit: esto revienta al pintarse');
+  return <div style={{ padding: 24, textAlign: 'center' }}><Btn variant="ghost" onClick={onRomper}>Romperlo</Btn></div>;
+}
+
 export function UIKit(): JSX.Element {
+  const [roto, setRoto] = useState(false);
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<string[]>(['b']);
   const [sheet, setSheet] = useState<SheetData>(() => ({ ...plenilunio.newSheet(), name: 'Karen «K»', concept: 'Líder de banda' }));
@@ -36,6 +43,22 @@ export function UIKit(): JSX.Element {
         <PageHeader title="Hola, Ignacio" subtitle="Subtítulo de página" actions={<Btn variant="primary">Acción</Btn>} />
         <SectionTitle style={{ marginTop: 16 }}>Mis campañas</SectionTitle>
         <Card><EmptyState icon="auto_stories" title="Todavía no estás en ninguna campaña" description="Crea una como director o únete con un código." actions={<Btn variant="primary">Crear campaña</Btn>} /></Card>
+      </section>
+      <section><h3 style={{ marginBottom: 8 }}>ErrorBoundary + EmptyState tone=&quot;amber&quot; (la red: un error al pintar se queda en su trozo)</h3>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>{"import { ErrorBoundary } from '@rolvium/ui'"} · {'<ErrorBoundary label fallback={(reintentar, error) => …}>…</ErrorBoundary>'}</p>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>Pulsa «Romperlo» y mira que este texto y el resto de la página siguen aquí: sin la red, React se llevaría el árbol entero. En la app se usa envuelta con sus textos en <code>shared/ui/SafeRegion.tsx</code>.</p>
+        <Card>
+          <ErrorBoundary
+            label="ui-kit:demo"
+            fallback={reintentar => (
+              <EmptyState tone="amber" icon="warning" title="Este trozo se ha roto"
+                description="El resto sigue funcionando. Vuelve a intentarlo: no se ha perdido nada."
+                actions={<Btn variant="primary" onClick={() => { setRoto(false); reintentar(); }}>Reintentar</Btn>} />
+            )}
+          >
+            <Reventon roto={roto} onRomper={() => setRoto(true)} />
+          </ErrorBoundary>
+        </Card>
       </section>
       <section><h3 style={{ marginBottom: 8 }}>Sheet (schema-driven, themed by --sys-* vars — here Plenilunio's)</h3>
         <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>{"import { Sheet } from '@rolvium/ui'"} · {'<Sheet schema data derived onChange onAction actions t refText labels icons />'}</p>

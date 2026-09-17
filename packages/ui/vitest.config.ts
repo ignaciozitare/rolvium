@@ -1,4 +1,14 @@
 import { defineConfig } from 'vitest/config';
-// `node` basta: el compresor recibe por parámetro lo que necesita del navegador (canvas), justo para
-// poder probarlo sin uno. Si algún día se prueban componentes React aquí, hará falta `jsdom`.
-export default defineConfig({ test: { environment: 'node', include: ['src/**/*.test.ts'] } });
+/*
+ * `jsdom` desde el 2026-09-17, que es el día que anticipaba el comentario que había aquí: el primer
+ * componente de React que se prueba en este paquete es `ErrorBoundary`, y una red de errores de render sin
+ * un DOM no se puede probar. Las pruebas que NO son de componente (`compressImage`) siguen igual: no usan el
+ * DOM, y `jsdom` no les cambia nada.
+ */
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+  },
+});

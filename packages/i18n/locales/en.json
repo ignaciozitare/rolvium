@@ -20,6 +20,14 @@
     "yes": "Yes",
     "you": "you"
   },
+  "errors": {
+    "pageTitle": "Something broke on this screen",
+    "pageDescription": "Nothing is lost: your game and your data are safe. Try again, and if it keeps failing, reload the page.",
+    "regionTitle": "This part broke",
+    "regionDescription": "Everything else still works. Try again: nothing has been lost.",
+    "retry": "Try again",
+    "reload": "Reload the page"
+  },
   "theme": {
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode"

@@ -33,6 +33,7 @@ import { WhisperWatcher } from '@/modules/chat/ui/WhisperWatcher';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
+import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
@@ -203,6 +204,12 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
         <div className="tb-body">
           <main className="tb-main">
+            {/*
+              * UNA RED POR PESTAÑA (`specs/core/errors/SPEC.md`). Una ficha rota no se lleva el mapa por
+              * delante, y `key={tab}` hace que cambiar de pestaña y volver lo reintente solo: la pestaña se
+              * monta de cero, así que el aviso no se queda pegado cuando el problema ya no está.
+              */}
+            <SafeRegion key={tab} label={`table:${tab}`}>
             {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} {...(pool ? { pool } : {})} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')}
               {...(viewCharacterId ? { onBack: () => { setViewCharacterId(null); setTab('group'); } } : {})} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
@@ -216,6 +223,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
+            </SafeRegion>
           </main>
           <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>
             <button type="button" className="tb-side-fold" aria-expanded={sideOpen}
