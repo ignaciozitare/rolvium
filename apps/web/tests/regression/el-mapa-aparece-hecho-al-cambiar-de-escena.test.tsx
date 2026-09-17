@@ -58,11 +58,13 @@ describe('🐞 el mapa aparece hecho al cambiar de escena', () => {
 describe('🔒 la tapa del hueco del mapa', () => {
   it('mientras carga tapa con «cargando», y al fallar lo DICE en vez de enseñar lo guardado', async () => {
     const { renderWithProviders, screen, waitFor } = await import('../helpers/render');
+    const userEvent = (await import('@testing-library/user-event')).default;
     const { fakeMapsRepo, fakeVisionPort, fakeCharactersRepo, SCENE_WAREHOUSE } = await import('../helpers/fakes');
     const { SceneTab } = await import('@/modules/maps/ui/SceneTab');
     const { plenilunio } = await import('@rolvium/system-plenilunio');
 
     const repo = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] });
+    const listaBuena = repo.listRooms;
     repo.listRooms = async () => { throw new Error('se cayó la red'); };
 
     renderWithProviders(
@@ -73,5 +75,15 @@ describe('🔒 la tapa del hueco del mapa', () => {
 
     // Si la tapa no existiera, aquí se pintaría el mapa con lo que hubiera — que es justo lo que no puede pasar.
     await waitFor(() => expect(screen.getByTestId('mp-load-error')).toBeInTheDocument());
+
+    /*
+     * 🔑 Y CON SALIDA. Suyo, sin medias tintas: «*¿qué hace el usuario? deja de jugar y se va y deja al party
+     * colgado*». Un fallo de red no puede terminar una partida, así que el aviso lleva botón y el botón
+     * vuelve a pedirlo de verdad.
+     */
+    const boton = screen.getByRole('button', { name: /reintentar|try again/i });
+    repo.listRooms = listaBuena;
+    await userEvent.click(boton);
+    await waitFor(() => expect(screen.queryByTestId('mp-load-error')).toBeNull());
   });
 });

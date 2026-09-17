@@ -750,7 +750,7 @@
  * la barra y los paneles se quedan, que no esperan a nada. Con `--sys-*`, que es lo que manda en la mesa.
  */
 .mp-loading{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;
   background:var(--sys-bg);color:var(--sys-ink-soft);
   font-family:var(--sys-font-display);font-size:var(--fs-sm);letter-spacing:.18em;text-transform:uppercase;
 }

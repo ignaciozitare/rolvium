@@ -12,7 +12,6 @@ talk to the user. So your job here is to orchestrate:
 2. Launch the qa subagent with the answer         ← subagent runs in isolation
 3. Subagent does Steps 1-12 (all automated checks)
 4. Subagent returns the report
-5. Ask the user the light/dark verification       ← you handle this
 6. Present the final consolidated QA result
 ```
 
@@ -47,8 +46,7 @@ Branch: <current branch>
 Target: main
 
 Execute all 12 steps in your system prompt and return the consolidated
-report. Do NOT perform the light/dark visual verification — I handle that
-separately after you return.
+report. NO pidas verificación de claro/oscuro: no existe en este proyecto.
 ```
 
 ## Step 3 — Wait for the subagent's report
@@ -59,31 +57,24 @@ The subagent will return either ✅ PASSED, ⚠️ PASSED with warnings, or
 If it returned BLOCKED → the task stops here. Do not continue to the
 manual step. Surface the blockers so the user can fix them.
 
-## Step 4 — Manual light/dark verification (only if the subagent passed)
+## Step 4 — ~~Verificación claro/oscuro~~ ELIMINADO (orden suya, 2026-09-17)
 
-Ask the user:
+> «*es increíble que me toques los huevos con el claro oscuro en esta herramienta que … prácticamente no lo
+> usa, incluso me lo pides cuando no hay un claro oscuro*»
 
-> "Para terminar QA, hacé esto manualmente — 2 minutos:
-> 1. Abrí la app en el browser
-> 2. Andá a cada vista que se modificó en esta tarea
-> 3. Toggle entre dark y light en cada una
-> 4. Confirmá que no hay colores rotos, texto invisible, white-on-white o
->    black-on-black
-> 5. Respondé 'light/dark ok' cuando termines"
-
-Do not approve the merge until the user confirms. If the user reports a
-visual issue, identify which CSS variable is missing its `[data-theme="light"]`
-override in `apps/web/src/RolviumApp.css`, fix it, and ask the user to re-verify.
+**NO se le pide.** Dentro de la mesa manda el tema del sistema y no hay claro/oscuro; fuera, los tokens viven
+en los dos temas en `RolviumApp.css` y `npm run audit` ya caza el hex crudo, el `#fff` y el `var()` con
+fallback. Si hace falta comprobar que un token nuevo tiene su pareja en `[data-theme="light"]`, **se lee el
+CSS** — no se le hace a él de comprobador.
 
 ## Step 5 — Final approval message
 
-Once the user confirms light/dark, return:
+Con los pasos automáticos en verde, devolvé:
 
 ```
 ✅ QA — APPROVED FOR MERGE
 
 Automated checks: [verbatim from subagent report]
-Light / Dark manual verification: ✅ confirmed by user
 
 → Safe to merge to main. Invoke the Deploy Agent when ready.
 ```

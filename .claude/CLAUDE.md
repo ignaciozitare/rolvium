@@ -346,7 +346,60 @@ These rules apply while writing code. The QA Agent will verify them before any m
 
 ---
 
-## Specs
+## Specs — ZERO TOLERANCE (orden del dueño, 2026-09-17)
+
+> «*cuando empezó el proyecto te dije que lo hagas … de ahora en más agrega en el harness y donde haga falta
+> que los specs se escriben bien, no me boludees … sin ella yo no puedo vender esta herramienta*»
+
+**PARA QUÉ SON, y esto manda sobre todo lo demás: para que él pueda coger los specs + `rolvium.pen` y
+RECONSTRUIR LA HERRAMIENTA DE CERO.** No son un diario de decisiones. Un spec del que no se pueda reconstruir
+el módulo está mal escrito, por muy largo que sea.
+
+Lo que pasó por no cumplirlo: donde se trabajó hay 3.058 líneas y el resto se quedó como nació —21, 22, 29,
+43—, con los títulos en inglés y el cuerpo en castellano. Se escribieron como registro de decisiones, que es
+otra cosa.
+
+### Las nueve secciones OBLIGATORIAS, en este orden y en castellano
+
+| # | Sección | Qué va dentro |
+|---|---|---|
+| 1 | `## Propósito` | Qué problema resuelve, y **quién lo usa** (todos · director · jugador · admin) |
+| 2 | `## Qué puede hacer el usuario` | **Todas** las acciones, una por línea. Si no está aquí, no existe |
+| 3 | `## Pantallas` | Cada vista/panel/modal, **con su lámina de `rolvium.pen`** («§ 5 · `Maps/Escena · dark`») |
+| 4 | `## Reglas y límites` | Invariantes, topes, lo que NUNCA puede pasar |
+| 5 | `## Estados y errores` | Cada estado (vacío, cargando, error, sin permiso) y **qué ve él** en cada uno |
+| 6 | `## Permisos` | Quién puede qué, y con qué clave del motor de roles |
+| 7 | `## Modelo de datos` | Tablas, columnas, RLS y a qué migración corresponden |
+| 8 | `## Fuera de alcance` | Lo que se decidió NO construir, y por qué |
+| 9 | `## Decisiones` | El **porqué**: sus frases con fecha, qué se probó y falló. Esto es lo único que hoy sobra bien |
+
+Las 1-8 dicen **QUÉ hay**. La 9 dice **POR QUÉ**. Hoy sobra la 9 y faltan las demás.
+
+### Cómo se cumple
+
+- **HOOK DETERMINISTA, no criterio**: `npm run audit` tiene el chequeo `specs`. Es **DURO** para cualquier
+  módulo o área core que la rama TOQUE —faltan secciones o menos de 80 líneas y no se mergea— y **aviso** para
+  el resto, con la deuda medida. Así lo nuevo nace bien y lo viejo se cierra poco a poco, que es lo que pidió.
+- **Un hexágono nuevo no se da por terminado sin su spec completo.** Las nueve secciones, o no está hecho.
+- **Un idioma: castellano**, títulos incluidos. Nada de títulos en inglés con cuerpo en castellano.
+- Sigue en pie lo de **no regenerar todos los specs de golpe**: se cierran a medida que se tocan los módulos.
+
+---
+
+## 🌓 Claro / oscuro — NO SE LE PREGUNTA (orden suya, 2026-09-17)
+
+> «*es increíble que me toques los huevos con el claro oscuro en esta herramienta que … prácticamente no lo
+> usa, incluso me lo pides cuando no hay un claro oscuro*»
+
+**No se le pide verificación de claro/oscuro. Nunca.** Ni el QA, ni el Dev, ni el Design. Dentro de la mesa
+manda el tema del sistema y no existe claro/oscuro; fuera, los tokens están definidos en los dos temas desde
+`RolviumApp.css` y `npm run audit` ya caza el hex crudo, el `var()` con fallback y el `#fff`. Si un token nuevo
+se deja sin su pareja en `[data-theme="light"]`, **eso se comprueba leyendo el CSS**, no haciéndole a él de
+comprobador.
+
+---
+
+## Specs — índice
 - Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,game-system,images,realtime,roles-permissions,testing}/SPEC.md`).
 - `specs/SPEC.md` is the global index that references all individual specs.
 - Always read the relevant SPEC.md before starting any work on that area.

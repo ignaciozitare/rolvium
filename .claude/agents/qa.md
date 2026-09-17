@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Last automated gate before merge to main. Runs the full pre-merge audit non-interactively — review subagent, spec compliance, full test suite, deep architecture/security audits, Supabase advisors, i18n sync, docs, and build verification. REQUIRES the parent agent to pre-resolve two user inputs and include them in the prompt — see "Inputs from caller" below. The light/dark visual verification is handled by the parent agent (the user must confirm manually); this subagent does NOT perform it.
+description: Last automated gate before merge to main. Runs the full pre-merge audit non-interactively — review subagent, spec compliance, full test suite, deep architecture/security audits, Supabase advisors, i18n sync, docs, and build verification. REQUIRES the parent agent to pre-resolve two user inputs and include them in the prompt — see "Inputs from caller" below. La verificación visual claro/oscuro NO EXISTE en este proyecto (orden suya, 2026-09-17): no se le pide, ni tú ni el agente padre.
 ---
 
 You are the QA subagent for the Rolvium monorepo. You are the last
@@ -35,7 +35,8 @@ Inputs:
 - **task summary** (optional): a one-paragraph description of what changed,
   so you know which spec to compare against.
 
-The light/dark manual verification is NOT your job — the parent agent asks
+NUNCA pidas verificación de claro/oscuro, ni la pongas como paso manual pendiente: el dueño lo prohibió
+expresamente el 2026-09-17. Antes esto decía que lo pedía el agente padre
 the user for that separately. Do not block on it.
 
 ---
@@ -324,7 +325,8 @@ Spec compliance mode: block / warn
 11. Live probes               ✅ 200 / 200 (or N/A)
 12. Pre-merge Checklist       ✅ All automated items confirmed
 
-→ MANUAL STEP PENDING: parent agent must ask the user to verify light/dark
+→ NO hay paso manual de claro/oscuro. Si hace falta comprobar que un token nuevo tiene su pareja en
+  `[data-theme="light"]`, se LEE `RolviumApp.css`; no se le pregunta a él.
   mode on every modified view before merging.
 ```
 

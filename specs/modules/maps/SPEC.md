@@ -1,6 +1,6 @@
-# Maps (H7) — SPEC
+# La escena · mapas (H7) — SPEC
 
-## Purpose
+## Propósito
 La escena: un plano de fondo, muros invisibles, niebla por línea de visión, tokens, dibujos compartidos y pin de
 enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramientas son solo del director.
 
@@ -85,7 +85,73 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - 🔜 **Siguiente tanda, dicha por él**: «*una vez tengamos esto listo ya veremos los pinceles*» — repintar el
     suelo de UNA sala. Y coger, mover y borrar una forma ya levantada, que hoy sólo existe por debajo.
 
-## What the user can do
+## Qué puede hacer el usuario
+
+> Índice de **QUÉ HAY**, escrito el 2026-09-17 con el molde de `CLAUDE.md` § «Specs». El **porqué** de cada
+> cosa está en las secciones por rebanadas de más abajo, que es lo que este spec tenía y le sobra bien.
+
+**Cualquier miembro**
+- Ver la escena que el director haya **activado**, a pantalla completa, con zoom y desplazamiento (el
+  desplazamiento es un modificador —espacio o botón central—, **nunca** una herramienta).
+- **Seleccionar** · **medir** · **marcar un punto** de enfoque.
+- **Dibujar**: lápiz, línea, rectángulo, círculo, texto y goma, con su color y su grosor.
+- Mover **su** ficha; choca con muros, salas y objetos que cortan el paso.
+
+**Sólo el director**
+- **Escenas**: crear, renombrar, ordenar, borrar, **abrir** una para trabajarla y **activarla** para el grupo
+  (son dos acciones distintas: puede preparar un piso mientras el grupo juega en otro).
+- **Fondo**: color o foto, desde la biblioteca de la campaña o subiendo una.
+- **Construir**: muros, puertas y ventanas con edición de vértices; **salas** (formas cerradas que abren un
+  hueco en el relleno de pared para que se vea el suelo) y rellenos de muro.
+- **Pincel**: pintar encima de una sala, de la roca, de una foto o de la niebla, con textura o color y
+  transparencia; y destapar lo de debajo.
+- **Capas**: una pila de terreno con máscaras, más capas fijas de objetos, criaturas y notas del director.
+- **Luces de ambiente**, recortadas contra los muros.
+- **Niebla**: revelar y ocultar con pincel, y **ver como jugador**.
+- **Fichas**: colocar personajes y criaturas del bestiario, ocultarlas, quitarlas.
+- **Objetos**: biblioteca por paquetes, catálogo a pantalla completa, subida en lote, sembrar de uno en uno o
+  por área, y sobre lo ya puesto: coger, mover, escalar, girar, copiar y reordenar la pila.
+- **Deshacer y rehacer**.
+
+## Pantallas
+
+| Pantalla / parte | Qué es | Lámina |
+|---|---|---|
+| La escena | A pantalla completa dentro de la pestaña «Escena» | `rolvium.pen` § 5 · LA ESCENA · mapas |
+| Rail de escenas | Lista plegable a la izquierda; abrir ≠ activar | § 5 |
+| Barra de herramientas | Tres bloques, los dados primero, lo del director tras la raya dorada | § 5 |
+| Panel del constructor | Muros, puertas, ventanas, salas y rellenos | § 5 |
+| Panel del pincel | Sobre qué, qué hace, textura, color, tamaño, dureza, transparencia | § 5 |
+| Panel de luces | Forma, alcance, color, parpadeo | § 5 |
+| Panel de capas | La pila, con su menú de mandar a capa | § 5 |
+| Panel de objetos | El sello: uno por clic, o sembrar por área | § 6 · LA ESCENA · piezas |
+| Catálogo de texturas / de objetos | A pantalla completa | § 5 · § 6 |
+| Estados vacíos y de error | Sin escena activa · sin suelo que pintar · trozo roto | § 11 · ESTADOS VACÍOS Y ERRORES |
+
+⚠️ **Pendiente**: los nombres exactos de cada lámina se rellenan la próxima vez que el `.pen` esté abierto (el
+2026-09-17 no era accesible). Las secciones sí están confirmadas.
+
+## Estados y errores
+
+| Estado | Cuándo | Qué ve él |
+|---|---|---|
+| Sin escena activa | El director no ha activado ninguna | «El director aún no ha activado ninguna escena» |
+| Cargando la escena | Al abrir o cambiar de escena, mientras llegan sus piezas | Se tapa **el hueco del mapa**; la barra y los paneles se quedan |
+| Error al cargar | Falla alguna de las listas de la escena | El hueco del mapa lo dice **y lleva botón de Reintentar** (§ «Cambiar de escena») |
+| Sin suelo que pintar | Pincel sobre sala sin ninguna sala excavada | El panel lo dice en vez de quedarse mudo |
+| Un trozo roto | Algo revienta al pintarse | La red del § `core/errors`: se cae ese trozo, no la mesa |
+
+## Permisos
+
+| Acción | Quién | Clave |
+|---|---|---|
+| Ver la escena activa, medir, marcar, dibujar, mover su ficha | Cualquier miembro | — |
+| Todo lo de construir, pintar, niebla, luces, capas, fichas ajenas | Director | papel `dm` de la campaña |
+| Subir y ordenar **texturas** | Director con permiso | `manage_textures` |
+| Subir y ordenar **objetos** | Director con permiso | `manage_props` |
+| Ordenar la barra de herramientas para todos | Admin | `manage_settings` |
+
+## Qué puede hacer el usuario — detalle histórico
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
 - **Fondo del mapa** (popover, solo DJ): **color de base** (el mismo bloque que el Pincel: muestras, TUS COLORES
   por campaña, hex y cuentagotas; se ve donde no llega la imagen) y el **catálogo de fondos** a pantalla completa

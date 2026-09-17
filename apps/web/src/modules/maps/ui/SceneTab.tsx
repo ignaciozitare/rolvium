@@ -1297,7 +1297,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                * mirar sólo `loading` dejaría lo guardado haciéndose pasar por la verdad y sin un aviso.
                */
               <div className="mp-loading" data-testid={st.status === 'error' ? 'mp-load-error' : 'mp-loading'}>
-                {t(st.status === 'error' ? 'maps.error' : 'maps.loading')}
+                <span>{t(st.status === 'error' ? 'maps.error' : 'maps.loading')}</span>
+                {/*
+                  * 🔑 Y CON BOTÓN, suyo y sin medias tintas (2026-09-17): «*¿qué hace el usuario? deja de
+                  * jugar y se va y deja al party colgado*». Un fallo de red no puede terminar una partida.
+                  */}
+                {st.status === 'error' && (
+                  <button type="button" className="rv-safe-cta" onClick={st.reintentar}>{t('errors.retry')}</button>
+                )}
               </div>
             )
             : <SafeRegion label="maps:canvas">

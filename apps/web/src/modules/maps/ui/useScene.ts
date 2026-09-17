@@ -187,6 +187,14 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * el hueco de la NUEVA lo que todavía es de la ANTERIOR, y volver enseñaría el mapa equivocado.
    */
   const cargadoPara = useRef<string | null>(null);
+  /**
+   * 🔑 REINTENTAR LA CARGA (suyo, 2026-09-17, sin medias tintas: «*que me digas que algo falla y no pones
+   * botón de reintentar es una mierda pinchada en un palo, ¿qué hace el usuario? deja de jugar y se va y deja
+   * al party colgado*»). Sin esto, de `error` sólo se salía cambiando de escena y volviendo — o sea que un
+   * fallo de red en mitad de una partida la terminaba.
+   */
+  const [intento, setIntento] = useState(0);
+  const reintentar = useCallback(() => { setIntento(n => n + 1); }, []);
 
   useEffect(() => { setLive(scene); }, [scene]);
 
@@ -318,7 +326,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       },
     });
     return () => { alive = false; off(); setDrags({}); setPin(null); };
-  }, [repo, sceneId, me]);
+  }, [repo, sceneId, me, intento]);
 
   // ── vision ──
   /**
@@ -1330,11 +1338,12 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog,
+    reintentar,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask,
     saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint,
     addLight, patchLight, removeLight, patchDrawingLayer,
     plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing, plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps]);
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog, reintentar, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing, plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps]);
 }
