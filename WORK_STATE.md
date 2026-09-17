@@ -175,6 +175,23 @@
 > ⏳ **Falta**: QA de tercera vuelta y el merge. **NO consta que él haya probado la vista previa**; se le
 > preguntó una vez y pidió subirlo igual.
 >
+> **1-quater. 🔴 ARQUITECTURA — DOS FUGAS REALES QUE ÉL CAZÓ MIRANDO LAS CARPETAS (17-09). SIN DECIDIR.**
+> Preguntó dónde estaba el hexágono del sistema de juego y por qué esto no se parece a Worksuite. **Tenía razón
+> en dos cosas**; lo de «un solo dominio» no (hay 12 módulos, 10 con `container.ts domain infra ui`, el mismo
+> patrón que Worksuite).
+>
+> 1. **`packages/system-plenilunio/src` es PLANO**: nueve ficheros en fila, sin `domain/infra/ui`. Se dijo «un
+>    hexágono por sistema». Funciona —son reglas puras, no habla con nadie, por eso no tiene infra— pero **no se
+>    parece al resto** y él lo vio de un vistazo. Mover ficheros, riesgo bajo.
+> 2. **NINGÚN módulo tiene `index.ts`**, que en Worksuite es lo que declara qué es público. Consecuencia
+>    MEDIDA: **98 importaciones entran dentro de otro módulo** — `characters` 30, `campaigns` 17, `dice` 14,
+>    `maps` 12 — y **7 entran directamente en la `ui` ajena**. No está roto, pero se filtra, y cada fuga
+>    encarece separar nada.
+>
+> **Propuesto y NO empezado, esperando su orden**: (a) `index.ts` por módulo + que `npm run audit` BLOQUEE lo
+> que no pase por él — la más importante; (b) ordenar `system-plenilunio` como los demás; (c) cerrar las 98
+> según se toque cada módulo, como los specs. Dijo «vale ya lo vi» y **no dio orden todavía**.
+>
 > **2. ✅ EL FRENO DE LOS OBJETOS — CERRADO POR ÉL, SIN CAMBIO. NO VOLVER A PREGUNTARLO.**
 > Se le preguntó en firme (17-09) si un objeto marcado «corta el paso» debe frenar SIEMPRE aunque las paredes
 > estén atravesables, o si el escudo de la escena sigue mandando sobre todo. **Su respuesta: «*esto está
