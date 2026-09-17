@@ -78,6 +78,19 @@ describe('🐞 un trozo roto no tumba la mesa', () => {
     expect(screen.getByText('el mapa, entero')).toBeInTheDocument();
   });
 
+  it('🔑 dentro de la mesa el aviso va con los colores de LA MESA, no con los de la app', () => {
+    /*
+     * Lo cazó la review (2026-09-17): con los colores de la app, sobre el tablero —casi negro con cualquier
+     * tema— el título daba 1,12:1 de contraste con el tema claro puesto. O sea INVISIBLE, justo en la
+     * pantalla que existe para enseñar que la red funciona.
+     */
+    callar();
+    const { container } = renderWithProviders(<SafeRegion label="maps:canvas"><Reventon /></SafeRegion>);
+    expect(container.querySelector('.rv-safe-card')).not.toBeNull();
+    // Y nada de `EmptyState`, que es del cromo de la app y no se lee ahí.
+    expect(container.querySelector('.rv-safe-cta')).not.toBeNull();
+  });
+
   it('sin error no se mete en medio', () => {
     renderWithProviders(<SafeRegion label="x"><p>todo bien</p></SafeRegion>);
     expect(screen.getByText('todo bien')).toBeInTheDocument();

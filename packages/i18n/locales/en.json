@@ -24,7 +24,7 @@
     "pageTitle": "Something broke on this screen",
     "pageDescription": "Nothing is lost: your game and your data are safe. Try again, and if it keeps failing, reload the page.",
     "regionTitle": "This part broke",
-    "regionDescription": "Everything else still works. Try again: nothing has been lost.",
+    "regionDescription": "The rest of the table still works. Try again: nothing has been lost from your game.",
     "retry": "Try again",
     "reload": "Reload the page"
   },
