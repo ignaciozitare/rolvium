@@ -10,6 +10,7 @@ Source of truth for functionality. Read the relevant spec before touching its ar
   objetos, fondos); nivel de compresión por tipo, elegible en Admin → Ajustes
 - [Game System port](core/game-system/SPEC.md) — contrato `GameSystem` que implementa cada sistema de juego
 - [Realtime & event bus](core/realtime/SPEC.md) — canal por campaña, presencia, bus de la mesa
+- [Errores al pintar](core/errors/SPEC.md) — la red que hace que un error estropee un trozo y no la mesa entera
 
 ## Modules
 Product hexagons (map in `ARCHITECTURE.md`):
