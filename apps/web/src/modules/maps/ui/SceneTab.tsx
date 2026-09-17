@@ -1274,163 +1274,180 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           {/* El lienzo pinta `shown`: la escena más el borrador de la escala que él esté arrastrando ahora. */}
-          <SafeRegion label="maps:canvas">
-            <MapCanvas scene={shown!} tokens={fichas} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-              playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush.size} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
-              onCloseMenus={() => setQuickMenu(null)}
-              onAddText={async at => {
-                const text = await dialog.prompt(t('maps.text.prompt'));
-                if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width, layerId: activeLayerId }));
-              }}
-              onDragToken={(id, x, y, desired) => { const g = aGuardar(id, x, y); st.dragToken(id, g.x, g.y, aGuardar(id, desired.x, desired.y)); }}
-              onMoveToken={(id, x, y) => { const g = aGuardar(id, x, y); run(st.moveToken(id, g.x, g.y)); }}
-              onServerCorrection={id => { const c = st.serverCorrection(id); return c && aPintar(id, c.x, c.y); }}
-              onDragBound={id => { const b = st.dragBound(id); return b && { ...b, ...aPintar(id, b.x, b.y) }; }}
-              onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
-              onErase={id => run(st.eraseDrawing(id))}
-              onAddWall={(a, b) => {
-                /**
-                 * DIBUJANDO AQUÍ, UNA RAYA NO ES UN MURO MARCADO — es geometría de la mazmorra (dueño,
-                 * 2026-09-04). Según lo que tenga elegido:
-                 *  · Puerta / Ventana → un VANO anotado sobre el contorno. No parte ninguna fila porque no hay
-                 *    fila: el muro de una sala es su contorno.
-                 *  · lo demás → un MURO DE RELLENO, o sea la raya con el grosor de la escena. Una raya no
-                 *    encierra nada y sola no podría tapar.
-                 */
-                if (builderMode === 'draw') {
-                  if (isOpeningKind(buildKind)) {
-                    /**
-                     * ⚠️ AQUÍ NO SE EXIGE QUE HAYA UN MURO. Corrección suya del 2026-09-07: «*me estás pidiendo
-                     * que exista un muro para poner la puerta cuando en el caso del constructor de habitaciones
-                     * no funciona así*». En el constructor no hay filas de muro — la pared es el CONTORNO de lo
-                     * excavado— así que negarse era traer aquí la regla del modo foto, donde sí hay un muro que
-                     * recortar. Se pone donde él la puso y punto.
-                     *
-                     * Lo único que se conserva es el IMÁN: si hay una pared a mano, el trazo se clava en ella,
-                     * que es lo que hace que la puerta se vea metida en el muro en vez de a un pelo de él. La
-                     * tolerancia es el grosor del muro que se ve, porque es a lo que él apunta.
-                     */
-                    const crudo = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false };
-                    const vano = snapSpanToOutline(st.rooms, crudo, Math.max(live.grid.size / 2, wallWidthPx(live))) ?? crudo;
-                    run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }).then(cogerVano));
-                  } else {
-                    const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
-                    if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
-                    else setAvisoCorto(snapGrid ? 'snap' : 'short');
+          {/*
+           * 🐞 EL MAPA APARECE HECHO, NO SE CONSTRUYE DELANTE (suyo, 2026-09-17: «*se ve como se construye el
+           * mapa, es como si fuera muy lenta la carga entre que trae todos los componentes de un mapa y el
+           * otro*»).
+           *
+           * La escena nueva entra AL INSTANTE (`useScene.ts`, `setLive`) pero sus ocho listas —habitaciones,
+           * muros, dibujos, capas, luces, vanos y objetos— se piden después y llegan juntas. Entre medias se
+           * seguían dibujando LAS PIEZAS DE LA ESCENA ANTERIOR encima del mapa nuevo, y eso es lo que él veía
+           * construirse. Existía desde antes de la red de errores; se comprobó contra `main`.
+           *
+           * ⚠️ Se tapa SÓLO EL MAPA, y a propósito. Dejar la escena anterior puesta hasta que llegue la nueva
+           * sería más bonito, pero `useScene` borra la niebla en cuanto cambia el id: el mapa viejo se
+           * quedaría un instante DESTAPADO, y un jugador vería lo que no debe. Y tapar la pestaña entera se
+           * llevaría la barra y los paneles, que no tienen nada que esperar.
+           */}
+          {st.status === 'loading'
+            ? <div className="mp-loading" data-testid="mp-loading">{t('maps.loading')}</div>
+            : <SafeRegion label="maps:canvas">
+              <MapCanvas scene={shown!} tokens={fichas} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
+                playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush.size} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
+                onCloseMenus={() => setQuickMenu(null)}
+                onAddText={async at => {
+                  const text = await dialog.prompt(t('maps.text.prompt'));
+                  if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width, layerId: activeLayerId }));
+                }}
+                onDragToken={(id, x, y, desired) => { const g = aGuardar(id, x, y); st.dragToken(id, g.x, g.y, aGuardar(id, desired.x, desired.y)); }}
+                onMoveToken={(id, x, y) => { const g = aGuardar(id, x, y); run(st.moveToken(id, g.x, g.y)); }}
+                onServerCorrection={id => { const c = st.serverCorrection(id); return c && aPintar(id, c.x, c.y); }}
+                onDragBound={id => { const b = st.dragBound(id); return b && { ...b, ...aPintar(id, b.x, b.y) }; }}
+                onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
+                onErase={id => run(st.eraseDrawing(id))}
+                onAddWall={(a, b) => {
+                  /**
+                   * DIBUJANDO AQUÍ, UNA RAYA NO ES UN MURO MARCADO — es geometría de la mazmorra (dueño,
+                   * 2026-09-04). Según lo que tenga elegido:
+                   *  · Puerta / Ventana → un VANO anotado sobre el contorno. No parte ninguna fila porque no hay
+                   *    fila: el muro de una sala es su contorno.
+                   *  · lo demás → un MURO DE RELLENO, o sea la raya con el grosor de la escena. Una raya no
+                   *    encierra nada y sola no podría tapar.
+                   */
+                  if (builderMode === 'draw') {
+                    if (isOpeningKind(buildKind)) {
+                      /**
+                       * ⚠️ AQUÍ NO SE EXIGE QUE HAYA UN MURO. Corrección suya del 2026-09-07: «*me estás pidiendo
+                       * que exista un muro para poner la puerta cuando en el caso del constructor de habitaciones
+                       * no funciona así*». En el constructor no hay filas de muro — la pared es el CONTORNO de lo
+                       * excavado— así que negarse era traer aquí la regla del modo foto, donde sí hay un muro que
+                       * recortar. Se pone donde él la puso y punto.
+                       *
+                       * Lo único que se conserva es el IMÁN: si hay una pared a mano, el trazo se clava en ella,
+                       * que es lo que hace que la puerta se vea metida en el muro en vez de a un pelo de él. La
+                       * tolerancia es el grosor del muro que se ve, porque es a lo que él apunta.
+                       */
+                      const crudo = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false };
+                      const vano = snapSpanToOutline(st.rooms, crudo, Math.max(live.grid.size / 2, wallWidthPx(live))) ?? crudo;
+                      run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }).then(cogerVano));
+                    } else {
+                      const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
+                      if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
+                      else setAvisoCorto(snapGrid ? 'snap' : 'short');
+                    }
+                    return;
                   }
-                  return;
-                }
-                // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
-                // It also inherits whether the players could see that wall: otherwise their plan grows a gap
-                // exactly where the doorway is.
-                const plan = planOpening(st.walls, a, b, wallKind);
-                run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits)
-                  .then(creado => { if (isOpeningKind(wallKind)) cogerMuro(creado.id); }));
-              }}
-              rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
-              /* Con qué ancho sale la banda de «A pulso» (§ «Rebanada 10 · B»). */
-              bandCells={bandDraft ?? live.wallThickness}
-              /* Y con qué borde (§ 10B.4): el previo y lo que se guarda salen con el que se está eligiendo ahora. */
-              bandTip={live.bandTip} bandRoughness={bandRoughDraft ?? live.bandRoughness}
-              onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
-              onAddRoomShape={(shape, points) => {
-                // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
-                run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room'));
-              }}
-              onAddRoom={sides => {
-                // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
-                // cualquier muro nuevo. Las puertas las abre él después, con el mismo disco.
-                run(st.addRoom(sides.map(sd => ({ sceneId: live.id, campaignId, ...sd, visiblePlayers: false, ...newWallOf('wall') }))));
-              }}
-              onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
-              onPaintFog={(at, op, start) => run(st.paintFog({ ...at, ...fogShape(start) }, op))}
-              selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
-              onMoveLight={(id, at) => run(st.patchLight(id, at))}
-              selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
-              selectedDrawingIds={selectedDrawingIds} onSelectDrawings={setSelectedDrawingIds}
-              onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
-              onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
-              /* ── LAS PIEZAS (rebanada 6): lo plantado, la cogida, el sello y la siembra ── */
-              sceneProps={piezasEnPantalla} selectedPropId={selectedPropId} onSelectProp={setSelectedPropId}
-              selectedPropIds={selectedPropIds} onSelectProps={setSelectedPropIds}
-              onMoveProp={(id, at) => run(st.patchSceneProp(id, at, 'maps.history.propMove'))}
-              onMoveProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y } })), 'maps.history.propMove'))}
-              onScaleProp={estirarPieza}
-              onRotateProp={(id, rotation) => run(st.patchSceneProp(id, { rotation }, 'maps.history.propRotate'))}
-              onScaleProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, width: b.width, height: b.height } })), 'maps.history.propsScale'))}
-              onRotateProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, rotation: b.rotation } })), 'maps.history.propsRotate'))}
-              stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
-              onPlantProp={plantar} sowing={plantMode === 'many'} onSow={sembrar} onSowEnd={acabarSiembra}
-              sowRadiusPx={sow.areaCells * live.grid.size}
-              fogVeil={fogVeil}
-              maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
-              maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
-              paintReady={!!paintTargetOf} paintPreview={paintPreview}
-              tilePreview={tocandoTile && brushTexture ? { url: brushTexture.url, sidePx: tilePx(azulejo, live.grid.size), deg: brushTileDeg } : null}
-              onHoverRoom={setHoverRoomId}
-              /*
-               * ── UNA PULSACIÓN, DOS LIENZOS ── El lienzo sólo dice por dónde ha pasado la mano; aquí se
-               * decide sobre cuál cae:
-               *  · PINTAR  → el lienzo de la pintura, que PONE encima;
-               *  · BORRAR  → quita la pintura Y **devuelve lo destapado**, porque para él las dos cosas son
-               *    «lo que el pincel puso aquí». Sólo se toca la máscara si esta cosa tiene alguna: al revés
-               *    se subiría un PNG vacío en cada pasada;
-               *  · DESTAPAR → el lienzo de la rebanada 9, intacto.
-               */
-              onPaintMask={(from, to, start) => {
-                const r = brushRadius(brush.size, live.grid.size);
-                if (actionNow !== 'uncover') {
-                  paint.paint(from, to, r, tinta, { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, mode: actionNow === 'erase' ? 'erase' : 'paint' }, start);
-                }
-                if (actionNow !== 'paint' && maskTargetOf && (actionNow === 'uncover' || maskTargetOf.src)) {
-                  mask.paint(from, to, r, { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, dir: actionNow === 'uncover' ? 'erase' : 'restore' }, start);
-                }
-              }}
-              /*
-               * ↩️ Y LA PINCELADA ENTRA EN EL HISTORIAL. El hook devuelve su propia vuelta atrás —tiene las dos
-               * fotos del lienzo— y aquí sólo se apila. La máscara de la rebanada 9 todavía no: está anotado.
-               */
-              onPaintMaskEnd={() => {
-                run(paint.flush().then(paso => { if (paso) st.history.push({ label: 'maps.history.paint', ...paso }); }));
-                run(mask.flush());
-              }}
-              onPlaceLight={async at => {
-                // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
-                const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
-                setSelectedLightId(created.id);
-              }}
-              onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
-              placing={!!encounter || !!pendingPc}
-              // El tamaño con el que se COLOCA va por la lente, como todo lo demás. `placingSize` sólo sirve
-              // para pasar de dónde hace clic (el CENTRO) a lo que se guarda (la esquina), y esa cuenta resta
-              // medio cuerpo: si restara el tamaño sin encoger, la ficha caería descentrada del clic justo lo
-              // que la barrita le quita —media casilla larga en un ENORME—. Lo que se GUARDA sigue siendo el
-              // tamaño crudo de su ficha (`cellsOfSheet` / `cellsOfEntry` en `onPlace`): la lente no escribe.
-              placingSize={tokenSizeIn({ size: pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS }, shown!)}
-              onPlace={at => {
-                if (pendingPc) { run(placePcAt(pendingPc, at)); return; }
-                if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, at, cellsOfEntry(encounter))));
-              }}
-              selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
-              selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
-              selectedWallIds={selectedWallIds} onSelectWalls={setSelectedWallIds}
-              selectedRoomOpeningId={selectedRoomOpeningId} onSelectRoomOpening={setSelectedRoomOpeningId}
-              onToggleRoomOpening={o => run(st.toggleRoomOpening(o.id, !o.isOpen))}
-              onTransformWalls={batch => {
-                const byId = new Map(batch.map(b => [b.id, b]));
-                run(st.transformWalls(st.walls.filter(w => byId.has(w.id)).map(w => ({ ...w, ...byId.get(w.id)! }))));
-              }}
-              onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
-              onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
-              onDeleteSelection={deleteSelection}
-              onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))}
-              /*
-               * AÑADIR UN NODO: doble clic sobre la línea de un muro lo parte en dos por ahí (dueño,
-               * 2026-09-03). Dentro de un grupo el PRIMER doble clic sigue entrando al muro suelto, como
-               * hasta ahora, y es el siguiente el que pone el nodo — su decisión: «primero entra, luego el nodo».
-               */
-              onSplitWall={(id, at) => { const w = st.walls.find(x => x.id === id); if (w) run(st.splitWall(w, at)); }} />
-          </SafeRegion>
+                  // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
+                  // It also inherits whether the players could see that wall: otherwise their plan grows a gap
+                  // exactly where the doorway is.
+                  const plan = planOpening(st.walls, a, b, wallKind);
+                  run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits)
+                    .then(creado => { if (isOpeningKind(wallKind)) cogerMuro(creado.id); }));
+                }}
+                rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
+                /* Con qué ancho sale la banda de «A pulso» (§ «Rebanada 10 · B»). */
+                bandCells={bandDraft ?? live.wallThickness}
+                /* Y con qué borde (§ 10B.4): el previo y lo que se guarda salen con el que se está eligiendo ahora. */
+                bandTip={live.bandTip} bandRoughness={bandRoughDraft ?? live.bandRoughness}
+                onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
+                onAddRoomShape={(shape, points) => {
+                  // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
+                  run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room'));
+                }}
+                onAddRoom={sides => {
+                  // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
+                  // cualquier muro nuevo. Las puertas las abre él después, con el mismo disco.
+                  run(st.addRoom(sides.map(sd => ({ sceneId: live.id, campaignId, ...sd, visiblePlayers: false, ...newWallOf('wall') }))));
+                }}
+                onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
+                onPaintFog={(at, op, start) => run(st.paintFog({ ...at, ...fogShape(start) }, op))}
+                selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+                onMoveLight={(id, at) => run(st.patchLight(id, at))}
+                selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
+                selectedDrawingIds={selectedDrawingIds} onSelectDrawings={setSelectedDrawingIds}
+                onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
+                onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
+                /* ── LAS PIEZAS (rebanada 6): lo plantado, la cogida, el sello y la siembra ── */
+                sceneProps={piezasEnPantalla} selectedPropId={selectedPropId} onSelectProp={setSelectedPropId}
+                selectedPropIds={selectedPropIds} onSelectProps={setSelectedPropIds}
+                onMoveProp={(id, at) => run(st.patchSceneProp(id, at, 'maps.history.propMove'))}
+                onMoveProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y } })), 'maps.history.propMove'))}
+                onScaleProp={estirarPieza}
+                onRotateProp={(id, rotation) => run(st.patchSceneProp(id, { rotation }, 'maps.history.propRotate'))}
+                onScaleProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, width: b.width, height: b.height } })), 'maps.history.propsScale'))}
+                onRotateProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, rotation: b.rotation } })), 'maps.history.propsRotate'))}
+                stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
+                onPlantProp={plantar} sowing={plantMode === 'many'} onSow={sembrar} onSowEnd={acabarSiembra}
+                sowRadiusPx={sow.areaCells * live.grid.size}
+                fogVeil={fogVeil}
+                maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
+                maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
+                paintReady={!!paintTargetOf} paintPreview={paintPreview}
+                tilePreview={tocandoTile && brushTexture ? { url: brushTexture.url, sidePx: tilePx(azulejo, live.grid.size), deg: brushTileDeg } : null}
+                onHoverRoom={setHoverRoomId}
+                /*
+                 * ── UNA PULSACIÓN, DOS LIENZOS ── El lienzo sólo dice por dónde ha pasado la mano; aquí se
+                 * decide sobre cuál cae:
+                 *  · PINTAR  → el lienzo de la pintura, que PONE encima;
+                 *  · BORRAR  → quita la pintura Y **devuelve lo destapado**, porque para él las dos cosas son
+                 *    «lo que el pincel puso aquí». Sólo se toca la máscara si esta cosa tiene alguna: al revés
+                 *    se subiría un PNG vacío en cada pasada;
+                 *  · DESTAPAR → el lienzo de la rebanada 9, intacto.
+                 */
+                onPaintMask={(from, to, start) => {
+                  const r = brushRadius(brush.size, live.grid.size);
+                  if (actionNow !== 'uncover') {
+                    paint.paint(from, to, r, tinta, { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, mode: actionNow === 'erase' ? 'erase' : 'paint' }, start);
+                  }
+                  if (actionNow !== 'paint' && maskTargetOf && (actionNow === 'uncover' || maskTargetOf.src)) {
+                    mask.paint(from, to, r, { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, dir: actionNow === 'uncover' ? 'erase' : 'restore' }, start);
+                  }
+                }}
+                /*
+                 * ↩️ Y LA PINCELADA ENTRA EN EL HISTORIAL. El hook devuelve su propia vuelta atrás —tiene las dos
+                 * fotos del lienzo— y aquí sólo se apila. La máscara de la rebanada 9 todavía no: está anotado.
+                 */
+                onPaintMaskEnd={() => {
+                  run(paint.flush().then(paso => { if (paso) st.history.push({ label: 'maps.history.paint', ...paso }); }));
+                  run(mask.flush());
+                }}
+                onPlaceLight={async at => {
+                  // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
+                  const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
+                  setSelectedLightId(created.id);
+                }}
+                onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
+                placing={!!encounter || !!pendingPc}
+                // El tamaño con el que se COLOCA va por la lente, como todo lo demás. `placingSize` sólo sirve
+                // para pasar de dónde hace clic (el CENTRO) a lo que se guarda (la esquina), y esa cuenta resta
+                // medio cuerpo: si restara el tamaño sin encoger, la ficha caería descentrada del clic justo lo
+                // que la barrita le quita —media casilla larga en un ENORME—. Lo que se GUARDA sigue siendo el
+                // tamaño crudo de su ficha (`cellsOfSheet` / `cellsOfEntry` en `onPlace`): la lente no escribe.
+                placingSize={tokenSizeIn({ size: pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS }, shown!)}
+                onPlace={at => {
+                  if (pendingPc) { run(placePcAt(pendingPc, at)); return; }
+                  if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, at, cellsOfEntry(encounter))));
+                }}
+                selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
+                selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
+                selectedWallIds={selectedWallIds} onSelectWalls={setSelectedWallIds}
+                selectedRoomOpeningId={selectedRoomOpeningId} onSelectRoomOpening={setSelectedRoomOpeningId}
+                onToggleRoomOpening={o => run(st.toggleRoomOpening(o.id, !o.isOpen))}
+                onTransformWalls={batch => {
+                  const byId = new Map(batch.map(b => [b.id, b]));
+                  run(st.transformWalls(st.walls.filter(w => byId.has(w.id)).map(w => ({ ...w, ...byId.get(w.id)! }))));
+                }}
+                onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
+                onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
+                onDeleteSelection={deleteSelection}
+                onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))}
+                /*
+                 * AÑADIR UN NODO: doble clic sobre la línea de un muro lo parte en dos por ahí (dueño,
+                 * 2026-09-03). Dentro de un grupo el PRIMER doble clic sigue entrando al muro suelto, como
+                 * hasta ahora, y es el siguiente el que pone el nodo — su decisión: «primero entra, luego el nodo».
+                 */
+                onSplitWall={(id, at) => { const w = st.walls.find(x => x.id === id); if (w) run(st.splitWall(w, at)); }} />
+            </SafeRegion>}
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
               <span className="mp-dm-tag">{t('maps.dmOnly')}</span>

@@ -744,3 +744,13 @@
 .mp-propup-btn{padding:7px 14px;border:none;border-radius:var(--r);background:var(--sf2);font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
 .mp-propup-btn:disabled{opacity:.45;cursor:default;}
 .mp-propup-btn.blood{background:var(--sys-blood);color:var(--sys-paper-hi);}
+
+/*
+ * MIENTRAS LLEGAN LAS PIEZAS DE LA ESCENA (§ su queja del 2026-09-17). Ocupa el hueco del mapa y nada más:
+ * la barra y los paneles se quedan, que no esperan a nada. Con `--sys-*`, que es lo que manda en la mesa.
+ */
+.mp-loading{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--sys-bg);color:var(--sys-ink-soft);
+  font-family:var(--sys-font-display);font-size:var(--fs-sm);letter-spacing:.18em;text-transform:uppercase;
+}
