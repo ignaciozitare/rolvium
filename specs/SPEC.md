@@ -54,6 +54,24 @@ secciones de `CLAUDE.md` § «Specs» antes de dar la tarea por terminada. Nunca
 | **El lienzo** (el motor de pintado) | `MapCanvas` · `canvasLayers` · `roomsLayer` | ⏳ |
 | **La escena en vivo** | `useScene` · `liveRules` | ⏳ |
 
+### 🚪 La puerta de cada módulo (`index.ts`) — orden suya, 2026-09-17
+
+> «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
+> cosas sin él*»
+
+**Ningún módulo tiene `index.ts`.** Sin esa puerta, 98 importaciones entran dentro de otro módulo. Se cierra
+**según se toque cada uno**; lo nuevo nace ya con puerta (duro en `npm run audit`).
+
+| Módulo | Importaciones que entran por dentro | Su cara pública sería |
+|---|---|---|
+| `characters` | 30 | `container` · `Character` · `CharactersPort` · `characterRules` · `systemText` · 3 páginas |
+| `campaigns` | 17 | `container` · `Campaign` · `CampaignsPort` · `campaignRules` · `CampaignsPage` |
+| `dice` | 14 + 7 en su `ui` | `container` · `Roll` · sus puertos · sus paneles |
+| `maps` | 12 + 1 en su `ui` | `container` · `Scene` · `MapsPort` · `VisionPort` · `ToolbarOrderPort` · `mapRules` · `SceneTab` |
+| `bestiary` · `chat` | 3 + 4 · 2 + 2 | ⏳ |
+| `auth` | 1 (entra en su **infra**) | ⏳ |
+| `table` | 1 | `TablePage` |
+
 ### Specs existentes por debajo del listón
 
 Medido por `npm run audit`. Se cierran **según se toque cada módulo**.

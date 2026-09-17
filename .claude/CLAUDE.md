@@ -192,6 +192,26 @@ Rolvium/
 - Infrastructure implements adapters and access to external systems.
 - Do not place business logic in controllers, handlers, routers, or UI components.
 
+### La puerta de cada módulo: `index.ts` (orden suya, 2026-09-17)
+
+> «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
+> cosas sin él*»
+
+Lo cazó él mirando las carpetas y comparando con su otro proyecto, donde cada módulo tiene su `index.ts`.
+Aquí **ninguno lo tenía**, y sin esa puerta nada declara qué es público: medido el 2026-09-17, **98
+importaciones entran dentro de otro módulo** (`characters` 30 · `campaigns` 17 · `dice` 14 · `maps` 12), y
+**7 entran directamente en la `ui` ajena**.
+
+- **Cada módulo expone su cara pública en `modules/<nombre>/index.ts`** y nada más. La superficie real es
+  pequeña: entre 1 y 8 cosas por módulo (su `container`, sus entidades, sus puertos, sus reglas y sus páginas).
+- **Desde fuera se importa `@/modules/<nombre>`, nunca un fichero de dentro.** Dentro del propio módulo se
+  sigue importando por ruta relativa como siempre.
+- **LO NUEVO NACE CON PUERTA**: un módulo nuevo sin `index.ts`, o una importación nueva que entre por dentro de
+  otro módulo, **no se mergea**. Es duro en `npm run audit` para lo que la rama toque.
+- **Lo viejo se cierra poco a poco**, a medida que se toca cada módulo — igual que los specs. Nunca en lote.
+
+---
+
 ### Strict Hexagonal Boundaries (Zero Tolerance)
 - **UI files (`/ui/`) MUST NEVER import from `/infra/` directories or `@/shared/infra/`.** If a UI component needs a repository or adapter, import it from a `container.ts` at the module root.
 - **UI files MUST NEVER call `fetch()`, `supabase.from()`, or any other direct I/O.** All external access goes through ports implemented by infra adapters.
