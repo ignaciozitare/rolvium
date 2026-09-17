@@ -28,18 +28,21 @@
 > informe o relanzarlo.** Él pidió «*súbelo a prod*»; el merge quedó pendiente sólo del QA.
 > ⚠️ **No consta que él haya probado la vista previa.** Se le preguntó una vez.
 >
-> ## 🐞 NUEVO Y SIN TOCAR: **LAS LUCES DELATAN SITIOS QUE LA SONDA NO HA VISTO**
-> Suyo, 2026-09-17, con captura: «*anota que la has cagado con las luces, porque en el modo de prueba del dm se
-> ven iluminados lugares que no he visto con la sonda*».
-> En su captura hay **dos manchas de luz sueltas arriba a la izquierda**, con muebles visibles, separadas de
-> todo lo que la sonda ha recorrido. O sea que **la luz enseña lo que la niebla esconde**: si eso le pasa a un
-> jugador, ve dónde hay habitaciones amuebladas sin haber entrado.
-> 🔎 **Por dónde empezar, SIN dar nada por cierto** (`MapCanvas.tsx:1760`):
-> `<LightsLayer … lit={fog.lit} />` recorta la luz por lo que está ILUMINADO AHORA, no por lo que la sonda ha
-> visto. Y `paintedLights(p.lights, layers, dmSight)` (`:1632`) elige qué luces se pintan según `dmSight`.
-> **Comprobar primero** si con la sonda puesta `dmSight` es falso de verdad, y si `fog.lit` de la sonda excluye
-> lo no visto. La memoria de la sonda se acumula en `withProbeMemory` / `probeSeen` (`useScene.ts`).
-> **No es lo mismo «iluminado» que «visto», y ahí está el fallo.**
+> ## 🔒 EL JUGADOR NUNCA VE EL MAPA DESPEJADO — **AGUJERO REAL, YA TAPADO**
+> Primero dijo que las luces enseñaban sitios que la sonda no había visto; **lo retiró él mismo («*nada, no
+> era un error*»)**. ⚠️ **NO perseguir eso: no es un fallo.** Pero pidió la garantía: «*asegurémonos de que si
+> abro una escena con la niebla puesta, los jugadores nunca vean el mapa despejado*».
+>
+> **Y al comprobarlo salió un agujero de verdad.** La tapa de lo no visto se dibujaba sólo si el jugador YA
+> tenía niebla calculada (`playerSight = !!fog && !dmSight`, `MapCanvas.tsx`). Con `fog` todavía en `null` —al
+> entrar, y en **CADA cambio de escena**, porque `useScene` la borra en cuanto cambia el id— **no se dibujaba
+> nada y el mapa se veía limpio** hasta que contestaba el servidor. Y la tapa del hueco del mapa NO lo cubría:
+> se quita cuando llegan las ocho listas, y la niebla viene por otro camino y puede tardar más.
+>
+> **Arreglado**: sin niebla calculada se tapa la escena ENTERA, sin máscara. Ante la duda, no enseñar de más.
+> Al director no se le tapa —él prepara—, pero **al director «viendo como jugador» sí**, que si no no
+> comprobaría nada. Test `tests/regression/el-jugador-nunca-ve-el-mapa-despejado.test.tsx`, y **comprobado que
+> dos de sus cuatro casos CAEN con el código de antes**.
 >
 > ## 📏 LAS DOS ÓRDENES DE HOY SOBRE CÓMO SE TRABAJA — YA EN EL SISTEMA, NO EN MI CRITERIO
 >
@@ -71,8 +74,7 @@
 > ## ⏭️ EL SIGUIENTE PASO CONCRETO
 > 1. Mirar el informe del QA de la cuarta vuelta (o relanzarlo). Si pasa → merge y producción.
 > 2. Meter el chequeo `module-index` y los `index.ts` de `maps` y `table`.
-> 3. El 🐞 de las luces, empezando por preguntarle si le pasa **también como jugador de verdad** o sólo con la
->    sonda: cambia el diagnóstico entero.
+> 3. (Lo de las luces lo retiró él: NO es un fallo, no perseguirlo.)
 >
 > ## 🧹 Deuda viva, medida y no cerrada
 > - La colocación de las ocho costuras **no la ata ningún test**: quitar un `SafeRegion` y la suite sigue verde.
