@@ -2827,6 +2827,45 @@ discrepando, y sería el mismo mando difuminando en una capa y cortando a filo e
 que `roomWalls` vive allí. El **azar** se tira en el navegador (una tirada por pincelada) y viaja como
 parámetro: el servidor sólo lo lee.
 
+## Cambiar de escena (§ 2026-09-17, quejas suyas al probar)
+
+> «*se ve como se construye el mapa, es como si fuera muy lenta la carga entre que trae todos los componentes
+> de un mapa y el otro*» · «*¿por qué no haces una precarga y lo dejas en memoria?*»
+
+**Qué pasaba.** `useScene` publica la escena nueva al instante, pero sus ocho listas —fichas, muros, dibujos,
+capas, luces, habitaciones, vanos y objetos— se piden después. Entre medias se seguían dibujando **las piezas
+de la escena anterior** encima del mapa nuevo.
+
+**Dos cosas, y hacen falta las dos:**
+
+1. **Mientras llegan las piezas se tapa el hueco del MAPA**, y sólo ese hueco (`.mp-loading`): la barra y los
+   paneles se quedan, que no esperan a nada.
+   ⚠️ **NO se deja puesta la escena anterior**, que sería más bonito: la niebla se borra en cuanto cambia el id
+   de escena, así que el mapa viejo se quedaría un instante **destapado** y un jugador vería lo que no debe.
+
+2. **Lo ya traído de cada escena se guarda en memoria** y se pinta al volver, sin esperar. Se recuerdan **las
+   32 escenas más recientes**, mismo tope y mismo motivo que la memoria de encuadre.
+
+### ⚠️ Lo guardado es sólo para NO ESPERAR. Nunca es la verdad.
+
+**Al volver se vuelven a pedir las ocho listas igual**, y lo que llegue corrige lo guardado. Lo único que no se
+guarda jamás son las **fichas** —se mueven sin él— y son las que abren la pantalla: una consulta, no ocho.
+
+El primer intento **sí** se fiaba de lo guardado, con la excusa de que «eso sólo lo cambia el director». **Era
+falso, y lo paró el QA antes de producción.** Queda escrito por qué, que es la clase de error que vuelve:
+
+- **Los dibujos los hacen los JUGADORES**: `PLAYER_TOOLS` lleva lápiz, línea, rectángulo, círculo, texto y
+  goma, y `maps_drawings_insert` se lo permite.
+- Y sobre todo: **este hook corre también en la pantalla de los jugadores**, y ahí quien cambia las cosas
+  mientras ellos están en otra escena **es el director** — abrir una escena y ACTIVARLA son dos acciones
+  distintas, así que él trabaja en un piso mientras ellos juegan en otro. Fiarse de lo guardado les devolvía
+  la escena como estaba: una puerta abierta seguiría cerrada, y **un muro que él ocultó volvería a verse**,
+  que es justo el agujero que se cerró el 2026-09-03 volviendo a pedir los muros.
+
+🔑 **Y el guardado lleva la marca de a qué escena pertenece lo que hay en pantalla** (`cargadoPara`). Sin ella,
+al cambiar de escena se guardaría el mapa de un piso en el hueco del otro —el efecto corre con el id nuevo y
+las listas viejas—, y sólo se nota **pinchando rápido entre pisos**, que es como él los recorre.
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la

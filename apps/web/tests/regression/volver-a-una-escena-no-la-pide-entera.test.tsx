@@ -28,42 +28,43 @@ const montar = (repo: ReturnType<typeof fakeMapsRepo>, scene: Scene) =>
   renderHook(({ sc }: { sc: Scene }) => useScene(repo, sc, PLAYER_USER.id, fakeVisionPort()), { initialProps: { sc: scene } });
 
 describe('🔑 volver a una escena no la pide entera', () => {
-  it('la segunda vez NO se vuelven a pedir las habitaciones, pero las FICHAS sí', async () => {
+  it('al volver, el mapa se pinta de memoria SIN esperar — y se vuelve a pedir igualmente', async () => {
     const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2], tokens: [TOKEN_KAREN] });
-    const salas = vi.spyOn(repo, 'listRooms');
-    const fichas = vi.spyOn(repo, 'listTokens');
-
     const { result, rerender } = montar(repo, SCENE_WAREHOUSE);
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(salas).toHaveBeenCalledTimes(1);
-
     rerender({ sc: PISO_2 });
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(salas).toHaveBeenCalledTimes(2);
 
+    const salas = vi.spyOn(repo, 'listRooms');
     rerender({ sc: SCENE_WAREHOUSE });           // vuelve al piso 1
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-
-    expect(salas).toHaveBeenCalledTimes(2);      // el mapa sale de memoria: NO se vuelve a pedir
-    expect(fichas).toHaveBeenCalledTimes(3);     // las fichas SIEMPRE se piden: se mueven sin él
+    // Se pinta de memoria ANTES de que llegue nada: eso es lo que quita la espera.
     expect(result.current.rooms.map(r => r.id)).toEqual([SALA_1.id]);
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    // Y aun así se vuelve a pedir: lo guardado sirve para no esperar, nunca como verdad.
+    expect(salas).toHaveBeenCalledTimes(1);
   });
 
-  it('🐞 volver NO enseña el mapa de la otra escena (el fallo bobo y grave)', async () => {
+  it('🔒 lo guardado NUNCA manda: si la escena cambió mientras no estaba, se corrige sola', async () => {
+    /*
+     * Esto es lo que paró el QA. La primera versión se fiaba de lo guardado con la excusa de que «esto sólo lo
+     * cambia el director», y era FALSO por dos sitios: los dibujos los hacen los JUGADORES, y este hook corre
+     * también en la pantalla de ellos, donde el que cambia las cosas mientras están en otra escena es él.
+     * Un muro que el director ocultara volvería a verse — el agujero que se cerró el 2026-09-03.
+     */
     const repo = fakeMapsRepo({ rooms: [SALA_1, SALA_2] });
     const { result, rerender } = montar(repo, SCENE_WAREHOUSE);
     await waitFor(() => expect(result.current.rooms.map(r => r.id)).toEqual([SALA_1.id]));
 
     rerender({ sc: PISO_2 });
-    await waitFor(() => expect(result.current.rooms.map(r => r.id)).toEqual([SALA_2.id]));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    // Mientras está en el piso 2, alguien cambia el piso 1 por detrás (otro cliente, sin eco para éste).
+    repo.rooms.push(sala('rm-mientras-no-estaba', SCENE_WAREHOUSE.id));
+
     rerender({ sc: SCENE_WAREHOUSE });
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    // Si el guardado se hubiera escrito con el id nuevo y las listas viejas, aquí saldría la sala del piso 2.
-    expect(result.current.rooms.map(r => r.id)).toEqual([SALA_1.id]);
-
-    rerender({ sc: PISO_2 });
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.rooms.map(r => r.id)).toEqual([SALA_2.id]);
+    await waitFor(() => expect(result.current.rooms).toHaveLength(2));
+    expect(result.current.rooms.map(r => r.id)).toContain('rm-mientras-no-estaba');
   });
 
   it('🐞 cambiar de piso SIN ESPERAR no guarda el mapa de uno en el hueco del otro', async () => {

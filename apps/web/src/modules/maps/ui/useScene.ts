@@ -171,6 +171,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [withProbeMemory]);
 
   /**
+   * Cuántas escenas se recuerdan. Mismo tope y mismo motivo que la memoria de encuadre (spec de mapas): que no
+   * crezca sin límite en una campaña con muchas. Se tira la que lleva más tiempo sin abrirse.
+   */
+  const ESCENAS_EN_MEMORIA = 32;
+  /**
    * LO QUE YA TRAJIMOS DE CADA ESCENA, para que volver a una no cueste ocho consultas. Vive en el hook, así
    * que se muere al salir de la mesa: no hay nada que limpiar ni que pueda crecer entre campañas.
    *
@@ -190,28 +195,42 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     let alive = true;
     setStatus('loading');
     /*
-     * 🔑 VOLVER A UNA ESCENA NO LA VUELVE A PEDIR ENTERA (suyo, 2026-09-17: «*¿por qué no haces una precarga y
-     * lo dejas en memoria?*»). Se guarda lo que YA trajimos y se reusa.
+     * 🔑 VOLVER A UNA ESCENA NO SE ESPERA A QUE CARGUE (suyo, 2026-09-17: «*¿por qué no haces una precarga y lo
+     * dejas en memoria?*»). Lo guardado se pinta YA, y lo de verdad llega por detrás y lo corrige.
      *
-     * **Se guarda lo que no se mueve solo, y NUNCA las fichas.** Muros, dibujos, capas, luces, habitaciones,
-     * vanos y objetos los cambia SÓLO el director —el rol se da una vez, al crear la campaña, y nadie más
-     * puede tenerlo—, así que mientras él está en otra escena nadie los toca. Y es la parte gorda: 53 salas de
-     * las suyas son 4 KB cada una. Las FICHAS se piden siempre frescas porque es lo único que se mueve sin él
-     * (sus jugadores, en la escena que tenga activada), y es la consulta más barata de las ocho.
+     * ⚠️ **LO GUARDADO ES SÓLO PARA NO ESPERAR — NUNCA ES LA VERDAD, Y SE VUELVE A PEDIR TODO IGUAL.** El
+     * primer intento sí se fiaba de ello («esto sólo lo cambia el director») y **eso era FALSO**; lo paró el
+     * QA antes de llegar a producción, y conviene que quede escrito por qué:
      *
-     * Así volver a un piso cuesta UNA consulta en vez de OCHO, y lo que se ve es verdad: el mapa no puede
-     * haber cambiado, y las fichas están donde están.
+     *  · **Los dibujos los hacen los JUGADORES** — `PLAYER_TOOLS` (`mapRules.ts`) lleva lápiz, línea,
+     *    rectángulo, círculo, texto y goma, y la política `maps_drawings_insert` se lo permite.
+     *  · Y sobre todo: **este hook corre TAMBIÉN en la pantalla de los jugadores**, y ahí el que cambia las
+     *    cosas mientras ellos están en otra escena **es el director**. Fiarse de lo guardado les devolvía la
+     *    escena como estaba: una puerta que él abrió seguiría cerrada, y **un muro que él ocultó volvería a
+     *    verse** — justo el agujero que se cerró el 2026-09-03 volviendo a pedir los muros.
+     *
+     * Así que la cuenta no es «una consulta en vez de ocho»: son las ocho igual. Lo que se gana es que él no
+     * ESPERA por ellas — el mapa aparece entero al instante y se corrige solo. Las FICHAS son lo único que no
+     * se guarda jamás (se mueven sin él) y son las que abren la pantalla: una consulta, no ocho.
      */
+    const fichasP = repo.listTokens(sceneId);
+    const restoP = Promise.all([repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)]);
     const guardado = cacheEscenas.current.get(sceneId);
     if (guardado) {
+      // Se PINTA ya con lo guardado, para no esperar…
       setWalls(guardado.walls); setDrawings(guardado.drawings); setLayers(guardado.layers); setLights(guardado.lights);
       setRooms(guardado.rooms); setRoomOpenings(guardado.roomOpenings); setSceneProps(guardado.sceneProps);
-      void repo.listTokens(sceneId)
+      // …las FICHAS abren la pantalla, que son lo único que no se guarda nunca…
+      void fichasP
         .then(t => { if (!alive) return; setTokens(t); cargadoPara.current = sceneId; setStatus('ready'); })
         .catch(() => { if (alive) setStatus('error'); });
+      // …y lo demás llega por detrás y CORRIGE lo guardado sin que se note.
+      void restoP
+        .then(([w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); })
+        .catch(() => { /* Si falla, se queda lo guardado y el canal en vivo lo irá corrigiendo. */ });
     } else {
-      void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)])
-        .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); cargadoPara.current = sceneId; setStatus('ready'); })
+      void Promise.all([fichasP, restoP])
+        .then(([t, [w, d, ly, li, rm, ro, sp]]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); cargadoPara.current = sceneId; setStatus('ready'); })
         .catch(() => { if (alive) setStatus('error'); });
     }
     const off = repo.subscribe(sceneId, {
@@ -312,7 +331,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   useEffect(() => {
     if (!sceneId || cargadoPara.current !== sceneId) return;
-    cacheEscenas.current.set(sceneId, { walls, drawings, layers, lights, rooms, roomOpenings, sceneProps });
+    const m = cacheEscenas.current;
+    // Re-insertar la mueve al final: en un `Map` el orden es el de inserción, así que la primera es la más vieja.
+    m.delete(sceneId);
+    m.set(sceneId, { walls, drawings, layers, lights, rooms, roomOpenings, sceneProps });
+    while (m.size > ESCENAS_EN_MEMORIA) { const vieja = m.keys().next().value; if (vieja === undefined) break; m.delete(vieja); }
   }, [sceneId, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps]);
 
   useEffect(() => { setFog(null); }, [sceneId]);
