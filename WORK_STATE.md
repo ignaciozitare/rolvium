@@ -142,6 +142,38 @@
 > `apps/web`.** O sea que CUALQUIER error al pintar —no sólo éste— tumba la mesa entera en vez de un trozo. La
 > red de `DrawingShape` es un parche de UN sitio, no la solución. Merece tarea propia.
 >
+> **1-ter. 🚧 LA RED DE SEGURIDAD AL PINTAR — CONSTRUIDA, EN RAMA, SIN MERGEAR. ESPERANDO SU PRUEBA.**
+> Rama `feat/red-de-seguridad-al-pintar` (`7c731c2`), subida. **Condición suya: «*hazlo en otra rama a ver que
+> esto no rompa mas o rompa la experiencia de usuario*». NO MERGEAR sin su palabra.**
+> Vista previa: `rolvium-git-feat-red-de-seg-c7ac2c-ignaciozitare-9429s-projects.vercel.app`
+>
+> Spec en `specs/core/errors/SPEC.md`; maqueta aprobada por él en `rolvium.pen` § 11. Cuatro costuras: la app
+> entera · cada pestaña de la mesa (`key={tab}`) · el mapa · cada panel flotante. `ErrorBoundary` en
+> `@rolvium/ui` + `shared/ui/SafeRegion.tsx` con los textos. `EmptyState` gana el tono `amber`.
+> Verde: web 2.116 · ui 31 · i18n 1487=1487 · audit 0 duros · las dos builds. **Comprobado que 4 de 5 tests de
+> regresión caen sin la red.** ⏳ Falta el QA.
+>
+> 🔴 **LA REVIEW CAZÓ UN FALLO DE VERDAD, YA ARREGLADO**: el aviso de dentro de la mesa iba con los colores de
+> la APP sobre el tablero, que es casi negro siempre → **1,12:1 de contraste con el tema claro: invisible**, y
+> justo en la pantalla que existe para enseñarle que la red funciona. Ahora va con `--sys-*`, tarjeta de papel
+> 1:1 con la lámina. **Y el botón en SANGRE, no en oro**: la lámina heredó el oro de «Mesa/Reserva vacía», pero
+> manda su regla de siempre. Corregido el código Y el `.pen`.
+>
+> ⏳ **ABIERTO — SU QUEJA DEL 17-09, SIN RESOLVER**: «*cuando cambio de escena aparecen todas las escenas
+> juntas por momentos*» → afinado por él: «*se ve como se construye el mapa, es como si fuera muy lenta la
+> carga entre que trae todos los componentes de un mapa y el otro*».
+> **Lo comprobado (no teoría):** el trozo de `SceneTab` que decide qué se ve mientras carga es **idéntico al de
+> `main`**; `MapCanvas` **no está memoizado** y las capas que sí lo están viven dentro, así que el envoltorio
+> —que queda fuera— no puede cambiar cuándo se repinta; y la review ya había comprobado que `SceneTab` es
+> byte a byte igual salvo la sangría.
+> **La causa de fondo, encontrada leyendo el código y que existe DESDE ANTES**: `useScene.ts:173` hace
+> `setLive(scene)` al instante, pero las ocho listas (habitaciones, muros, objetos, luces…) se piden después y
+> llegan juntas en `:180`. Entre medias **se siguen dibujando las piezas de la escena anterior sobre la escena
+> nueva**, y `SceneTab` sólo tapa con «cargando» su propio `status` (la LISTA de escenas), no el de las piezas.
+> 👉 **ESPERANDO QUE COMPARE** la vista previa con producción para saber si es de la rama o ya estaba. Si ya
+> estaba: el arreglo es no enseñar el mapa hasta que lleguen las piezas, o dejar quieta la anterior. **ES OTRA
+> TAREA y no se toca sin que él lo pida.**
+>
 > **2. ✅ EL FRENO DE LOS OBJETOS — CERRADO POR ÉL, SIN CAMBIO. NO VOLVER A PREGUNTARLO.**
 > Se le preguntó en firme (17-09) si un objeto marcado «corta el paso» debe frenar SIEMPRE aunque las paredes
 > estén atravesables, o si el escudo de la escena sigue mandando sobre todo. **Su respuesta: «*esto está
