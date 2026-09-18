@@ -192,6 +192,26 @@ Rolvium/
 - Infrastructure implements adapters and access to external systems.
 - Do not place business logic in controllers, handlers, routers, or UI components.
 
+### La puerta de cada módulo: `index.ts` (orden suya, 2026-09-17)
+
+> «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
+> cosas sin él*»
+
+Lo cazó él mirando las carpetas y comparando con su otro proyecto, donde cada módulo tiene su `index.ts`.
+Aquí **ninguno lo tenía**, y sin esa puerta nada declara qué es público: medido el 2026-09-17, **98
+importaciones entran dentro de otro módulo** (`characters` 30 · `campaigns` 17 · `dice` 14 · `maps` 12), y
+**7 entran directamente en la `ui` ajena**.
+
+- **Cada módulo expone su cara pública en `modules/<nombre>/index.ts`** y nada más. La superficie real es
+  pequeña: entre 1 y 8 cosas por módulo (su `container`, sus entidades, sus puertos, sus reglas y sus páginas).
+- **Desde fuera se importa `@/modules/<nombre>`, nunca un fichero de dentro.** Dentro del propio módulo se
+  sigue importando por ruta relativa como siempre.
+- **LO NUEVO NACE CON PUERTA**: un módulo nuevo sin `index.ts`, o una importación nueva que entre por dentro de
+  otro módulo, **no se mergea**. Es duro en `npm run audit` para lo que la rama toque.
+- **Lo viejo se cierra poco a poco**, a medida que se toca cada módulo — igual que los specs. Nunca en lote.
+
+---
+
 ### Strict Hexagonal Boundaries (Zero Tolerance)
 - **UI files (`/ui/`) MUST NEVER import from `/infra/` directories or `@/shared/infra/`.** If a UI component needs a repository or adapter, import it from a `container.ts` at the module root.
 - **UI files MUST NEVER call `fetch()`, `supabase.from()`, or any other direct I/O.** All external access goes through ports implemented by infra adapters.
@@ -346,7 +366,66 @@ These rules apply while writing code. The QA Agent will verify them before any m
 
 ---
 
-## Specs
+## Specs — ZERO TOLERANCE (orden del dueño, 2026-09-17)
+
+> «*cuando empezó el proyecto te dije que lo hagas … de ahora en más agrega en el harness y donde haga falta
+> que los specs se escriben bien, no me boludees … sin ella yo no puedo vender esta herramienta*»
+
+**PARA QUÉ SON, y esto manda sobre todo lo demás: para que él pueda coger los specs + `rolvium.pen` y
+RECONSTRUIR LA HERRAMIENTA DE CERO.** No son un diario de decisiones. Un spec del que no se pueda reconstruir
+el módulo está mal escrito, por muy largo que sea.
+
+Lo que pasó por no cumplirlo: donde se trabajó hay 3.058 líneas y el resto se quedó como nació —21, 22, 29,
+43—, con los títulos en inglés y el cuerpo en castellano. Se escribieron como registro de decisiones, que es
+otra cosa.
+
+### Las nueve secciones OBLIGATORIAS, en este orden y **EN INGLÉS**
+
+**Los specs van EN INGLÉS, enteros — títulos y cuerpo** (decisión suya, 2026-09-17, preguntada y contestada:
+«*mm el spec tiene que estar en inglés, ¿por qué dices en castellano?*» → «*inglés*»). El código está en
+inglés y estos documentos tienen que poder viajar a otro equipo. **Lo que no vale es la mezcla**, que es lo que
+había: `## Purpose` con el cuerpo en castellano.
+
+| # | Sección | Qué va dentro |
+|---|---|---|
+| 1 | `## Purpose` | Qué problema resuelve, y **quién lo usa** (everyone · GM · player · admin) |
+| 2 | `## What the user can do` | **Todas** las acciones, una por línea. Si no está aquí, no existe |
+| 3 | `## Screens` | Cada vista/panel/modal, **con su lámina de `rolvium.pen`** («§ 5 · `Maps/Escena · dark`») |
+| 4 | `## Rules & limits` | Invariantes, topes, lo que NUNCA puede pasar |
+| 5 | `## States & errors` | Cada estado (empty, loading, error, no permission) y **qué ve él** en cada uno |
+| 6 | `## Permissions` | Quién puede qué, y con qué clave del motor de roles |
+| 7 | `## Data model` | Tablas, columnas, RLS y a qué migración corresponden |
+| 8 | `## Out of scope` | Lo que se decidió NO construir, y por qué |
+| 9 | `## Decisions` | El **porqué**: sus frases con fecha (**se citan tal cual, en castellano**), qué falló |
+
+Las 1-8 dicen **QUÉ hay**. La 9 dice **POR QUÉ**. Hoy sobra la 9 y faltan las demás.
+⚠️ **Sus frases se citan literales**, no se traducen: son la prueba de por qué algo es como es.
+
+### Cómo se cumple
+
+- **HOOK DETERMINISTA, no criterio**: `npm run audit` tiene el chequeo `specs`. Es **DURO** para cualquier
+  módulo o área core que la rama TOQUE —faltan secciones o menos de 80 líneas y no se mergea— y **aviso** para
+  el resto, con la deuda medida. Así lo nuevo nace bien y lo viejo se cierra poco a poco, que es lo que pidió.
+- **Un hexágono nuevo no se da por terminado sin su spec completo.** Las nueve secciones, o no está hecho.
+- **Un idioma: INGLÉS**, títulos y cuerpo. La única excepción son sus citas, que van literales.
+- Sigue en pie lo de **no regenerar todos los specs de golpe**: se cierran a medida que se tocan los módulos.
+
+---
+
+## 🌓 Claro / oscuro — NO SE LE PREGUNTA (orden suya, 2026-09-17)
+
+> «*es increíble que me toques los huevos con el claro oscuro en esta herramienta que … prácticamente no lo
+> usa, incluso me lo pides cuando no hay un claro oscuro*»
+
+**No se le pide verificación de claro/oscuro. Nunca.** Ni el QA, ni el Dev, ni el Design. Dentro de la mesa
+manda el tema del sistema y no existe claro/oscuro; fuera, los tokens están definidos en los dos temas desde
+`RolviumApp.css` y `npm run audit` ya caza el hex crudo, el `var()` con fallback y el `#fff`. Si un token nuevo
+se deja sin su pareja en `[data-theme="light"]`, **eso se comprueba leyendo el CSS**, no haciéndole a él de
+comprobador.
+
+---
+
+## Specs — índice
 - Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,game-system,images,realtime,roles-permissions,testing}/SPEC.md`).
 - `specs/SPEC.md` is the global index that references all individual specs.
 - Always read the relevant SPEC.md before starting any work on that area.

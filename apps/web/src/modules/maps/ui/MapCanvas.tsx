@@ -1773,7 +1773,23 @@ export function MapCanvas(p: Props): JSX.Element {
           * repintar el mapa. Y FUERA de la escena tapa el marco, sin máscara: la máscara de antes tenía la escena por
           * región y fuera de ella no dejaba ver nada (un trazo que asome, el halo de una luz pegada al borde).
           */}
-        {playerSight && <rect {...sceneRect} className="mp-fog-unseen" mask={url(fogIds.unseen)} data-testid="mp-fog-unseen" />}
+        {/*
+          * 🔒 MIENTRAS NO HAY NIEBLA CALCULADA, SE TAPA ENTERO. Orden suya, 2026-09-17: «*asegurémonos de que
+          * si abro una escena con la niebla puesta, los jugadores nunca vean el mapa despejado*».
+          *
+          * Y era un agujero de verdad: `playerSight` es `!!fog && !dmSight`, así que con `fog` todavía en
+          * `null` —al entrar, y en CADA cambio de escena, porque `useScene` la borra en cuanto cambia el id—
+          * esta tapa no se dibujaba y **el mapa se veía limpio** hasta que el servidor contestaba. La tapa del
+          * hueco del mapa no lo cubre: se quita cuando llegan las ocho listas de la escena, y la niebla viene
+          * por otro camino y puede tardar más.
+          *
+          * Sin máscara = todo negro. Es lo correcto ante la duda: **nunca enseñar de más**.
+          */}
+        {!dmSight && (
+          fog
+            ? <rect {...sceneRect} className="mp-fog-unseen" mask={url(fogIds.unseen)} data-testid="mp-fog-unseen" />
+            : <rect {...sceneRect} className="mp-fog-unseen" data-testid="mp-fog-unseen-all" />
+        )}
         {playerSight && <path d={fogFrame(p.scene)} fillRule="evenodd" className="mp-fog-unseen" data-testid="mp-fog-frame" />}
         {/*
           * Dos capas de tokens, no una. **Los PJ se pintan SIEMPRE, encima de la niebla y sin máscara**: sabes

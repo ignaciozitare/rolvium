@@ -23,7 +23,8 @@ Import: `import { X } from '@rolvium/ui'`
 | `DialogProvider` | contexto para abrir modales imperativamente | `useDialog().confirm(...)` |
 | `Divider` | separador tonal (átomo) | `<Divider />` |
 | `DualPanelPicker` | transferencia entre dos paneles (disponible/seleccionado) | `<DualPanelPicker items value>` |
-| `EmptyState` | estado vacío/error centrado con icono, texto y acciones | `<EmptyState icon title description actions>` |
+| `EmptyState` | estado vacío/error centrado con icono, texto y acciones; `tone` accent/red/amber — ámbar es «se ha roto y no es culpa tuya» | `<EmptyState icon title description actions tone>` |
+| `ErrorBoundary` | la RED: un error AL PINTARSE se queda en su trozo en vez de llevarse la pantalla entera. No atrapa eventos ni promesas. En la app se usa vestida: apps/web/src/shared/ui/SafeRegion.tsx | `<ErrorBoundary label fallback={(reintentar, error) => …}>…</ErrorBoundary>` |
 | `Field` | campo de formulario del .pen: label ALL-CAPS + input + error/hint + trailing (icono) | `<Field id label value onChange error trailing>` |
 | `FloatingPanel` | panel flotante de la mesa (Builder, Pincel, luces…): cabecera arrastrable que lo saca del mapa, icono, acciones y X; tema solo vía --sys-*. OBLIGATORIO para todo panel de mesa (npm run audit) | `<FloatingPanel title icon moveLabel closeLabel onClose className closeOnEscape>…</FloatingPanel>` |
 | `IconPicker` | selector de icono Material Symbols | `<IconPicker value onChange>` |
@@ -49,4 +50,4 @@ Import: `import { X } from '@rolvium/ui'`
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 36 componentes exportados.
+> 37 componentes exportados.

@@ -1,0 +1,35 @@
+/*
+ * EL AVISO DE UN TROZO ROTO. Ver `specs/core/errors/SPEC.md` y `rolvium.pen` § 11.
+ *
+ * Lo de DENTRO DE LA MESA va con `--sys-*` y nada más: el tablero es casi negro con cualquier tema, así que
+ * los colores de la app no se leerían ahí (medido por la review: 1,12:1 con el tema claro). Lo de la PANTALLA
+ * ENTERA sí es cromo de la app, y lo pinta `EmptyState`.
+ *
+ * El espaciado va en px como en el resto de la casa (ver `EmptyState`): los tokens son de color, tipografía y
+ * radio, no de separación.
+ */
+.rv-safe { display: flex; align-items: center; justify-content: center; }
+.rv-safe-page { min-height: 60vh; }
+.rv-safe-region { height: 100%; width: 100%; padding: 16px; }
+
+.rv-safe-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 12px; padding: 40px 32px; max-width: 27rem;
+  background: var(--sys-paper-hi); box-shadow: var(--sys-card-shadow); color: var(--sys-ink);
+}
+.rv-safe-icon { font-size: var(--icon-lg); color: var(--sys-ink-dim); }
+.rv-safe-title {
+  margin: 0; font-family: var(--sys-font-display); font-size: var(--fs-sm);
+  letter-spacing: .18em; text-transform: uppercase; color: var(--sys-ink);
+}
+.rv-safe-desc {
+  margin: 0; font-family: var(--sys-font-body); font-style: italic;
+  font-size: var(--fs-xs); line-height: var(--lh-loose); color: var(--sys-ink-soft);
+}
+/* En rojo sangre: «en la mesa lo activo va en sangre», su regla de siempre. */
+.rv-safe-cta {
+  border: none; cursor: pointer; padding: 9px 22px;
+  font-family: var(--sys-font-display); font-size: var(--fs-xs); letter-spacing: .14em;
+  text-transform: uppercase; background: var(--sys-blood); color: var(--sys-paper-hi);
+}
+.rv-safe-cta:hover { background: color-mix(in srgb, var(--sys-blood) 86%, var(--sys-ink)); }

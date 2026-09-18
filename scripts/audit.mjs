@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const STRICT = process.argv.includes('--strict');
@@ -360,6 +361,57 @@ const SECTIONS = [
   ['ui-panels',  'table panels, sliders & options from @rolvium/ui'],
   ['i18n',       'es/en key parity'],
 ];
+// 9. SPECS — cada módulo y área core tiene su SPEC.md, y con las secciones que lo hacen reconstruible  (HARD)
+//
+// Orden del dueño, 2026-09-17: «*de ahora en mas agrega en el harnes y donde haga falta que los specs se
+// escriben bien … sin ella yo no puedo vender esta herramienta*». La regla existía desde el principio y se
+// cumplió a medias: donde se trabajó hay 3.000 líneas y el resto se quedó en 21. Un chequeo determinista no
+// depende del criterio de nadie.
+//
+// Sólo es DURO para lo que la rama TOCA. Lo demás sale como aviso con su deuda medida, para ir cerrándola
+// poco a poco («*de a poco iras acomodando la documentacion*») sin bloquear todo el repo de golpe.
+// En INGLÉS desde el 2026-09-17, decisión suya: el código está en inglés y esto tiene que poder viajar.
+const SPEC_SECCIONES = ['Purpose', 'What the user can do', 'Screens', 'Rules & limits', 'States & errors', 'Permissions', 'Data model', 'Out of scope', 'Decisions'];
+const SPEC_MIN_LINEAS = 80;
+/** Qué ruta pertenece a qué área `specs/core/*`. Sin esto el chequeo sólo veía `modules/`. */
+const CORE_DE = [
+  [/^apps\/web\/src\/shared\/ui\/SafeRegion|^packages\/ui\/src\/components\/ErrorBoundary/, 'errors'],
+  [/^apps\/web\/src\/modules\/[^/]+\/(domain\/useCases\/liveRules|infra\/Supabase[^/]*Repo)/, 'realtime'],
+  [/^packages\/core\/src\/gameSystem|^packages\/system-/, 'game-system'],
+  [/^apps\/web\/src\/modules\/auth\/|^apps\/web\/src\/modules\/identity\//, 'auth'],
+  [/^packages\/ui\/vitest|^apps\/web\/tests\/helpers\//, 'testing'],
+  [/compressImage|^packages\/ui\/src\/lib\/.*image/i, 'images'],
+];
+{
+  const tocados = new Set();
+  try {
+    const base = execSync('git merge-base HEAD main', { encoding: 'utf8' }).trim();
+    for (const f of execSync(`git diff --name-only ${base}...HEAD`, { encoding: 'utf8' }).split('\n')) {
+      const m = f.match(/^apps\/web\/src\/modules\/([^/]+)\//);
+      if (m) { tocados.add(m[1]); continue; }
+      /*
+       * 🐞 Y LAS ÁREAS `core/*`, que se quedaban fuera (lo cazó el QA en cuarta vuelta EJECUTÁNDOLO: dejó
+       * `core/errors/SPEC.md` en cuatro líneas sin secciones y el audit seguía diciendo 0 duros). La red de
+       * errores vive en `shared/` y en `packages/`, así que nada de eso marcaba su área como tocada — el
+       * guardián no alcanzaba justo lo que la rama estaba cambiando.
+       */
+      for (const [patron, area] of CORE_DE) if (patron.test(f)) tocados.add(area);
+    }
+  } catch { /* sin git o sin main: todo sale como aviso */ }
+
+  for (const spec of walk(path.join(ROOT, 'specs'), ['SPEC.md'])) {
+    if (rel(spec) === 'specs/SPEC.md') continue;             // el índice no es un spec
+    const txt = read(spec);
+    const area = rel(spec).split('/')[2];
+    const duro = tocados.has(area);
+    const faltan = SPEC_SECCIONES.filter(sec => !new RegExp(`^##+ .*${sec}`, 'mi').test(txt));
+    const lineas = txt.split('\n').length;
+    const msg = [faltan.length ? `sin ${faltan.join(' / ')}` : null, lineas < SPEC_MIN_LINEAS ? `${lineas} líneas (mínimo ${SPEC_MIN_LINEAS})` : null].filter(Boolean).join(' · ');
+    if (!msg) continue;
+    (duro ? H : W)('specs', spec, null, `${msg}${duro ? '  ← la rama toca este módulo' : ''}`);
+  }
+}
+
 const hardG = group(hard), warnG = group(warn);
 for (const [check, label] of SECTIONS) {
   const h = (hardG[check] ?? []).length, w = (warnG[check] ?? []).length;

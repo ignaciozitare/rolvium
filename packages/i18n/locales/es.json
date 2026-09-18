@@ -20,6 +20,14 @@
     "yes": "Sí",
     "you": "tú"
   },
+  "errors": {
+    "pageTitle": "Algo se ha roto en esta pantalla",
+    "pageDescription": "No has perdido nada: la partida y tus datos están a salvo. Vuelve a intentarlo y, si sigue igual, recarga la página.",
+    "regionTitle": "Este trozo se ha roto",
+    "regionDescription": "El resto de la mesa sigue funcionando. Vuelve a intentarlo: no se ha perdido nada de la partida.",
+    "retry": "Reintentar",
+    "reload": "Recargar la página"
+  },
   "theme": {
     "switchToLight": "Cambiar a modo claro",
     "switchToDark": "Cambiar a modo oscuro"

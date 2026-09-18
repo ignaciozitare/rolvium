@@ -10,6 +10,7 @@ Source of truth for functionality. Read the relevant spec before touching its ar
   objetos, fondos); nivel de compresión por tipo, elegible en Admin → Ajustes
 - [Game System port](core/game-system/SPEC.md) — contrato `GameSystem` que implementa cada sistema de juego
 - [Realtime & event bus](core/realtime/SPEC.md) — canal por campaña, presencia, bus de la mesa
+- [Errores al pintar](core/errors/SPEC.md) — la red que hace que un error estropee un trozo y no la mesa entera
 
 ## Modules
 Product hexagons (map in `ARCHITECTURE.md`):
@@ -25,3 +26,63 @@ Product hexagons (map in `ARCHITECTURE.md`):
 - [adventures (H12)](modules/adventures/SPEC.md) — aventuras del director: documento, escenas y encuentros *(propuesto)*
 - [system-plenilunio (HX)](modules/system-plenilunio/SPEC.md) — primer sistema de juego
 - notifications (H11) — futuro, sin spec aún
+
+---
+
+## 📋 BACKLOG DE SPECS (orden suya, 2026-09-17)
+
+> «*hazte un backlog de cosas que tengas que escribir el spec, por ejemplo el pincel, el builder, texturas,
+> etc. … que entiendo que son subdominios de alguna parte, y vas escribiendo los specs*»
+
+**Cómo se cierra**: cada vez que se toque uno de estos subdominios, **se escribe su spec entero** con las nueve
+secciones de `CLAUDE.md` § «Specs» antes de dar la tarea por terminada. Nunca en lote.
+`npm run audit` (chequeo `specs`) lo hace DURO para lo que la rama toque.
+
+### Subdominios de `maps` — 16.363 líneas en un solo hexágono, el 64 % de todo el código de módulos
+
+| Subdominio | Dónde vive hoy | Spec |
+|---|---|---|
+| **El pincel** | `BrushPanel` · `usePaintBrush` · `useMaskPainter` · `PaintColor` · `paintRules` | ⏳ |
+| **El constructor** (muros, puertas, salas) | `BuilderPanel` · `roomRules` · `roomStyles` · `snapRules` | ⏳ |
+| **Texturas** | `TextureCatalog` · `TextureUpload` · `libraryRules` | ⏳ |
+| **Objetos** | `PropsPanel` · `PropsCatalog` · `PropsUpload` · `propRules` | ⏳ |
+| **Capas y luces** | `LayersPanel` · `LayerMenu` · `LightEditor` · `layerRules` | ⏳ |
+| **Escenas** (crear, activar, ordenar) | `ScenesMenu` · `mapRules` | ⏳ |
+| **Fondo** | `BackgroundCatalog` · `BackgroundPopover` · `BackgroundUpload` · `backgroundRules` | ⏳ |
+| **Niebla y visión** | calculada en la API; `useScene` la pide | ⏳ |
+| **La barra de herramientas** | `Toolbar` · `toolbarRules` · `groupRules` | ⏳ |
+| **El lienzo** (el motor de pintado) | `MapCanvas` · `canvasLayers` · `roomsLayer` | ⏳ |
+| **La escena en vivo** | `useScene` · `liveRules` | ⏳ |
+
+### 🚪 La puerta de cada módulo (`index.ts`) — orden suya, 2026-09-17
+
+> «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
+> cosas sin él*»
+
+**Ningún módulo tiene `index.ts`.** Sin esa puerta, 98 importaciones entran dentro de otro módulo. Se cierra
+**según se toque cada uno**; lo nuevo nace ya con puerta (duro en `npm run audit`).
+
+| Módulo | Importaciones que entran por dentro | Su cara pública sería |
+|---|---|---|
+| `characters` | 30 | `container` · `Character` · `CharactersPort` · `characterRules` · `systemText` · 3 páginas |
+| `campaigns` | 17 | `container` · `Campaign` · `CampaignsPort` · `campaignRules` · `CampaignsPage` |
+| `dice` | 14 + 7 en su `ui` | `container` · `Roll` · sus puertos · sus paneles |
+| `maps` | 12 + 1 en su `ui` | `container` · `Scene` · `MapsPort` · `VisionPort` · `ToolbarOrderPort` · `mapRules` · `SceneTab` |
+| `bestiary` · `chat` | 3 + 4 · 2 + 2 | ⏳ |
+| `auth` | 1 (entra en su **infra**) | ⏳ |
+| `table` | 1 | `TablePage` |
+
+### Specs existentes por debajo del listón
+
+Medido por `npm run audit`. Se cierran **según se toque cada módulo**.
+
+| Spec | Líneas | Le faltan |
+|---|---|---|
+| `modules/journal` | 21 | casi todas |
+| `core/testing` | ~40 | casi todas |
+| `core/auth` | 30 | casi todas |
+| `modules/campaigns` · `modules/characters` · `modules/identity` | 65-71 | la mayoría |
+| `core/roles-permissions` · `core/game-system` · `core/images` · `core/realtime` | 51-91 | las secciones del molde |
+| `modules/chat` · `modules/system-plenilunio` · `modules/adventures` · `modules/bestiary` · `modules/dice` | 93-425 | las secciones del molde |
+| ✅ `modules/table` | 130 | **ninguna** — es la muestra del molde |
+| ✅ `modules/maps` | 3.100 | **ninguna** — tiene ya el índice de «qué hay» |

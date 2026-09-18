@@ -8,5 +8,5 @@
     "jsx": "react-jsx",
     "types": []
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "vitest.setup.ts", "vitest.config.ts"]
 }

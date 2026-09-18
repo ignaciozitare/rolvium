@@ -59,6 +59,8 @@ export type { FieldProps }                from './components/Field';
 export { SystemChip, StatusChip }         from './components/Chips';
 export type { StatusTone }                from './components/Chips';
 export { SectionTitle, PageHeader, EmptyState, TopBar } from './components/Layout';
+export { ErrorBoundary }                 from './components/ErrorBoundary';
+export type { ErrorBoundaryProps }       from './components/ErrorBoundary';
 export type { TopBarLink }                from './components/Layout';
 
 // ── Sheet (schema-driven character sheet, themed via --sys-* vars) ────────────

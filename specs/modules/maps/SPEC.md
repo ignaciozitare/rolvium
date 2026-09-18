@@ -86,6 +86,125 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     suelo de UNA sala. Y coger, mover y borrar una forma ya levantada, que hoy sólo existe por debajo.
 
 ## What the user can do
+
+> Index of **WHAT EXISTS**, escrito el 2026-09-17 con el molde de `CLAUDE.md` § «Specs». El **porqué** de cada
+> cosa está en las secciones por rebanadas de más abajo, que es lo que este spec tenía y le sobra bien.
+
+**Cualquier miembro**
+- Ver la escena que el director haya **activado**, a pantalla completa, con zoom y desplazamiento (el
+  desplazamiento es un modificador —espacio o botón central—, **nunca** una herramienta).
+- **Seleccionar** · **medir** · **marcar un punto** de enfoque.
+- **Dibujar**: lápiz, línea, rectángulo, círculo, texto y goma, con su color y su grosor.
+- Mover **su** ficha; choca con muros, salas y objetos que cortan el paso.
+
+**Sólo el director**
+- **Escenas**: crear, renombrar, ordenar, borrar, **abrir** una para trabajarla y **activarla** para el grupo
+  (son dos acciones distintas: puede preparar un piso mientras el grupo juega en otro).
+- **Fondo**: color o foto, desde la biblioteca de la campaña o subiendo una.
+- **Construir**: muros, puertas y ventanas con edición de vértices; **salas** (formas cerradas que abren un
+  hueco en el relleno de pared para que se vea el suelo) y rellenos de muro.
+- **Pincel**: pintar encima de una sala, de la roca, de una foto o de la niebla, con textura o color y
+  transparencia; y destapar lo de debajo.
+- **Capas**: una pila de terreno con máscaras, más capas fijas de objetos, criaturas y notas del director.
+- **Luces de ambiente**, recortadas contra los muros.
+- **Niebla**: revelar y ocultar con pincel, y **ver como jugador**.
+- **Fichas**: colocar personajes y criaturas del bestiario, ocultarlas, quitarlas.
+- **Objetos**: biblioteca por paquetes, catálogo a pantalla completa, subida en lote, sembrar de uno en uno o
+  por área, y sobre lo ya puesto: coger, mover, escalar, girar, copiar y reordenar la pila.
+- **Deshacer y rehacer**.
+
+## Screens
+
+| Pantalla / parte | Qué es | Lámina |
+|---|---|---|
+| La escena | A pantalla completa dentro de la pestaña «Escena» | `rolvium.pen` § 5 · LA ESCENA · mapas |
+| Rail de escenas | Lista plegable a la izquierda; abrir ≠ activar | § 5 |
+| Barra de herramientas | Tres bloques, los dados primero, lo del director tras la raya dorada | § 5 |
+| Panel del constructor | Muros, puertas, ventanas, salas y rellenos | § 5 |
+| Panel del pincel | Sobre qué, qué hace, textura, color, tamaño, dureza, transparencia | § 5 |
+| Panel de luces | Forma, alcance, color, parpadeo | § 5 |
+| Panel de capas | La pila, con su menú de mandar a capa | § 5 |
+| Panel de objetos | El sello: uno por clic, o sembrar por área | § 6 · LA ESCENA · piezas |
+| Catálogo de texturas / de objetos | A pantalla completa | § 5 · § 6 |
+| Estados vacíos y de error | Sin escena activa · sin suelo que pintar · trozo roto | § 11 · ESTADOS VACÍOS Y ERRORES |
+
+⚠️ **Pendiente**: los nombres exactos de cada lámina se rellenan la próxima vez que el `.pen` esté abierto (el
+2026-09-17 no era accesible). Las secciones sí están confirmadas.
+
+## Out of scope
+
+- **Light/dark inside the scene.** Does not exist: the system theme rules (`--sys-*`). See `modules/table`.
+- **A second physics engine in the browser.** Blocking geometry is computed once in `@rolvium/core` and used by
+  both the browser and the API; they must never diverge.
+- **Editing a silhouette by hand.** The outline is derived when the image is uploaded; an oval set by hand is
+  respected but there is no editor for it.
+- **Eager preloading of every scene.** Rejected on measurement: 20 scenes would be 160 queries on opening the
+  table, most never used. Only what he has actually opened is kept.
+
+## States & errors
+
+| Estado | Cuándo | Qué ve él |
+|---|---|---|
+| Sin escena activa | El director no ha activado ninguna | «El director aún no ha activado ninguna escena» |
+| Cargando la escena | Al abrir o cambiar de escena, mientras llegan sus piezas | Se tapa **el hueco del mapa**; la barra y los paneles se quedan |
+| Error al cargar | Falla alguna de las listas de la escena | El hueco del mapa lo dice **y lleva botón de Reintentar** (§ «Cambiar de escena») |
+| Sin suelo que pintar | Pincel sobre sala sin ninguna sala excavada | El panel lo dice en vez de quedarse mudo |
+| Un trozo roto | Algo revienta al pintarse | La red del § `core/errors`: se cae ese trozo, no la mesa |
+
+## Permissions
+
+| Acción | Quién | Clave |
+|---|---|---|
+| Ver la escena activa, medir, marcar, dibujar, mover su ficha | Cualquier miembro | — |
+| Todo lo de construir, pintar, niebla, luces, capas, fichas ajenas | Director | papel `dm` de la campaña |
+| Subir y ordenar **texturas** | Director con permiso | `manage_textures` |
+| Subir y ordenar **objetos** | Director con permiso | `manage_props` |
+| Ordenar la barra de herramientas para todos | Admin | `manage_settings` |
+
+## Data model
+
+Every table is `maps_*`, all with RLS, all in the realtime publication. Full column-by-column detail lives in
+the «Modelo de datos» sections further down, one per slice; this is the map of which is which.
+
+| Table | Holds | Written by |
+|---|---|---|
+| `maps_scenes` | The scene row: size, grid, background, presets, fog mode, rock paint | GM |
+| `maps_rooms` | Rooms and wall fills: `shape`, `points`, floor, mask and paint | GM |
+| `maps_room_openings` | Doors and windows annotated on a room outline | GM |
+| `maps_walls` | Free-standing walls, doors and windows | GM |
+| `maps_drawings` | Freehand strokes, shapes and text | **GM and players** |
+| `maps_layers` | The terrain stack with its masks, plus the fixed layers | GM |
+| `maps_lights` | Ambient lights | GM |
+| `maps_tokens` | Characters and creatures on the board | GM; players move their own |
+| `maps_props` · `maps_prop_packs` | The prop library, per user pack | GM with `manage_props` |
+| `maps_scene_props` | Props placed on a scene, with `z` and their blocking shape | GM |
+| `maps_fog` | What each player has explored, **one row per scene and per user** | The API |
+
+⚠️ Two things that bit hard and belong here:
+- **`maps_fog.explored` is per scene AND per user.** Switching scenes and coming back does not lose it; only
+  the in-memory copy is dropped.
+- **Large columns may not arrive in a realtime echo** (`points`, `data`, `silhouette`). See `core/realtime`
+  § «Qué se puede creer de un eco» — this cost three weeks and two failed fixes.
+
+## Decisions
+
+The «why» of this module is long and lives in the slice sections below, each with his own words and the date.
+The ones that outrank everything else:
+
+- **The rulebook wins** over anything written here (owner, 2026-08-17: «*con respecto a las reglas el manual
+  manda*»).
+- **Painting never changes the map.** Not sight, not movement, not light. The brush writes a PNG and nothing
+  else, so it can always be undone.
+- **Floor paint is for every dug shape, not one.** A room is usually several shapes fused; one file per shape
+  cut the stroke at every seam (owner, 2026-09-10).
+- **The GM collides too when dragging** (owner, 2026-09-16, revoking a decision from 2026-08-22). Placing a
+  token with one click still ignores it: that is a different gesture, and he said so himself.
+- **The scene shield rules** over per-prop blocking: if walls are passable, nothing blocks (owner, 2026-09-17,
+  closing the question: «*esto está solucionado en prod*»).
+- **Scale is remembered per category, not per piece** (owner, 2026-09-16, said twice).
+
+
+## What the user can do — historical detail
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
 - **Fondo del mapa** (popover, solo DJ): **color de base** (el mismo bloque que el Pincel: muestras, TUS COLORES
   por campaña, hex y cuentagotas; se ve donde no llega la imagen) y el **catálogo de fondos** a pantalla completa
@@ -2826,6 +2945,50 @@ tres sitios y uno de ellos —la niebla— lo calcula el servidor; con la forma 
 discrepando, y sería el mismo mando difuminando en una capa y cortando a filo en la niebla. Mismo motivo por el
 que `roomWalls` vive allí. El **azar** se tira en el navegador (una tirada por pincelada) y viaja como
 parámetro: el servidor sólo lo lee.
+
+## Cambiar de escena (§ 2026-09-17, quejas suyas al probar)
+
+> «*se ve como se construye el mapa, es como si fuera muy lenta la carga entre que trae todos los componentes
+> de un mapa y el otro*» · «*¿por qué no haces una precarga y lo dejas en memoria?*»
+
+**Qué pasaba.** `useScene` publica la escena nueva al instante, pero sus ocho listas —fichas, muros, dibujos,
+capas, luces, habitaciones, vanos y objetos— se piden después. Entre medias se seguían dibujando **las piezas
+de la escena anterior** encima del mapa nuevo.
+
+**Dos cosas, y hacen falta las dos:**
+
+1. **Mientras llegan las piezas se tapa el hueco del MAPA**, y sólo ese hueco (`.mp-loading`): la barra y los
+   paneles se quedan, que no esperan a nada.
+   ⚠️ **NO se deja puesta la escena anterior**, que sería más bonito: la niebla se borra en cuanto cambia el id
+   de escena, así que el mapa viejo se quedaría un instante **destapado** y un jugador vería lo que no debe.
+
+2. **Lo ya traído de cada escena se guarda en memoria** y se pinta al volver, sin esperar. Se recuerdan **las
+   32 escenas más recientes**, mismo tope y mismo motivo que la memoria de encuadre.
+
+### ⚠️ Lo guardado es sólo para NO ESPERAR. Nunca es la verdad.
+
+**Al volver se vuelven a pedir las ocho listas igual**, y lo que llegue corrige lo guardado. Lo único que no se
+guarda jamás son las **fichas** —se mueven sin él— y son las que abren la pantalla: una consulta, no ocho.
+
+El primer intento **sí** se fiaba de lo guardado, con la excusa de que «eso sólo lo cambia el director». **Era
+falso, y lo paró el QA antes de producción.** Queda escrito por qué, que es la clase de error que vuelve:
+
+- **Los dibujos los hacen los JUGADORES**: `PLAYER_TOOLS` lleva lápiz, línea, rectángulo, círculo, texto y
+  goma, y `maps_drawings_insert` se lo permite.
+- Y sobre todo: **este hook corre también en la pantalla de los jugadores**, y ahí quien cambia las cosas
+  mientras ellos están en otra escena **es el director** — abrir una escena y ACTIVARLA son dos acciones
+  distintas, así que él trabaja en un piso mientras ellos juegan en otro. Fiarse de lo guardado les devolvía
+  la escena como estaba: una puerta abierta seguiría cerrada, y **un muro que él ocultó volvería a verse**,
+  que es justo el agujero que se cerró el 2026-09-03 volviendo a pedir los muros.
+
+🔒 **Y si ese refresco FALLA, se dice** (`status: 'error'`, y el hueco del mapa lo enseña). Sin eso, las fichas
+ya habían abierto la pantalla y lo guardado se quedaba haciéndose pasar por la verdad **sin un solo aviso** —
+el mismo agujero por la puerta de atrás, y con el mismo filo: a un jugador no le llega notificación de una fila
+que su RLS le esconde, así que un muro ocultado seguiría a la vista hasta recargar.
+
+🔑 **Y el guardado lleva la marca de a qué escena pertenece lo que hay en pantalla** (`cargadoPara`). Sin ella,
+al cambiar de escena se guardaría el mapa de un piso en el hueco del otro —el efecto corre con el id nuevo y
+las listas viejas—, y sólo se nota **pinchando rápido entre pisos**, que es como él los recorre.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los

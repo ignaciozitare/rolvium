@@ -170,15 +170,102 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setFog(withProbeMemory(next));
   }, [withProbeMemory]);
 
+  /**
+   * Cuántas escenas se recuerdan. Mismo tope y mismo motivo que la memoria de encuadre (spec de mapas): que no
+   * crezca sin límite en una campaña con muchas. Se tira la que lleva más tiempo sin abrirse.
+   */
+  const ESCENAS_EN_MEMORIA = 32;
+  /**
+   * LO QUE YA TRAJIMOS DE CADA ESCENA, para que volver a una no cueste ocho consultas. Vive en el hook, así
+   * que se muere al salir de la mesa: no hay nada que limpiar ni que pueda crecer entre campañas.
+   *
+   * ⚠️ SIN FICHAS a propósito — ver el comentario del efecto de carga.
+   */
+  const cacheEscenas = useRef<Map<string, { walls: Wall[]; drawings: Drawing[]; layers: Layer[]; lights: Light[]; rooms: Room[]; roomOpenings: RoomOpening[]; sceneProps: SceneProp[] }>>(new Map());
+  /**
+   * A QUÉ ESCENA pertenece lo que hay ahora mismo en pantalla. Sin esto, al cambiar de escena se guardaría en
+   * el hueco de la NUEVA lo que todavía es de la ANTERIOR, y volver enseñaría el mapa equivocado.
+   */
+  const cargadoPara = useRef<string | null>(null);
+  /**
+   * 🔑 REINTENTAR LA CARGA (suyo, 2026-09-17, sin medias tintas: «*que me digas que algo falla y no pones
+   * botón de reintentar es una mierda pinchada en un palo, ¿qué hace el usuario? deja de jugar y se va y deja
+   * al party colgado*»). Sin esto, de `error` sólo se salía cambiando de escena y volviendo — o sea que un
+   * fallo de red en mitad de una partida la terminaba.
+   */
+  const [intento, setIntento] = useState(0);
+  const reintentar = useCallback(() => { setIntento(n => n + 1); }, []);
+
   useEffect(() => { setLive(scene); }, [scene]);
 
   useEffect(() => {
-    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setSceneProps([]); setStatus('ready'); return; }
+    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setSceneProps([]); cargadoPara.current = null; setStatus('ready'); return; }
     let alive = true;
     setStatus('loading');
-    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)])
-      .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); setStatus('ready'); })
-      .catch(() => { if (alive) setStatus('error'); });
+    /*
+     * 🔑 VOLVER A UNA ESCENA NO SE ESPERA A QUE CARGUE (suyo, 2026-09-17: «*¿por qué no haces una precarga y lo
+     * dejas en memoria?*»). Lo guardado se pinta YA, y lo de verdad llega por detrás y lo corrige.
+     *
+     * ⚠️ **LO GUARDADO ES SÓLO PARA NO ESPERAR — NUNCA ES LA VERDAD, Y SE VUELVE A PEDIR TODO IGUAL.** El
+     * primer intento sí se fiaba de ello («esto sólo lo cambia el director») y **eso era FALSO**; lo paró el
+     * QA antes de llegar a producción, y conviene que quede escrito por qué:
+     *
+     *  · **Los dibujos los hacen los JUGADORES** — `PLAYER_TOOLS` (`mapRules.ts`) lleva lápiz, línea,
+     *    rectángulo, círculo, texto y goma, y la política `maps_drawings_insert` se lo permite.
+     *  · Y sobre todo: **este hook corre TAMBIÉN en la pantalla de los jugadores**, y ahí el que cambia las
+     *    cosas mientras ellos están en otra escena **es el director**. Fiarse de lo guardado les devolvía la
+     *    escena como estaba: una puerta que él abrió seguiría cerrada, y **un muro que él ocultó volvería a
+     *    verse** — justo el agujero que se cerró el 2026-09-03 volviendo a pedir los muros.
+     *
+     * Así que la cuenta no es «una consulta en vez de ocho»: son las ocho igual. Lo que se gana es que él no
+     * ESPERA por ellas — el mapa aparece entero al instante y se corrige solo. Las FICHAS son lo único que no
+     * se guarda jamás (se mueven sin él) y son las que abren la pantalla: una consulta, no ocho.
+     */
+    const fichasP = repo.listTokens(sceneId);
+    const restoP = Promise.all([repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)]);
+    const guardado = cacheEscenas.current.get(sceneId);
+    if (guardado) {
+      // Se PINTA ya con lo guardado, para no esperar…
+      setWalls(guardado.walls); setDrawings(guardado.drawings); setLayers(guardado.layers); setLights(guardado.lights);
+      setRooms(guardado.rooms); setRoomOpenings(guardado.roomOpenings); setSceneProps(guardado.sceneProps);
+      // …las FICHAS abren la pantalla, que son lo único que no se guarda nunca…
+      void fichasP
+        .then(t => {
+          if (!alive) return;
+          setTokens(t);
+          cargadoPara.current = sceneId;
+          /*
+           * 🔒 ABRIR LA PANTALLA NO PUEDE BORRAR UN ERROR YA DICHO (lo cazó el QA en tercera vuelta,
+           * ejecutándolo). Aquí hay DOS promesas escribiendo el estado sin coordinarse, y `restoP` es un
+           * `Promise.all` de siete: revienta con la PRIMERA que falle, o sea tan rápido como la más rápida en
+           * fallar. Una respuesta de error (403, RLS, sesión caducada, un 5xx pasajero) es diminuta y vuelve
+           * antes que una lista de fichas pedida en el mismo instante. Sin esta comprobación:
+           *   revienta la geometría → `error` → llegan las fichas → `ready` y el error desaparece.
+           * O sea el mismo agujero de antes: lo guardado pasando por verdad, y un muro que el director ocultó
+           * a la vista de un jugador. El `loading` de la entrada es quien limpia el error, no esto.
+           */
+          setStatus(actual => (actual === 'error' ? actual : 'ready'));
+        })
+        .catch(() => { if (alive) setStatus('error'); });
+      // …y lo demás llega por detrás y CORRIGE lo guardado sin que se note.
+      void restoP
+        .then(([w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); })
+        .catch(() => {
+          /*
+           * 🔒 SI EL REFRESCO FALLA, SE DICE — no se deja lo guardado haciéndose pasar por la verdad (lo paró
+           * el QA en segunda vuelta). Las fichas ya habían puesto la pantalla en `ready`, así que sin esto se
+           * seguiría viendo la geometría guardada sin un solo aviso: **un muro que el director ocultó
+           * seguiría a la vista** para un jugador, porque a él no le llega notificación de una fila que su RLS
+           * le esconde, y el aviso `walls.updated` que le haría volver a pedirlos sonó mientras estaba en otra
+           * escena. El camino sin guardado hace exactamente esto: falla → `error`.
+           */
+          if (alive) setStatus('error');
+        });
+    } else {
+      void Promise.all([fichasP, restoP])
+        .then(([t, [w, d, ly, li, rm, ro, sp]]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); cargadoPara.current = sceneId; setStatus('ready'); })
+        .catch(() => { if (alive) setStatus('error'); });
+    }
     const off = repo.subscribe(sceneId, {
       onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(prev => (prev && isStaleRow(prev, c.row) ? prev : c.row)); },
       onToken: c => { setTokens(l => applyChange(l, c)); if (c.type !== 'INSERT') setDrags(d => { if (!d[c.id]) return d; const n = { ...d }; delete n[c.id]; return n; }); },
@@ -239,7 +326,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       },
     });
     return () => { alive = false; off(); setDrags({}); setPin(null); };
-  }, [repo, sceneId, me]);
+  }, [repo, sceneId, me, intento]);
 
   // ── vision ──
   /**
@@ -265,6 +352,24 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const announceVision = useCallback(() => {
     if (sceneId && live) repo.broadcast(sceneId, { type: 'fog.updated', campaignId: live.campaignId, sceneId, userId: me });
   }, [repo, sceneId, live, me]);
+
+  /**
+   * EL GUARDADO SE MANTIENE AL DÍA SOLO. Cada vez que cambia algo de la escena que hay en pantalla —lo dibuja
+   * él, o llega por el canal en vivo— se vuelve a guardar. Así volver a un piso enseña lo ÚLTIMO que había,
+   * incluido lo que él acabara de dibujar antes de irse.
+   *
+   * 🔑 `cargadoPara` es lo que impide el fallo bobo y grave: al cambiar de escena, este efecto corre con el id
+   * NUEVO pero con las listas VIEJAS —todavía no han llegado las suyas—, y sin la comprobación se guardaría el
+   * mapa de la escena anterior en el hueco de la nueva.
+   */
+  useEffect(() => {
+    if (!sceneId || cargadoPara.current !== sceneId) return;
+    const m = cacheEscenas.current;
+    // Re-insertar la mueve al final: en un `Map` el orden es el de inserción, así que la primera es la más vieja.
+    m.delete(sceneId);
+    m.set(sceneId, { walls, drawings, layers, lights, rooms, roomOpenings, sceneProps });
+    while (m.size > ESCENAS_EN_MEMORIA) { const vieja = m.keys().next().value; if (vieja === undefined) break; m.delete(vieja); }
+  }, [sceneId, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps]);
 
   useEffect(() => { setFog(null); }, [sceneId]);
   /**
@@ -1233,11 +1338,12 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog,
+    reintentar,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask,
     saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint,
     addLight, patchLight, removeLight, patchDrawingLayer,
     plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing, plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps]);
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog, reintentar, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing, plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps]);
 }

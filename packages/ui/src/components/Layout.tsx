@@ -23,8 +23,15 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
 }
 
 /** rolvium.pen "Vacío/…" cards: icon disc + title + description + actions, centred. */
-export function EmptyState({ icon, title, description, actions, tone = 'accent' }: { icon: string; title: ReactNode; description?: ReactNode; actions?: ReactNode; tone?: 'accent' | 'red' }) {
-  const [bg, fg] = tone === 'red' ? ['var(--red-dim)', 'var(--red)'] : ['var(--ac-dim)', 'var(--ac)'];
+/**
+ * `tone` ÁMBAR (2026-09-17): es el de «se ha roto algo y no es culpa tuya». El ROJO de esta familia está
+ * cogido por «has hecho algo mal» (un código de campaña inválido, por ejemplo), y usarlo para la red de
+ * errores haría pensar que se ha perdido algo cuando no se pierde nada. Aprobado en `rolvium.pen` § 11.
+ */
+export function EmptyState({ icon, title, description, actions, tone = 'accent' }: { icon: string; title: ReactNode; description?: ReactNode; actions?: ReactNode; tone?: 'accent' | 'red' | 'amber' }) {
+  const [bg, fg] = tone === 'red' ? ['var(--red-dim)', 'var(--red)']
+    : tone === 'amber' ? ['var(--amber-dim)', 'var(--amber)']
+    : ['var(--ac-dim)', 'var(--ac)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12, padding: '40px 32px' }}>
       <span style={{ width: 56, height: 56, borderRadius: '50%', background: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

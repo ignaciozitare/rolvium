@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginPage } from '@/modules/auth/ui/LoginPage';
 import { SignupPage } from '@/modules/identity/ui/SignupPage';
@@ -65,6 +66,12 @@ export function AppRoutes(): JSX.Element {
   );
 }
 
+/**
+ * LA RED DE FUERA — el último recurso (`specs/core/errors/SPEC.md`). Si se cae algo que ninguna red de dentro
+ * ha parado, sale una pantalla con aviso y un botón de recargar, en vez del blanco.
+ *
+ * Va DENTRO del router a propósito: así el aviso vive en el mismo contexto que lo que se cayó.
+ */
 export function AppRouter(): JSX.Element {
-  return <BrowserRouter><AppRoutes /></BrowserRouter>;
+  return <BrowserRouter><SafeRegion variant="page" label="app"><AppRoutes /></SafeRegion></BrowserRouter>;
 }
