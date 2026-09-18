@@ -24,9 +24,13 @@ be built without it — there is nothing to attack with if encounters have no st
   for that block — or one of the attacks printed in its box; see the dice count before rolling; mark the
   specialty and the capabilities that might apply (with an «es de noche» checkbox when relevant); choose
   difficulty and who sees it (mesa / DJ / secreta). **Deflagración** rolls separately, by typing the metres.
-- **Place** in the active scene (`DmEncounters`, the Encounter dropdown on the map toolbar): search across the
-  manual (57 blocks) and every own entry; placing creates a scene **instance** with its own Resistencia/state,
-  optionally hidden from players.
+- **Place** on the active scene: **Colocar** on a catalog row (`EntryCard`, in `BestiaryTab`) arms the entry and
+  switches to the Scene tab; clicking the map drops it — that click-to-place step is `maps`'s (`armEncounter` in
+  `SceneTab`), not bestiary's. Placing creates a scene **instance** with its own Resistencia/state, optionally
+  hidden from players.
+- **Manage what's already on the scene** (`DmEncounters`, collapsed by count inside the DM's dice-roller panel,
+  any tab): roll or attack per placed creature without leaving the roller; **+ Añadir** jumps to the Bestiary tab
+  to place another.
 - **Attack from the token** (`TokenAttackModal`): the ATACAR button appears on a selected creature's token bar
   (never on a PC's). Melee (≤ 2 cells / 3 m) waits for the target's defence roll like any conflict; ranged
   resolves at once as a challenge, with `rangeForMetres` difficulty and the block's own weapon/attack chips
@@ -50,7 +54,7 @@ be built without it — there is nothing to attack with if encounters have no st
 | `PhotoModal` | The entry's photo, larger | `rolvium.pen` — Bestiario |
 | `CreatureRollPopover` | «Tirar por una criatura»: characteristic/attack, specialty, capabilities, visibility | `rolvium.pen` § «Bestiario/Tirar por una criatura · popover» + its «· Deflagración» twin |
 | `TokenAttackModal` | Attack with a placed token: distance, weapon chips, difficulty | `rolvium.pen` — «Modal/Atacar con el token» |
-| `DmEncounters` (in `maps`) | The scene's Encounter dropdown: search + place | `rolvium.pen` § «Panel/Director» |
+| `DmEncounters` | Placed-in-scene creatures, collapsed by count: roll, attack, «+ Añadir» → Bestiary tab. Lives in `bestiary/ui/`, rendered by `table` inside the DM's dice-roller panel — not part of `maps` | `rolvium.pen` § «Panel/Director» |
 
 ## Rules & limits
 
