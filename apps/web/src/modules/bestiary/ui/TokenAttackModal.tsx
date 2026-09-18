@@ -4,7 +4,7 @@ import type { GameSystem, RollVisibility } from '@rolvium/core';
 import { autoSuccessOptions, capabilityLevel, rangeForMetres, RANGE_DIFFICULTY } from '@rolvium/system-plenilunio';
 import type { CapabilityId } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
+import { initialsOf } from '@/modules/maps';
 import { creatureAttackRequest, sheetOf } from '../domain/useCases/creatureRoll';
 import { errorText } from '../domain/useCases/errorText';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';

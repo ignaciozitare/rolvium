@@ -38,9 +38,7 @@ import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
-import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
-import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
-import type { ToolbarOrderPort } from '@/modules/maps/domain/ports/ToolbarOrderPort';
+import type { MapsPort, VisionPort, ToolbarOrderPort } from '@/modules/maps';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
 

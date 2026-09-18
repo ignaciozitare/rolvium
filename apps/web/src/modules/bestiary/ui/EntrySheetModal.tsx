@@ -4,7 +4,7 @@ import { CompressError, compressImage, formatBytes, pickImageFile } from '@rolvi
 import type { GameSystem } from '@rolvium/core';
 import { STAT_IDS } from '@rolvium/system-plenilunio';
 import type { StatId } from '@rolvium/system-plenilunio';
-import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
+import { initialsOf } from '@/modules/maps';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry, CreatureData } from '../domain/entities/BestiaryEntry';

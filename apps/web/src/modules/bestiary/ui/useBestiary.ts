@@ -7,7 +7,7 @@ import type { BestiaryPort } from '../domain/ports/BestiaryPort';
 import type { BestiaryEntry, BestiaryEntryPatch, NewBestiaryEntry, OriginFilter } from '../domain/entities/BestiaryEntry';
 import { byOrigin, duplicateOf, fromCatalog, mergeEntries, withManualFallback } from '../domain/useCases/bestiaryRules';
 import { errorText } from '../domain/useCases/errorText';
-import { filterEntries } from '@/modules/maps/domain/useCases/mapRules';
+import { filterEntries } from '@/modules/maps';
 
 interface Options { campaignId: string; system: GameSystem; repo?: BestiaryPort }
 
