@@ -2,6 +2,52 @@
 
 ## 🎯 Current task
 
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-18)
+>
+> ## 🚀 v0.13.0 EN PRODUCCIÓN — LA RED DE SEGURIDAD AL PINTAR
+> Merge `0e5a8bd` (`feat/red-de-seguridad-al-pintar` → `main`, 20 commits incluido el bump). QA **quinta
+> vuelta: APROBADO SIN BLOQUEOS**, modo `block` — spec compliance sin desvíos, 2528 tests de regresión (incluye
+> `packages/ui`, ya sumado al gate) + smoke 12 + functional 58 en verde, `npm run typecheck` limpio (el B4
+> sigue arreglado), 0 CRITICAL en advisors, build web+api limpios.
+>
+> **Confirmado en Vercel, no sólo curl 200**: los dos deploys de producción —`rolvium` y `rolvium-api`— están
+> `READY` con `githubCommitSha` = `0e5a8bde279a08decf9731b8426840531f76b9c5`, el commit exacto del merge (no
+> uno cacheado). `/health` 200, frontend 200, y **él confirmó el smoke test en vivo**.
+>
+> Lo que llegó a producción, dicho como lo pidió:
+> 1. **LA RED DE SEGURIDAD** — un error al pintar se queda en su trozo, no tumba la mesa. 8 costuras.
+> 2. **El mapa aparece hecho** al cambiar de escena (regresión que no era de esta rama, arreglada igual).
+> 3. **Volver a una escena no se espera**: se pinta lo guardado al instante, se vuelve a pedir todo igual, y si
+>    falla hay botón de Reintentar.
+> 4. 🔒 **El jugador nunca ve el mapa despejado** — agujero real (fog en `null` al cambiar de escena dejaba la
+>    tapa sin dibujar) tapado: sin niebla calculada se tapa la escena ENTERA, sin máscara.
+>
+> ## 🚪 LO QUE QUEDA PENDIENTE, SIN CERRAR: LA PUERTA DE CADA MÓDULO (`index.ts`)
+> Orden suya del 17-09, aplazada a propósito mientras corría el QA. **Sigue sin hacerse.**
+> - ⚠️ **`CLAUDE.md` y `specs/SPEC.md` siguen afirmando que existe un chequeo `module-index` en
+>   `npm run audit` y NO EXISTE** — lo señaló el QA de la cuarta vuelta: «regla anunciada, guardián ausente».
+>   O se implementa o se retira la afirmación; lo primero.
+> - Falta el chequeo (`scripts/audit.mjs`, duro para lo que la rama toque) y los `index.ts` de `maps` y `table`
+>   como primeros dos módulos (la cara pública de cada uno ya está medida en `specs/SPEC.md`, 1-8 cosas).
+> - 98 importaciones entran hoy dentro de otro módulo (`characters` 30 · `campaigns` 17 · `dice` 14 · `maps`
+>   12); 7 entran directamente en la `ui` ajena.
+>
+> ## 🧹 Deuda viva, medida y no cerrada (sin cambios desde el cierre anterior)
+> - La colocación de las ocho costuras de la red no la ata ningún test — quitar un `SafeRegion` y la suite
+>   sigue verde.
+> - `npm -w packages/ui run typecheck` sigue rojo de antes (`Sheet.tsx:531`); `packages/core` también, en dos
+>   sitios. Ninguno lo cubre el `typecheck` de la raíz.
+> - `.rv-safe-cta` duplica `.tb-btn-blood`; candidato al botón de mesa de `@rolvium/ui`.
+> - `packages/system-plenilunio/src` sigue plano (sin `domain/infra/ui`), sin decidir.
+> - `maps` son 16.363 líneas / 64% del código de módulos, once subdominios sin separar en carpetas — tarea
+>   propia, la decide él.
+> - (Lo de las luces lo retiró él mismo el 17-09: NO es un fallo, no perseguirlo.)
+>
+> ## ⏭️ SIGUIENTE PASO CONCRETO
+> Arrancar la puerta `index.ts`: el chequeo `module-index` en `audit.mjs` + los `index.ts` de `maps` y `table`.
+
+---
+
 > # 📍 ESTADO AL CERRAR EL CHAT (2026-09-17, noche)
 >
 > ## 🚀 LO QUE SÍ ESTÁ EN PRODUCCIÓN HOY
