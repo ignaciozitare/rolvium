@@ -59427,6 +59427,1215 @@
     },
     {
       "type": "frame",
+      "id": "YYuOy",
+      "x": 19279,
+      "y": 4679,
+      "name": "Aventuras/Aventura en ventana aparte  ←  NUEVO 19-09 (H12 · botón ABRIR APARTE)",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 1000,
+      "fill": [
+        "$pl-fondo",
+        {
+          "type": "image",
+          "enabled": true,
+          "url": "design/plenilunio/fondo.png",
+          "mode": "fill"
+        }
+      ],
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "a4jUY3",
+          "name": "Window Bar",
+          "width": "fill_container",
+          "fill": "$sf",
+          "padding": [
+            8,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "WSk5F",
+              "name": "Left",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "zRFNL",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 20,
+                  "height": 20
+                },
+                {
+                  "type": "text",
+                  "id": "rwU7p",
+                  "name": "T",
+                  "fill": "$tx",
+                  "content": "Aventura · El almacén de los muelles · Las noches de Queens",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-xs",
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dzOrh",
+              "name": "Right",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "w2EMD",
+                  "name": "Close",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "close",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$tx2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AvrP2",
+          "name": "Wrap",
+          "width": "fill_container",
+          "layout": "vertical",
+          "padding": 16,
+          "children": [
+            {
+              "id": "o6CsR",
+              "type": "ref",
+              "ref": "LtIYz",
+              "name": "Hoja/Aventura",
+              "width": "fill_container",
+              "descendants": {
+                "j5bko5": {
+                  "content": "AVENTURA"
+                },
+                "M3jt8": {
+                  "content": "sólo lo ves tú · los jugadores no"
+                },
+                "h55HL": {
+                  "type": "frame",
+                  "id": "lDqN6",
+                  "name": "Contenido",
+                  "width": "fill_container",
+                  "height": 560,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "YegXL",
+                      "name": "PL/Índice · al lado del documento (abierto)",
+                      "width": 204,
+                      "height": "fill_container",
+                      "fill": "$pl-papel",
+                      "stroke": "$pl-linea",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "m5tlfD",
+                          "name": "Cabecera",
+                          "width": "fill_container",
+                          "padding": [
+                            0,
+                            0,
+                            6,
+                            0
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "VYBYZ",
+                              "name": "Tit",
+                              "gap": 5,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "kWqpD",
+                                  "name": "I",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "toc",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-sangre"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "rC38a",
+                                  "name": "Rótulo",
+                                  "fill": "$pl-tinta-suave",
+                                  "content": "ÍNDICE",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 9,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 1.5
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "k1anjN",
+                              "name": "Cerrar",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "close",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "m1iV5",
+                          "name": "H1/El almacén de los muelles",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            5,
+                            0,
+                            2,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hFjb1",
+                              "name": "T",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "El almacén de los muelles",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XUOA8",
+                          "name": "H2/Llegada",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            2,
+                            0,
+                            2,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "EQ3z3",
+                              "name": "Guía",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 13
+                            },
+                            {
+                              "type": "text",
+                              "id": "POTqg",
+                              "name": "T",
+                              "fill": "$pl-tinta-suave",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Llegada",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "T7XBv",
+                          "name": "H2/Quién hay dentro",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            2,
+                            0,
+                            2,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n4xgp",
+                              "name": "Aquí",
+                              "fill": "$pl-sangre",
+                              "width": 2,
+                              "height": 13
+                            },
+                            {
+                              "type": "text",
+                              "id": "Eil2I",
+                              "name": "T",
+                              "fill": "$pl-sangre",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Quién hay dentro",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "r9LL2E",
+                          "name": "H2/Si bajan al sótano",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            2,
+                            0,
+                            2,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "Pcztb",
+                              "name": "Guía",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 13
+                            },
+                            {
+                              "type": "text",
+                              "id": "z4DJi",
+                              "name": "T",
+                              "fill": "$pl-tinta-suave",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Si bajan al sótano",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FIEn5",
+                          "name": "H1/Consecuencias",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            5,
+                            0,
+                            2,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "V9GerJ",
+                              "name": "T",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Consecuencias",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "x696Gw",
+                          "name": "H2/Si el chatarrero habla",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            2,
+                            0,
+                            2,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "WxxY7",
+                              "name": "Guía",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 13
+                            },
+                            {
+                              "type": "text",
+                              "id": "K0NSz",
+                              "name": "T",
+                              "fill": "$pl-tinta-suave",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Si el chatarrero habla",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "O9EvU",
+                          "name": "H2/Si no habla",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "padding": [
+                            2,
+                            0,
+                            2,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "B8RIE5",
+                              "name": "Guía",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 13
+                            },
+                            {
+                              "type": "text",
+                              "id": "BXaJ7",
+                              "name": "T",
+                              "fill": "$pl-tinta-suave",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Si no habla",
+                              "lineHeight": 1.25,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QFW6W",
+                      "name": "Documento",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        0,
+                        0,
+                        0,
+                        22
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "aW3mE",
+                          "name": "Cabecera del documento",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "SSCMj",
+                              "name": "Título",
+                              "gap": 10,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vtmW0",
+                                  "name": "Título editable",
+                                  "fill": "$pl-tinta",
+                                  "content": "El almacén de los muelles",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 18,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "g2ELAX",
+                                  "name": "T",
+                                  "fill": "$pl-oliva",
+                                  "content": "EN CURSO",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 8.5,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 1.2
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "FEuBC",
+                              "name": "Acciones",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "V7ZLZS",
+                                  "name": "T",
+                                  "fill": "$pl-tinta-tenue",
+                                  "content": "guardado · 21:06",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal",
+                                  "fontStyle": "italic"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "C06Ye",
+                                  "name": "Botón ÍNDICE (activo)",
+                                  "fill": "$pl-sangre",
+                                  "stroke": "$pl-sangre",
+                                  "strokeWidth": 1,
+                                  "strokeAlignment": "inner",
+                                  "gap": 4,
+                                  "padding": [
+                                    3,
+                                    7
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "b3NaP",
+                                      "name": "I",
+                                      "width": 14,
+                                      "height": 14,
+                                      "icon": "toc",
+                                      "library": "Material Symbols Outlined",
+                                      "fill": "$pl-papel-alto"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "iW7Ub",
+                                      "name": "T",
+                                      "fill": "$pl-papel-alto",
+                                      "content": "ÍNDICE",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 9,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "s4nQn",
+                          "name": "Barra del editor",
+                          "width": "fill_container",
+                          "stroke": "$pl-linea",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "strokeAlignment": "inner",
+                          "gap": 1,
+                          "padding": [
+                            3,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "tFoPr",
+                              "name": "H1",
+                              "padding": [
+                                3,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "k7eRXK",
+                                  "name": "T",
+                                  "fill": "$pl-tinta-suave",
+                                  "content": "H1",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DmZkQ",
+                              "name": "H2",
+                              "padding": [
+                                3,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "o9TIpg",
+                                  "name": "T",
+                                  "fill": "$pl-tinta-suave",
+                                  "content": "H2",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "dmYHA",
+                              "name": "Sep",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 14
+                            },
+                            {
+                              "type": "frame",
+                              "id": "t0vV4",
+                              "name": "format_bold",
+                              "padding": 4,
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "LFrBv",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "format_bold",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "JFWTL",
+                              "name": "format_italic",
+                              "padding": 4,
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "q58gNR",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "format_italic",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "t49qE",
+                              "name": "Sep",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 14
+                            },
+                            {
+                              "type": "frame",
+                              "id": "KKGPJ",
+                              "name": "format_list_bulleted",
+                              "padding": 4,
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "xRczG",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "format_list_bulleted",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "O4hap",
+                              "name": "format_quote",
+                              "padding": 4,
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "TIJy8",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "format_quote",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "qwdUZ",
+                              "name": "horizontal_rule",
+                              "padding": 4,
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "gEON1",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "horizontal_rule",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "ACL1n",
+                              "name": "Sep",
+                              "fill": "$pl-linea",
+                              "width": 1,
+                              "height": 14
+                            },
+                            {
+                              "type": "frame",
+                              "id": "cBOzz",
+                              "name": "Tabla de PNJ · encuentro",
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "n50oYl",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "table_chart",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "sNgGf",
+                                  "name": "T",
+                                  "fill": "$pl-tinta-suave",
+                                  "content": "Tabla de PNJ · encuentro",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 10.5,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "SllnM",
+                              "name": "Enlazar escena",
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "smut6",
+                                  "name": "I",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "map",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "H8XzfR",
+                                  "name": "T",
+                                  "fill": "$pl-tinta-suave",
+                                  "content": "Enlazar escena",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 10.5,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Lgsvs",
+                          "name": "Página",
+                          "width": "fill_container",
+                          "fill": "$pl-papel-alto",
+                          "stroke": "$pl-linea",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "layout": "vertical",
+                          "gap": 9,
+                          "padding": [
+                            16,
+                            22
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "npuLg",
+                              "name": "H1",
+                              "fill": "$pl-tinta",
+                              "content": "El almacén de los muelles",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 17,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "k9m5J",
+                              "name": "H2",
+                              "fill": "$pl-tinta",
+                              "content": "Llegada",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 13.5,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "J4Z7K",
+                              "name": "Párrafo",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Llegan de noche. El portón del almacén está entornado y dentro no se oye nada, salvo el agua golpeando los pilotes.",
+                              "lineHeight": 1.55,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "k9QS9",
+                              "name": "Cita · para leer en voz alta",
+                              "width": "fill_container",
+                              "fill": "$pl-papel",
+                              "stroke": "$pl-sangre",
+                              "strokeWidth": {
+                                "left": 2
+                              },
+                              "strokeAlignment": "inner",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "ko2XY",
+                                  "name": "T",
+                                  "fill": "$pl-sangre",
+                                  "content": "PARA LEER EN VOZ ALTA",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 8.5,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 1.2
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Soq6Q",
+                                  "name": "T",
+                                  "fill": "$pl-tinta",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "«El olor a óxido y a pescado podrido os golpea al cruzar el portón. Arriba, entre las vigas, algo se mueve.»",
+                                  "lineHeight": 1.45,
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal",
+                                  "fontStyle": "italic"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "Kap6M",
+                              "name": "H2",
+                              "fill": "$pl-tinta",
+                              "content": "Quién hay dentro",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 13.5,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "LpVFy",
+                              "name": "Tabla · ENCUENTRO",
+                              "width": "fill_container",
+                              "stroke": "$pl-linea",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "J164MU",
+                                  "name": "Cabecera",
+                                  "width": "fill_container",
+                                  "fill": "$pl-tinta",
+                                  "gap": 6,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "sH68R",
+                                      "name": "I",
+                                      "width": 13,
+                                      "height": 13,
+                                      "icon": "swords",
+                                      "library": "Material Symbols Outlined",
+                                      "fill": "$pl-papel-alto"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "ygCHu",
+                                      "name": "T",
+                                      "fill": "$pl-papel-alto",
+                                      "content": "ENCUENTRO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 9,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1.4
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "OJhvW",
+                                  "name": "Columnas",
+                                  "width": "fill_container",
+                                  "fill": "$pl-papel",
+                                  "gap": 10,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "GUzx1",
+                                      "name": "C0",
+                                      "fill": "$pl-tinta-suave",
+                                      "textGrowth": "fixed-width",
+                                      "width": 170,
+                                      "content": "PNJ",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 8.5,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "ejzfK",
+                                      "name": "C1",
+                                      "fill": "$pl-tinta-suave",
+                                      "textGrowth": "fixed-width",
+                                      "width": 44,
+                                      "content": "N.º",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 8.5,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "IOaqt",
+                                      "name": "C2",
+                                      "fill": "$pl-tinta-suave",
+                                      "textGrowth": "fixed-width",
+                                      "width": 80,
+                                      "content": "DIFICULTAD",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 8.5,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "gwQEC",
+                                      "name": "C3",
+                                      "fill": "$pl-tinta-suave",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "NOTAS",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 8.5,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "nHqop",
+                                  "name": "Fila/Mutante del sótano",
+                                  "width": "fill_container",
+                                  "fill": "#00000000",
+                                  "gap": 10,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "TtEgI",
+                                      "name": "C0",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 170,
+                                      "content": "Mutante del sótano",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "700"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "n1W8xx",
+                                      "name": "C1",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 44,
+                                      "content": "2",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "CbUfv",
+                                      "name": "C2",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 80,
+                                      "content": "3",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "eowkz",
+                                      "name": "C3",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Sólo suben si oyen ruido arriba.",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "l6XFwb",
+                                  "name": "Fila/El chatarrero",
+                                  "width": "fill_container",
+                                  "fill": "$pl-papel",
+                                  "gap": 10,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "RzEpm",
+                                      "name": "C0",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 170,
+                                      "content": "El chatarrero",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "700"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "RZUgP",
+                                      "name": "C1",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 44,
+                                      "content": "1",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "S71eu",
+                                      "name": "C2",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": 80,
+                                      "content": "—",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "kEtiU",
+                                      "name": "C3",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Miente sobre el sótano. Sabe más de lo que dice.",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "E9tX66",
+                              "name": "H2",
+                              "fill": "$pl-tinta",
+                              "content": "Si bajan al sótano",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 13.5,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "nW3jp",
+                              "name": "Párrafo",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "La escena siguiente: tres mutantes, a oscuras. Quien lleve luz los ve primero, y ellos a él.",
+                              "lineHeight": 1.55,
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Z3xh8F",
+                              "name": "Chip · enlace a escena",
+                              "stroke": "$pl-tinta",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                9
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "u1UpHs",
+                                  "name": "I",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "map",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "W6osoh",
+                                  "name": "T",
+                                  "fill": "$pl-tinta",
+                                  "content": "Escena · El sótano",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11.5,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "H27Prd",
+                                  "name": "T",
+                                  "fill": "$pl-sangre",
+                                  "content": "— abrirla en la mesa",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11.5,
+                                  "fontWeight": "normal",
+                                  "fontStyle": "italic"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "KS5RJ",
       "x": 0,
       "y": 6788,
