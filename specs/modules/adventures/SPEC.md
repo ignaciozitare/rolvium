@@ -58,6 +58,16 @@ cannot, not even by asking for one by its id — see § Permissions.
 
 Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20.
 
+**The rail**, left side: the adventures of the campaign, and under them the scenes of the open one. The «+» of
+each block creates. Collapsible, like the table's scene rail.
+
+**The document header**: the editable title, the save indicator and the **open-in-a-separate-window** button.
+
+⚠️ **The known trap of the separate window** (carried over from the character sheet, and the reason
+`sheet-standalone-scroll.test.tsx` exists): the standalone page **must NOT inherit `.tb-root`**, which carries
+`height:100dvh; overflow:hidden` and would leave it with no scroll. Same pattern as «Abrir ficha aparte», same
+trap, same test to pin it.
+
 **No light/dark here.** The whole surface lives under `.tb-root`, where the game system's theme rules
 (`--sys-*`). App tokens are not used below the table (`specs/modules/table/SPEC.md` § Out of scope).
 
@@ -107,6 +117,10 @@ Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-2
 There is **no new role-engine key**: being the GM of the campaign is what decides, and that already exists.
 Proved, not assumed (2026-09-19, inside a rolled-back transaction): a REAL player of his campaign sees **0**
 adventures, even asking for one by its exact id.
+
+**`maps_scenes` does not change its policies.** Its access already goes by campaign (`is_campaign_dm`, plus
+`maps_scene_visible` for the player), and the adventure is the GM's — so hanging a scene off an adventure adds
+no new way in and takes none away. The new column is data, not a permission boundary.
 
 ## Data model
 
