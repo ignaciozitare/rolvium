@@ -51,8 +51,20 @@ dba → scaffold → design (`.pen`) → dev → review → qa.
     campaña donde el director en algo similar a one note pueda poner las aventuras*».
     **Lo que manda**: las aventuras son **lo que se ve al entrar en una campaña**. Menú de arriba sin tocar
     (Campañas marcada); debajo, la cabecera de la campaña (← Campañas · su nombre · «Ir a la mesa»); dentro, el
-    cuaderno. Lo que el punto 3 sí quería decir, y sigue en pie: **no es una pestaña de la Mesa**. La ruta del
-    modelo de datos ya lo decía bien: `/campanas/:id/aventuras/:adventureId?`, colgando de la campaña.
+    cuaderno. ~~Lo que el punto 3 sí quería decir, y sigue en pie: no es una pestaña de la Mesa.~~
+11. 🔴 **ES UNA PESTAÑA DE LA MESA, SÓLO DEL DIRECTOR — anula el punto 3 y el 10.** El punto 10 tampoco valía:
+    una pantalla que sale AL ENTRAR en la campaña, antes de la mesa, sigue siendo «fuera», y además parece pública
+    aunque la base no se la dé a ningún jugador. Él: «*¿te das cuenta que las aventuras no son algo público no?
+    sino los jugadores las verían*» · «*va dentro de la campaña no fuera!*». Se le preguntó si era una pestaña
+    de la mesa como el Bestiario, avisando de que el punto 3 la descartó porque la barra iba justa y el director
+    pasaría a tener seis: «*no importa lo estas poniendo fuera de la cmapaña joder*» · «*ponlo dentro me cago en
+    todo!*».
+    **Lo que manda**: pestaña **AVENTURAS** en la barra de la mesa, junto a BESTIARIO, **sólo para el director**
+    — igual que El grupo y el Bestiario, el jugador no la tiene. Dentro, el cuaderno con el papel del sistema
+    (no el cromo de la app, y por tanto **sin claro/oscuro**): carril de aventuras y sus escenas · índice al lado
+    · el documento. Diseño: `rolvium.pen` § 4 · `Mesa/Plenilunio · Director · AVENTURAS · sólo el director`.
+    Comprobado en la base local con un jugador REAL de la campaña (2026-09-19): ve 0 aventuras, ni pidiéndola
+    por su id exacto.
 
 ⏳ **Deuda de este spec**: sigue en castellano y sin las nueve secciones que `CLAUDE.md` exige desde el
 2026-09-17. Se reescribe **cuando se construya el módulo**, no antes: reescribir de golpe un spec cerrado por
