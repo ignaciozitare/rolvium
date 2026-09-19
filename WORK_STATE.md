@@ -2,9 +2,15 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR (2026-09-18) — LA PUERTA DE CADA MÓDULO, PRIMERA TANDA — QA APROBADO
+> # 📍 ESTADO AL CERRAR (2026-09-19) — LA PUERTA DE CADA MÓDULO, PRIMERA TANDA — **EN PRODUCCIÓN**
 >
-> ## 🚪 Rama `feat/la-puerta-de-cada-modulo` (`367bfa8` · `2ca7632` · `29d040f`, sobre `main` en `b42a2f2` / v0.13.0) — **lista para mergear**
+> ## 🚀 v0.14.0 EN PRODUCCIÓN — merge `9ce851c`
+> Los dos despliegues —`rolvium` y `rolvium-api`— **READY** con `githubCommitSha` = `9ce851c`, el commit
+> exacto del merge (comprobado en Vercel, no sólo el 200). `/health` 200, frontend 200.
+> **Sin nada que probar en pantalla**: esta entrega no toca ni una vista — sólo por dónde se importa el
+> código y un guardián nuevo en el auditor. Él lo mergeó sabiéndolo («*merge*», 2026-09-19).
+>
+> ## 🚪 Rama `feat/la-puerta-de-cada-modulo` (`367bfa8` · `2ca7632` · `29d040f` · `55c05c2`, sobre v0.13.0) — **mergeada**
 > Lo que el chat anterior dejó pendiente (ver el bloque de abajo, «LO QUE QUEDA PENDIENTE») está hecho:
 > - `apps/web/src/modules/maps/index.ts` y `.../table/index.ts`: la cara pública ya medida en `specs/SPEC.md`
 >   § «La puerta de cada módulo» — `maps`: `container` · `Scene` (entidades) · `MapsPort` · `VisionPort` ·
@@ -47,8 +53,14 @@
 > nunca en lote — igual que los specs.
 >
 > ## ⏭️ SIGUIENTE PASO CONCRETO
-> Mergear `feat/la-puerta-de-cada-modulo` → `main` (QA en verde, decisión de mergear es suya) y, cuando toque
-> otro módulo de la lista de arriba, sumarle su `index.ts` de una vez.
+> **Nada abierto.** La puerta de los demás módulos se cierra SEGÚN SE TOQUE cada uno, nunca en lote: cuando
+> una tarea entre en `characters`, `campaigns`, `dice`, `bestiary`, `chat` o `auth`, se le suma su `index.ts`
+> en esa misma rama. **No arrancarlo como tarea propia sin que él lo pida** — lo que manda es el producto.
+>
+> Y el aviso que se lleva puesto el que siga: **no trabajar directamente sobre `main`**. En esta sesión
+> empecé a escribir código en `main` después del despliegue anterior, sin abrir rama; se cazó antes de
+> commitear nada y se movió a `feat/la-puerta-de-cada-modulo` con `git checkout -b`, pero el fallo fue mío.
+> Tras un merge, el local se queda en `main`: abrir rama ANTES de tocar el primer fichero.
 >
 > ---
 >
