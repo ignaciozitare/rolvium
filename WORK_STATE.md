@@ -2,7 +2,7 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-20) — NOTAS · BITÁCORA · AVENTURAS · **por dentro construido, falta la pantalla**
+> # 📍 ESTADO (2026-09-20) — NOTAS · BITÁCORA · AVENTURAS · **CONSTRUIDO, a falta de que él lo mire**
 >
 > ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
 > «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
@@ -16,7 +16,18 @@
 >   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
-> Flujo: Spec ✅ → DBA ✅ → Design ✅ APROBADO → **Scaffold ✅** → **Dev ⏳ (falta TODA la pantalla)** → Review → QA.
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → **Dev ✅** → **Review ⏳ (2.ª vuelta lanzada)** → él lo mira → QA.
+> - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
+>   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
+>   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
+>   nunca marcado en crudo. Con su ejemplo en el UI Kit y su ficha en el catálogo. 60 pruebas.
+> - ✅ **Notas y Bitácora** en el carril de la mesa (`dice/ui/SidePanel.tsx` ya no dice «próximamente»).
+>   Guardan solas con retardo, `Cmd+S` fuerza, y la Bitácora avisa en vez de pisar lo del otro. 21 pruebas.
+> - ✅ **AVENTURAS**: pestaña de la mesa junto a BESTIARIO, SÓLO del director (`tabsFor`), con carril de
+>   aventuras + escenas de la abierta, índice al lado y el documento; y la **ventana aparte** `/adventures/:id`
+>   con `tb-root-page` (la trampa del scroll de la ficha, con su prueba). 29 pruebas.
+> - ✅ **Specs**: el de `dice` (H6) reescrito a las nueve secciones en inglés — lo exigía el auditor al tocar el
+>   carril lateral. 0 hard en `npm run audit`; 2.180 pruebas verdes; `typecheck` y `build:web` limpios.
 > - ✅ **Specs**: `specs/modules/journal/SPEC.md` reescrito a las nueve secciones en inglés, con las láminas ya
 >   aprobadas. `specs/modules/adventures/SPEC.md` **reescrito a las nueve secciones en inglés el 20-09** (tocaba
 >   al construirlo): sus once puntos del 19-08 y del 19-09 siguen LITERALES en § Decisions, con sus frases en
@@ -53,15 +64,14 @@
 >   maestro no tiene la ventana, aunque él la haya visto y aprobado en pantalla.
 >
 > ## ⏭️ SIGUIENTE PASO CONCRETO
-> 1. Cmd+S suyo del `.pen` + commit del diseño de la ventana aparte.
-> 2. **El editor compartido en `packages/ui`** (REUSE/NEW-shared decidido: no existe nada parecido en el
->    catálogo), que pinta el árbol de bloques de `@rolvium/core`: barra (H1 · H2 · negrita · cursiva · listas ·
->    cita · separador), el panel de ÍNDICE al lado, guardado solo con retardo y `Cmd+S`. **+ su entrada en
->    `UIKit.tsx` y `npm run ui:catalog`** (regla de la casa para todo componente nuevo de `packages/ui`).
-> 3. Las tres pantallas: las dos pestañas del carril lateral (`dice/ui/SidePanel.tsx`, donde hoy sale
->    «próximamente» — las pestañas `notes` y `journal` ya existen) y la pestaña AVENTURAS de la mesa, sólo del
->    director, junto a BESTIARIO. Y la ventana aparte.
-> 4. Las claves de i18n (es + en) van CON las pantallas: hoy no hay ni un texto visible, por eso no hay claves.
+> 1. **Que lo mire en su local** (rama `feat/notas-bitacora-aventuras`, ya es la suya): mesa → pestañas Notas y
+>    Bitácora; pestaña AVENTURAS; botón ABRIR APARTE. Recarga forzada si sale raro (i18n y CSS nuevos).
+> 2. Cerrar lo que diga él, y lo que saque la 2.ª vuelta del Review.
+> 3. **QA** (`.claude/agents/qa.md`) y, ANTES del merge, **las CUATRO migraciones a producción por MCP
+>    `apply_migration`**, una a una y en este orden: `20260919120000` (notas y bitácora) · `20260919120100`
+>    (aventuras) · `20260920090000` (la escena cae sola en una aventura) · `20260920093000` (y sólo en una de
+>    SU campaña). En producción NO está ninguna todavía.
+> 4. Merge y despliegue.
 >
 > ## 🔑 Lo que no debe perderse
 > - **Aventuras son de la MESA, del director.** Primero las puse como entrada del menú de arriba (siguiendo
