@@ -2,7 +2,7 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-19, noche) — NOTAS · BITÁCORA · AVENTURAS
+> # 📍 ESTADO (2026-09-20) — NOTAS · BITÁCORA · AVENTURAS · **por dentro construido, falta la pantalla**
 >
 > ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
 > «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
@@ -16,32 +16,52 @@
 >   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
-> Flujo: Spec ✅ → DBA ✅ → **Design ✅ APROBADO** («*aprobado*», 2026-09-19) → **Scaffold ⏳** → Dev → Review → QA.
-> - ✅ **Specs**: `specs/modules/journal/SPEC.md` reescrito a las nueve secciones en inglés.
->   `specs/modules/adventures/SPEC.md`: sólo AÑADIDOS los puntos 6-11 sobre su spec cerrado del 19-08 (no
->   reestructurado: reescribir de golpe un spec suyo es como se perdió una línea del de bestiary). **El punto 11
->   manda sobre el 3 y el 10.** Su reescritura a nueve secciones queda para cuando se construya.
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ APROBADO → **Scaffold ✅** → **Dev ⏳ (falta TODA la pantalla)** → Review → QA.
+> - ✅ **Specs**: `specs/modules/journal/SPEC.md` reescrito a las nueve secciones en inglés, con las láminas ya
+>   aprobadas. `specs/modules/adventures/SPEC.md` **reescrito a las nueve secciones en inglés el 20-09** (tocaba
+>   al construirlo): sus once puntos del 19-08 y del 19-09 siguen LITERALES en § Decisions, con sus frases en
+>   castellano; **el punto 11 manda sobre el 3 y el 10**. Comparado contra `main` para no perder nada.
+> - ✅ **Lo de dentro, construido (commits `a6d6984` y `e9f055f`)**:
+>   - `packages/core/src/richDoc.ts` — el vocabulario del documento que comparten las tres, con la forma EXACTA
+>     que fija el spec (`heading`+`level`, `paragraph`, `quote`, `list`, `divider`, `sceneRef`, `table` con el
+>     hueco `npcId` por fila) más un `id` por bloque, que es a donde salta el índice. `parseDoc` (única puerta
+>     de entrada de lo que viene de la base) y `buildDocIndex` (H2 colgando de su H1). 14 pruebas.
+>   - Módulos `journal` y `adventures` en `apps/web/src/modules/`, **cada uno con su `index.ts` desde el primer
+>     día**: entidades, puertos, adaptadores de Supabase y `container.ts`. 18 pruebas. Aviso de conflicto al
+>     guardar (`updated_at`) en vez de pisar lo del otro.
+>   - 🐞 **Cabo suelto de la migración del 19-09, cazado ejecutándolo**: `maps_scenes.adventure_id` NOT NULL
+>     ROMPÍA crear una escena desde el carril de la mesa. Arreglado en la base con el trigger
+>     `maps_scenes_default_adventure` (`20260920090000`), no en la pantalla. La escena ya lleva su
+>     `adventureId` encima (`Scene`, `CreateSceneInput`, `ScenePatch`), que es lo que permitirá agruparlas y
+>     moverlas de aventura.
 > - ✅ **Base de datos** (aplicada SÓLO en local, con `migration up --local`, nunca `db:reset`):
 >   `20260919120000_journal_notas_y_bitacora.sql` (`journal_notes`, `journal_logbook`) y
 >   `20260919120100_adventures_aventuras.sql` (`adventures_adventures` + `maps_scenes.adventure_id` NOT NULL +
 >   trigger `campaigns_seed_adventure` para que toda campaña nueva nazca con su «Aventura 1»). Sus 5 escenas,
 >   315 salas y 50 objetos intactos. **Comprobado ejecutándolo**: un jugador REAL de su campaña ve 0 aventuras
->   (ni por id), un extraño 0 notas / 0 bitácoras. ⚠️ **En producción NO está**: va por MCP `apply_migration`,
->   una a una, ANTES del merge a `main`.
+>   (ni por id), un extraño 0 notas / 0 bitácoras. ⚠️ **En producción NO están**: van por MCP `apply_migration`,
+>   una a una y en orden, ANTES del merge a `main` — **son TRES**, con la del 20-09.
 > - ✅ **Diseño aprobado** en `rolvium.pen` § 4 · LA MESA, los dos últimos marcos antes de § 5:
 >   `Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE` y `Mesa/Plenilunio · Director · AVENTURAS · sólo el
 >   director`. Los paneles viejos del 15-09 marcados «SUSTITUIDO 19-09». Además se devolvieron a su sección
 >   (5 y 6) **10 marcos que colgaban detrás de la § 13** desde el 11-09 al 14-09 — sólo orden de capas.
-> - ⚠️ **COMPROBAR que el `.pen` está en disco** (`stat -f %Sm rolvium.pen` posterior al 19-09) **y commitearlo**
->   antes de seguir. Al cerrar el chat se le pidió Cmd+S; ver el commit `design(...)` en la rama.
-> - ⏳ **Falta dibujar** la **ventana aparte de una aventura** (la del botón ABRIR APARTE) — se le prometió
->   tras la aprobación. Mismo patrón que `Personajes/Ficha en ventana aparte` (§ 8), con el papel del sistema.
+> - ✅ **La ventana aparte de una aventura, dibujada y APROBADA** («*aprobado*», 2026-09-20): marco
+>   `Aventuras/Aventura en ventana aparte`, en la § 4 detrás del de AVENTURAS (índice 38). Es el mismo cuaderno
+>   SIN el carril —una aventura por ventana, como la ficha es un personaje— y sin el botón ABRIR APARTE.
+> - 🔴 **EL `.pen` DE ESE MARCO NO ESTÁ EN DISCO**: al cerrar seguía marcando el 19-09 a las 23:23. **Pedirle
+>   Cmd+S en la pestaña de `rolvium.pen` y commitearlo** (`design(adventures): la ventana aparte…`). Sin eso el
+>   maestro no tiene la ventana, aunque él la haya visto y aprobado en pantalla.
 >
 > ## ⏭️ SIGUIENTE PASO CONCRETO
-> 1. Comprobar/commitear el `.pen`. 2. Dibujar la ventana aparte y enseñársela. 3. **Scaffold**
-> (`.claude/commands/scaffold.md`): módulos `journal` y `adventures` en `apps/web/src/modules/`, **cada uno con
-> su `index.ts` desde el primer día** (el chequeo `module-index` es duro para un módulo nuevo sin puerta), y el
-> editor compartido en `packages/ui` (+ su entrada en UIKit y `npm run ui:catalog`).
+> 1. Cmd+S suyo del `.pen` + commit del diseño de la ventana aparte.
+> 2. **El editor compartido en `packages/ui`** (REUSE/NEW-shared decidido: no existe nada parecido en el
+>    catálogo), que pinta el árbol de bloques de `@rolvium/core`: barra (H1 · H2 · negrita · cursiva · listas ·
+>    cita · separador), el panel de ÍNDICE al lado, guardado solo con retardo y `Cmd+S`. **+ su entrada en
+>    `UIKit.tsx` y `npm run ui:catalog`** (regla de la casa para todo componente nuevo de `packages/ui`).
+> 3. Las tres pantallas: las dos pestañas del carril lateral (`dice/ui/SidePanel.tsx`, donde hoy sale
+>    «próximamente» — las pestañas `notes` y `journal` ya existen) y la pestaña AVENTURAS de la mesa, sólo del
+>    director, junto a BESTIARIO. Y la ventana aparte.
+> 4. Las claves de i18n (es + en) van CON las pantallas: hoy no hay ni un texto visible, por eso no hay claves.
 >
 > ## 🔑 Lo que no debe perderse
 > - **Aventuras son de la MESA, del director.** Primero las puse como entrada del menú de arriba (siguiendo
@@ -51,6 +71,12 @@
 > - Nada de diálogo de opciones: preguntas en texto normal (me lo salté cuatro veces el 18-09).
 > - Rama suelta aparte, ya incluida aquí: `fix/spec-bestiary-el-dano-no-se-aplica-solo` (restaura en el spec
 >   de bestiary el hueco «el daño no se aplica solo», que mi reescritura del 18-09 perdió).
+> - **La forma del documento la manda el spec, no mi gusto.** La primera versión de `richDoc.ts` se inventó sus
+>   propios nombres de bloque (`h1`, `p`, `ul`…) y se dejó fuera el hueco `npcId` que el spec pedía «desde el
+>   día uno» para el Bestiario. Corregido antes de commitear: se escribe lo que dice el spec, y si el spec ha de
+>   cambiar, se cambia el spec primero.
+> - **Medir antes de teorizar, otra vez**: lo de crear escenas no se «dedujo», se ejecutó contra su base local
+>   —y se deshizo con ROLLBACK, sin tocarle un dato— antes y después del arreglo.
 >
 > ---
 >
