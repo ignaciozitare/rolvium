@@ -147,6 +147,10 @@ and `service_role`) sit next to the policies — without them PostgREST answers 
 - Exporting a token to PNG — the owner already renamed that row in `rolvium.pen` to «SUBIR IMAGEN (WEBP)», so
   the feature request behind it was already resolved the other way.
 - Duplicating an allied NPC — its sheet does not offer «Duplicar» yet; own encounters do.
+- ⚠ **Applying the damage automatically.** The engine computes the number, but whoever takes the hit types it
+  into «Recibir daño» on their own sheet (`characters/ui/CharacterSheetView.tsx` → `engine.applyDamage`). The
+  player's answer to an attack already exists; what does not exist is **a plate in `rolvium.pen` saying where
+  that number appears** on the receiving side — so it needs its own Design Agent pass before it is built.
 
 ## Decisions
 
