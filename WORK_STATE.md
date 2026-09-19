@@ -2,6 +2,58 @@
 
 ## 🎯 Current task
 
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-19, noche) — NOTAS · BITÁCORA · AVENTURAS
+>
+> ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
+> «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
+> director en algo similar a one note pueda poner las aventuras*» → «*haz las tres juntas*».
+> - **Notas** (privadas de verdad, ni el director ni un admin las ven) y **Bitácora** (una por campaña, la
+>   escriben todos) — en el carril lateral de la mesa, donde hoy sale «próximamente».
+> - **Aventuras** — ⚠️ **PESTAÑA DE LA MESA, SÓLO DEL DIRECTOR**, junto a BESTIARIO. NO una pantalla de la
+>   campaña, NO una entrada del menú de arriba. Costó DOS intentos y mucho enfado (ver 🔑 abajo).
+> - Las tres: **texto enriquecido** (H1, H2, negrita, cursiva, listas, cita) y botón **ÍNDICE** que abre un
+>   **panel al lado** con los H1 y, colgando de cada uno, sus H2. **UN solo editor** en `packages/ui` para las
+>   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
+>
+> ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
+> Flujo: Spec ✅ → DBA ✅ → **Design ✅ APROBADO** («*aprobado*», 2026-09-19) → **Scaffold ⏳** → Dev → Review → QA.
+> - ✅ **Specs**: `specs/modules/journal/SPEC.md` reescrito a las nueve secciones en inglés.
+>   `specs/modules/adventures/SPEC.md`: sólo AÑADIDOS los puntos 6-11 sobre su spec cerrado del 19-08 (no
+>   reestructurado: reescribir de golpe un spec suyo es como se perdió una línea del de bestiary). **El punto 11
+>   manda sobre el 3 y el 10.** Su reescritura a nueve secciones queda para cuando se construya.
+> - ✅ **Base de datos** (aplicada SÓLO en local, con `migration up --local`, nunca `db:reset`):
+>   `20260919120000_journal_notas_y_bitacora.sql` (`journal_notes`, `journal_logbook`) y
+>   `20260919120100_adventures_aventuras.sql` (`adventures_adventures` + `maps_scenes.adventure_id` NOT NULL +
+>   trigger `campaigns_seed_adventure` para que toda campaña nueva nazca con su «Aventura 1»). Sus 5 escenas,
+>   315 salas y 50 objetos intactos. **Comprobado ejecutándolo**: un jugador REAL de su campaña ve 0 aventuras
+>   (ni por id), un extraño 0 notas / 0 bitácoras. ⚠️ **En producción NO está**: va por MCP `apply_migration`,
+>   una a una, ANTES del merge a `main`.
+> - ✅ **Diseño aprobado** en `rolvium.pen` § 4 · LA MESA, los dos últimos marcos antes de § 5:
+>   `Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE` y `Mesa/Plenilunio · Director · AVENTURAS · sólo el
+>   director`. Los paneles viejos del 15-09 marcados «SUSTITUIDO 19-09». Además se devolvieron a su sección
+>   (5 y 6) **10 marcos que colgaban detrás de la § 13** desde el 11-09 al 14-09 — sólo orden de capas.
+> - ⚠️ **COMPROBAR que el `.pen` está en disco** (`stat -f %Sm rolvium.pen` posterior al 19-09) **y commitearlo**
+>   antes de seguir. Al cerrar el chat se le pidió Cmd+S; ver el commit `design(...)` en la rama.
+> - ⏳ **Falta dibujar** la **ventana aparte de una aventura** (la del botón ABRIR APARTE) — se le prometió
+>   tras la aprobación. Mismo patrón que `Personajes/Ficha en ventana aparte` (§ 8), con el papel del sistema.
+>
+> ## ⏭️ SIGUIENTE PASO CONCRETO
+> 1. Comprobar/commitear el `.pen`. 2. Dibujar la ventana aparte y enseñársela. 3. **Scaffold**
+> (`.claude/commands/scaffold.md`): módulos `journal` y `adventures` en `apps/web/src/modules/`, **cada uno con
+> su `index.ts` desde el primer día** (el chequeo `module-index` es duro para un módulo nuevo sin puerta), y el
+> editor compartido en `packages/ui` (+ su entrada en UIKit y `npm run ui:catalog`).
+>
+> ## 🔑 Lo que no debe perderse
+> - **Aventuras son de la MESA, del director.** Primero las puse como entrada del menú de arriba (siguiendo
+>   la letra del punto 3 del spec del 19-08); luego como pantalla al entrar en la campaña. Las dos «fuera».
+>   Él lo había dicho bien desde el principio. **Sus palabras de hoy mandan sobre una línea vieja del spec.**
+> - Una queja suya tras un error se CONFIRMA preguntando — pero en UNA pregunta corta; a la segunda estalló.
+> - Nada de diálogo de opciones: preguntas en texto normal (me lo salté cuatro veces el 18-09).
+> - Rama suelta aparte, ya incluida aquí: `fix/spec-bestiary-el-dano-no-se-aplica-solo` (restaura en el spec
+>   de bestiary el hueco «el daño no se aplica solo», que mi reescritura del 18-09 perdió).
+>
+> ---
+>
 > # 📍 ESTADO AL CERRAR (2026-09-19) — LA PUERTA DE CADA MÓDULO, PRIMERA TANDA — **EN PRODUCCIÓN**
 >
 > ## 🚀 v0.14.0 EN PRODUCCIÓN — merge `9ce851c`
