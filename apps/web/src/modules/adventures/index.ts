@@ -3,3 +3,5 @@
 export * from './container';
 export * from './domain/entities/Adventure';
 export type { AdventuresPort } from './domain/ports/AdventuresPort';
+export { AdventuresTab } from './ui/AdventuresTab';
+export { AdventurePage } from './ui/AdventurePage';

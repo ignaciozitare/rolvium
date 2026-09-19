@@ -330,7 +330,8 @@
       "scene": "Escena",
       "bestiary": "Bestiario",
       "improve": "Mejorar",
-      "create": "Crear personaje"
+      "create": "Crear personaje",
+      "adventures": "Aventuras"
     },
     "comingNext": "Esta parte de la mesa llega en la siguiente iteración.",
     "roller": "Lanzador de dados",
@@ -1858,6 +1859,49 @@
       "quoteLabel": "Para leer en voz alta",
       "textField": "Texto del documento",
       "removeBlock": "Quitar el bloque"
+    }
+  },
+  "adventures": {
+    "title": "Aventuras",
+    "one": "Aventura",
+    "rail": "Aventuras de la campaña",
+    "new": "Nueva aventura",
+    "newTitle": "Aventura {{n}}",
+    "scenesOf": "Escenas de esta aventura",
+    "noScenes": "Esta aventura todavía no tiene escenas.",
+    "sceneCount": "{{n}} escenas",
+    "loadError": "No se han podido abrir las aventuras.",
+    "notFound": "Esta aventura ya no está.",
+    "placeholder": "Escribe la aventura…",
+    "titleField": "Título de la aventura",
+    "saving": "guardando…",
+    "savedJustNow": "guardado hace un momento",
+    "savedMinutes": "guardado hace {{n}} min",
+    "savedHours": "guardado hace {{n}} h",
+    "saveError": "no se ha podido guardar",
+    "conflict": "se guardó desde otro sitio",
+    "conflictHelp": "Esta aventura se guardó desde otra ventana mientras escribías. Tu texto sigue aquí.",
+    "openApart": "Abrir aparte",
+    "backToTable": "Volver a la mesa",
+    "pickScene": "¿Qué escena enlazo?",
+    "npcTable": "Tabla de PNJ",
+    "encounterTable": "Tabla de encuentro",
+    "addRow": "Añadir fila",
+    "linkScene": "Enlazar escena",
+    "openScene": "Abrirla en la mesa",
+    "col": {
+      "npc": "PNJ",
+      "what": "Qué es",
+      "wants": "Qué quiere",
+      "notes": "Notas",
+      "howMany": "Cuántos",
+      "difficulty": "Dificultad"
+    },
+    "status": {
+      "draft": "Borrador",
+      "running": "En curso",
+      "done": "Terminada",
+      "archived": "Archivada"
     }
   }
 }

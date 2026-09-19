@@ -35,10 +35,12 @@ import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
+import { AdventuresTab } from '@/modules/adventures';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
 import type { MapsPort, VisionPort, ToolbarOrderPort } from '@/modules/maps';
+import { mapsRepo as defaultMaps } from '@/modules/maps';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
 
@@ -221,6 +223,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
+            {/* AVENTURAS (H12): sólo la pinta el director — `tabsFor` no se la da a nadie más. Abrir una escena
+                desde el texto es lo mismo que pincharla en el carril: se marca activa y se salta a la escena. */}
+            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})}
+              onOpenScene={sceneId => { void (maps ?? defaultMaps).setActiveScene(campaign.id, sceneId).catch(() => {}); setTab('scene'); }} />}
             </SafeRegion>
           </main>
           <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>

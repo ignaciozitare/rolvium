@@ -10,6 +10,7 @@ import { CampaignsPage } from '@/modules/campaigns/ui/CampaignsPage';
 import { TablePage } from '@/modules/table';
 import { CharactersPage } from '@/modules/characters/ui/CharactersPage';
 import { CharacterSheetPage } from '@/modules/characters/ui/CharacterSheetPage';
+import { AdventurePage } from '@/modules/adventures';
 import { SystemsPage } from '@/modules/systems/ui/SystemsPage';
 import { AdminShell } from '@/modules/admin/ui/AdminShell';
 import { UIKit } from '@/shared/ui/UIKit';
@@ -56,6 +57,9 @@ export function AppRoutes(): JSX.Element {
       <Route path="/table/:id" element={<ProtectedBare><TablePage /></ProtectedBare>} />
       <Route path="/characters" element={<Protected><CharactersPage /></Protected>} />
       <Route path="/characters/:id" element={<ProtectedBare><CharacterSheetPage /></ProtectedBare>} />
+      {/* La aventura en su propia ventana (el botón ABRIR APARTE). `ProtectedBare`, como la ficha: sin el
+          armazón de la app, porque viste con el papel del sistema de juego. */}
+      <Route path="/adventures/:id" element={<ProtectedBare><AdventurePage /></ProtectedBare>} />
       <Route path="/systems" element={<Protected><SystemsPage /></Protected>} />
       <Route path="/home" element={<Navigate to="/campaigns" replace />} />
       <Route path="/admin" element={<Protected><AdminShell /></Protected>} />

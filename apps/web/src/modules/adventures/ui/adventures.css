@@ -1,0 +1,65 @@
+/* AVENTURAS (H12): la pestaña del director y la ventana aparte.
+   Diseño: rolvium.pen § 4 · «Director · AVENTURAS · sólo el director» y «Aventura en ventana aparte».
+   Dentro de la mesa manda el tema del sistema (--sys-*): aquí no hay claro/oscuro. */
+
+.av-tab{display:flex;gap:16px;min-height:0;height:100%;}
+
+/* ── El carril: las aventuras y, debajo, las escenas de la abierta ─────────── */
+.av-rail{width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;}
+.av-rail-head{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.av-rail-label{flex:1;font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.av-rail-add{display:inline-flex;border:none;background:transparent;color:var(--sys-blood);cursor:pointer;padding:0;}
+.av-rail-add .material-symbols-outlined{font-size:var(--icon-sm);}
+.av-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;}
+.av-rail-empty{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);padding:2px 0;}
+
+.av-rail-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 8px;border:none;cursor:pointer;
+  background:color-mix(in srgb,var(--sys-paper-hi) 60%,transparent);color:var(--sys-ink);font-family:var(--sys-font-body);}
+/* Lo ELEGIDO va en sangre, como el carril de escenas de la mesa — nunca en negro (regla suya del 04-09). */
+.av-rail-item.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.av-rail-item.on .av-rail-sub{color:color-mix(in srgb,var(--sys-paper-hi) 75%,transparent);}
+.av-rail-n{font-size:var(--fs-sm);font-weight:700;}
+.av-rail-text{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.av-rail-title{font-size:var(--fs-xs);font-weight:600;overflow-wrap:anywhere;}
+.av-rail-sub{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.av-rail-scene{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:4px 8px;border:none;cursor:pointer;
+  background:transparent;color:var(--sys-ink-soft);font-family:var(--sys-font-body);font-size:var(--fs-xs);}
+.av-rail-scene:hover{color:var(--sys-blood);}
+.av-rail-scene .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* ── El documento ──────────────────────────────────────────────────────────── */
+.av-doc{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;}
+.av-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.av-title{flex:1;min-width:180px;border:none;background:transparent;padding:0;color:var(--sys-ink);
+  font-family:var(--sys-font-display);font-size:var(--fs-lg);font-weight:600;}
+.av-title:focus-visible{outline:2px solid color-mix(in srgb,var(--sys-blood) 60%,transparent);outline-offset:3px;}
+.av-status{padding:2px 7px;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;
+  background:color-mix(in srgb,var(--sys-ink) 10%,transparent);color:var(--sys-ink-soft);}
+.av-status-running{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.av-saved{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.av-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid var(--sys-blood);
+  background:transparent;color:var(--sys-blood);font-family:var(--sys-font-body);font-size:var(--fs-2xs);
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
+.av-btn.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.av-btn .material-symbols-outlined{font-size:var(--icon-xs);}
+
+.av-conflict{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:6px 8px;
+  font-size:var(--fs-2xs);color:var(--sys-ink);background:color-mix(in srgb,var(--sys-gold) 18%,transparent);}
+.av-link{border:none;background:transparent;padding:0;color:var(--sys-blood);font-family:var(--sys-font-body);
+  font-size:inherit;text-decoration:underline;cursor:pointer;}
+
+.av-body{display:flex;gap:0;min-height:0;flex:1;}
+.av-index{width:204px;flex-shrink:0;overflow-y:auto;}
+.av-editor{flex:1;min-width:0;overflow-y:auto;}
+
+.av-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 8px;text-align:center;
+  font-size:var(--fs-sm);font-style:italic;color:var(--sys-ink-dim);}
+.av-empty{margin:0;font-size:var(--fs-sm);font-style:italic;color:var(--sys-ink-dim);}
+
+.av-picklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+.av-picklist button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 9px;border:none;
+  background:transparent;color:var(--tx);font-size:var(--fs-sm);cursor:pointer;}
+.av-picklist button:hover{background:var(--sf3);}
+
+/* La ventana aparte: el cuaderno con aire alrededor, sobre el papel del sistema. */
+.av-window{padding:16px;}

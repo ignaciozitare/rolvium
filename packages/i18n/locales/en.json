@@ -330,7 +330,8 @@
       "scene": "Scene",
       "bestiary": "Bestiary",
       "improve": "Improve",
-      "create": "Create character"
+      "create": "Create character",
+      "adventures": "Adventures"
     },
     "comingNext": "This part of the table arrives in the next iteration.",
     "roller": "Dice roller",
@@ -1858,6 +1859,49 @@
       "quoteLabel": "To read out loud",
       "textField": "Document text",
       "removeBlock": "Remove block"
+    }
+  },
+  "adventures": {
+    "title": "Adventures",
+    "one": "Adventure",
+    "rail": "Adventures of this campaign",
+    "new": "New adventure",
+    "newTitle": "Adventure {{n}}",
+    "scenesOf": "Scenes of this adventure",
+    "noScenes": "This adventure has no scenes yet.",
+    "sceneCount": "{{n}} scenes",
+    "loadError": "The adventures could not be opened.",
+    "notFound": "This adventure is gone.",
+    "placeholder": "Write the adventure…",
+    "titleField": "Adventure title",
+    "saving": "saving…",
+    "savedJustNow": "saved a moment ago",
+    "savedMinutes": "saved {{n}} min ago",
+    "savedHours": "saved {{n}} h ago",
+    "saveError": "could not be saved",
+    "conflict": "saved from somewhere else",
+    "conflictHelp": "This adventure was saved from another window while you were writing. Your text is still here.",
+    "openApart": "Open apart",
+    "backToTable": "Back to the table",
+    "pickScene": "Which scene do I link?",
+    "npcTable": "NPC table",
+    "encounterTable": "Encounter table",
+    "addRow": "Add row",
+    "linkScene": "Link a scene",
+    "openScene": "Open it at the table",
+    "col": {
+      "npc": "NPC",
+      "what": "What it is",
+      "wants": "What it wants",
+      "notes": "Notes",
+      "howMany": "How many",
+      "difficulty": "Difficulty"
+    },
+    "status": {
+      "draft": "Draft",
+      "running": "Running",
+      "done": "Done",
+      "archived": "Archived"
     }
   }
 }

@@ -76,8 +76,10 @@ describe('table: rules', () => {
     expect(tabsFor('dm')).not.toContain('sheet');
     expect(tabsFor('player')).toContain('sheet');
     expect(tabsFor('player')[0]).toBe('sheet');
-    // El director conserva lo suyo: nada más se ha caído por el camino.
-    expect(tabsFor('dm')).toEqual(['group', 'scene', 'bestiary', 'create']);
+    // El director conserva lo suyo: nada más se ha caído por el camino. AVENTURAS (H12) entró el 20-09,
+    // junto a BESTIARIO y en el orden del `.pen` — y SÓLO él la tiene.
+    expect(tabsFor('dm')).toEqual(['group', 'scene', 'bestiary', 'adventures', 'create']);
+    expect(tabsFor('player')).not.toContain('adventures');
   });
 
   it('cada rol aterriza donde le sirve: el jugador en su ficha, el director en la escena', () => {

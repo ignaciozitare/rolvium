@@ -1,425 +1,352 @@
 # Dice (H6) — SPEC
 
+> **Written to REBUILD the module from scratch**, not as a decisions diary — the nine-section template that
+> `CLAUDE.md` § «Specs» mandates since 2026-09-17. English throughout; his own words and the manual's are quoted
+> verbatim in Spanish, because they are the evidence for why something is the way it is.
+>
+> Restructured to the template on 2026-09-20, when the branch touched the side rail. **Nothing was dropped**:
+> every rule, page reference, ⚠ warning and «no construido» note of the previous version is still here, moved
+> into the section it belongs to.
+
 ## Purpose
-Todas las tiradas de la plataforma: las del sistema (resueltas por su motor) y las libres (d4–d100, Fudge).
-Generadas en servidor, inmutables y verificables. Who: todos los miembros; el director además con visibilidad
-restringida.
+
+Every roll in the platform: the ones the game system resolves (`engine.resolve`) and the free ones (d4–d100,
+Fudge). **Generated on the server, immutable and verifiable** — nobody, not even the GM, can edit or delete one.
+
+Around the roll itself live the three things that make a roll mean something at the table: **who asks for it**
+(the GM's panel), **who answers it** (the player's notice) and **in what order** everyone acts (the combat turn
+order).
+
+**Who uses it:** every member of the campaign. The GM additionally gets restricted visibilities (`dm`,
+`secret`), the panel for asking for rolls, and the creatures' side of every conflict.
 
 ## What the user can do
-- **Tirar desde la ficha** (característica, ataque de arma, activación de don): la UI manda la intención
-  (`RollRequest` del sistema + opciones + dados de recurso compartido cogidos) → la API genera dados (CSPRNG),
-  llama a `engine.resolve`, persiste dados crudos + resultado → Registro y chat.
-- **Lanzador de dados flotante** (ventana flotante arrastrable, **no modal** — la mesa sigue usable debajo; se abre desde el lateral): pestañas de visibilidad
-  **Todos / Director / Secreta**, filas d4·d6·d8·d10·d12·d20·d100·Fudge × cantidad 1–6 (tocar = tirar),
-  modificador, última tirada.
-- **Registro** lateral: por tirada **quién tiró** (el nombre del PERSONAJE, no el de la cuenta: «Karen Sinclair ·
-  Magnum .44»), título (característica · especialidad), dados propios / de recurso (borde oro) vs oposición,
-  marcador, grado de éxito, avisos (revés, +1 Destino…), tiradas libres con total. Adjuntables al chat.
-- **Ver el desglose de una tirada**: al pasar por encima de la entrada —o al llegar a ella con el teclado— sale un
-  panel oscuro, «CÓMO SALIÓ ESTA TIRADA», con de dónde salieron los dados, qué reglas se aplicaron sin preguntar y
-  cómo se cierra el resultado, cada línea con su página del manual. Debajo de la entrada no cuelga nada: el registro
-  se lee de un vistazo y el detalle se consulta.
-- Recalcular/verificar cualquier tirada (cliente o API) a partir de los dados crudos.
+
+**Any member**
+- **Roll from the sheet** — a characteristic, a weapon action, activating a gift. The UI sends the intent
+  (`RollRequest` + options + shared-resource dice taken) → the API generates the dice (CSPRNG), calls
+  `engine.resolve`, stores raw dice + result → Registro and chat.
+- **Roll free dice** in the **floating launcher**: a draggable floating window, **not a modal** — the table
+  stays usable underneath. Visibility tabs **Todos / Director / Secreta**, rows d4·d6·d8·d10·d12·d20·d100·Fudge
+  × quantity 1–6 (tap = roll), a modifier, and the last roll.
+- **Read the Registro** in the side rail: per roll **who rolled** (the CHARACTER's name, not the account's:
+  «Karen Sinclair · Magnum .44»), the title (characteristic · specialty), own dice / resource dice (gold edge)
+  vs the opposition, the score, the degree of success, the warnings (revés, +1 Destino…), and free rolls with
+  their total. Any of them can be attached to the chat.
+- **See how a roll came out**: hovering an entry —or reaching it with the keyboard— opens a dark panel, «CÓMO
+  SALIÓ ESTA TIRADA», with where the dice came from, which rules were applied without asking and how the result
+  closes, each line with its page of the manual. Nothing hangs under the entry: the log reads at a glance and
+  the detail is consulted.
+- **Recompute / verify any roll**, client or API, from the raw dice.
+
+**The player**
+- **Choose only what the manual lets them choose** when they roll: dice from the Destino reserve (0–5, p.88–89)
+  and, for a shot, the **range** (the difficulty comes from it, p.96 — and the map measures it: with both tokens
+  placed the app knows the distance, so it knows by itself whether it is melee or a shot, and the player only
+  corrects it if needed).
+- **Declare the target** when attacking in melee with creatures in the scene: without an eligible target there
+  is no conflict to open.
+- **Answer «te atacan»**: choose how many Combate dice to spend defending (0 to their Combate). What they spend
+  is discounted from their next turn.
+- **Get ahead in the turn order** paying **1 Fortuna** (p.89 use 5, p.92); the new position stays for the rest
+  of the combat.
+
+**The GM**
+- **Ask for a roll**: mark **who** (several at once, or «A TODOS»), then **hold a characteristic down** and drop
+  on the difficulty. **No confirm button.**
+- **Decide whether the specialty applies** — it is their call, not the player's (p.83).
+- **Keep the scene's encounters** in a collapsible list inside the panel: add by hand, rename in the row itself,
+  unfold one to see its characteristics and its other rolls, and attack from it.
+- **Attack from the token** on the map: it opens that creature's attack modal and **adds to the list, it does
+  not replace it**.
+- **Run the combat**: open it, next turn, close it, and break ties the rules leave open.
+- **Answer for their creature** when a player attacks it in melee: how many Combate dice it spends defending.
+
+## Screens
+
+| Screen / part | What it is | Plate |
+|---|---|---|
+| Floating launcher | Free dice, visibility tabs, modifier, last roll. Draggable, not modal | § 4 · `Mesa/Tiradas · rediseño — quién ve qué` (col. 1) · `PL/Lanzador flotante` |
+| Roll popover (sheet) | Opens pinned to the button that rolls: dice to take, range if it is a shot | § 4 · same plate, col. 2 (`v3vfV`) |
+| Registro (side rail) | One entry per roll; the breakdown opens on hover/focus | § 4 · same plate, col. 3 |
+| GM panel · «LANZADOR · DIRECTOR» | The same launcher, **expanded**: ask for rolls + encounters of the scene | § 4 · same plate, col. 4 (`qHMjx` → `QWHSS`) |
+| «Te ataca…» notice | The player's answer panel: how many Combate dice they spend | § 4 · same plate, col. 5 (`oSBrx` → `dcTPM`) |
+| Attack from the token | The creature's attack modal, opened from the map | § 4 · same plate, col. 6 |
+| Panel warnings | What the GM's panel says in each state (2026-08-22) | § 4 · `Mesa/Tiradas · avisos del panel del director` |
+
+**What the GM's panel draws, in detail** (`v3vfV` → `qHMjx` → `QWHSS`) — head **«LANZADOR · DIRECTOR»** +
+`unfold_less` icon, because it is the launcher that already exists, expanded:
+
+- **«¿A QUIÉN LE PIDES LA TIRADA?»** · «puedes marcar varios» · a chip per character + **«A TODOS»**.
+- **«MANTÉN PULSADA UNA CARACTERÍSTICA»** · «y elige la dificultad sin soltar · p.84». The seven at equal
+  width, **three per row** (the seventh in the middle column). While held, the button goes ink and **the
+  dropdown comes out pinned to IT, covering whatever is underneath**; the option under the finger highlights in
+  **gold**. Options: `FÁCIL · 1` `MEDIA · 2` `DIFÍCIL · 3` `MUY DIFÍCIL · 5` `ÉPICA · 6`. The plate's note:
+  **«Sueltas encima de la dificultad y la petición sale. Sin botón de confirmar.»**
+- Checkbox **«Le vale su especialidad — lo decides tú (p.83)»**.
+- **«ENCUENTROS EN LA ESCENA · N»** + **«+ AÑADIR»** + a fold arrow. Each row: token with initials, name +
+  **pencil**, sub «Resistencia 30 · protección 3 · p.152», an **ATACAR** button (blood red) and an unfold arrow.
+  - **Renaming happens in the row itself**: the pencil becomes a check, the name becomes a text field and **the
+    line below keeps the original name** — «EL DE LA PUERTA» above, «Hambriento · Resistencia 12 · p.150» below.
+    That way you still know which beast it is after nicknaming it.
+  - Unfolded: the seven characteristics as **big number + small label** (`8 FOR`, `4 COM`…), a row of **«otras
+    tiradas»** chips, and the note «Mantén pulsada una para elegir dificultad, igual que con los jugadores».
+  - **Unfolding one closes whichever was open.**
+  - **A token dropped on the map adds itself to the list.**
+- Plate note: attacking from the map's token **adds to the list, does not replace it** — that is what keeps the
+  panel from overflowing with ten creatures.
+
+**The player's «te atacan» notice** (col. 5, built 2026-08-21): paper panel with a **blood fillet on the left**,
+`swords` icon + **«TE ATACA UN OGRO»** in blood. Body: «Cuerpo a cuerpo con 4 dados de Combate. Es un conflicto:
+los dados que pongas son tu defensa y tu ataque a la vez (p.93).» Then **«¿CUÁNTOS DADOS DE COMBATE GASTAS?»**
+with chips `0…Combate` (the chosen one in ink) and «tienes Combate: 4 dados» beside it. A grey box with a
+`schedule` icon and the cost, **which changes with what is chosen**. Footer: **«NO ME DEFIENDO»** (ghost) and
+**«DEFENDERME · N DADOS»** (gold).
+
+⚠ **Not drawn in the `.pen`, and therefore not to be built before being designed** (his rule, 2026-08-22:
+«seguir el `.pen` AL DETALLE», what the design does not draw is not invented):
+- The player's **«Tirada pedida»** notice.
+- The **turn order** screen.
+- **What the GM sees while waiting** for an answer — today they find out when the roll shows up in the Registro.
+
+**No light/dark here.** Everything lives under `.tb-root`, where the game system's theme rules (`--sys-*`).
 
 ## Rules & limits
-- Tirar *como* un personaje: sólo su dueño o el director (un miembro no puede registrar tiradas contra la ficha de otro).
-- Inmutables: nadie (ni el DJ) edita/borra; una corrección es una tirada nueva que referencia la anterior.
-- Visibilidad: `table` (todos), `dm` (jugador → DJ), `secret` (solo el autor; DJ). Filtrada por RLS.
-- Recurso compartido: el descuento y la tirada son la misma transacción (si no hay dados, la tirada falla).
-- El motor genérico sabe `NdX`, contar éxitos por predicado, explotar, mayor/menor, sumar; cada sistema aporta la regla.
-- **El desglose lo escribe el SISTEMA, no la plataforma** (`Engine.explain`, opcional): sólo él sabe qué regla entró
-  y en qué página del manual está. Un sistema que no lo declare simplemente no enseña desglose.
-- **El desglose se lee de la tirada guardada, nunca de la ficha de ahora.** Una tirada es inmutable y su desglose
-  tiene que decir lo mismo dentro de un mes, con el personaje ya curado y con otra armadura puesta: por eso
-  `engine.resolve` copia en `result.detail` lo que la ficha sabía al tirar (valor de la característica, sus
-  especialidades, la penalización por heridas, el estado de salud, la armadura puesta). Cuando esos campos no están
-  —tiradas viejas, o resueltas sin ficha, como las de criatura— el desglose **calla** esas líneas en vez de
-  inventarse un número.
-- **El nombre de quien tiró es el del personaje**, unido por join desde `characters`. Si la RLS no me deja ver ese
-  personaje, la entrada se queda sin nombre; **nunca cae en el del usuario**, que no dice nada de quién actuó.
-- **«Ponerse a cubierto» (p.96) no sale en el desglose**: la regla no existe todavía en el código, y una línea que
-  sólo puede decir «no» para siempre miente. Entra cuando entre la regla.
 
-## Dados 3D (pendiente — pedido del dueño, 2026-08-18)
+- **Rolling *as* a character**: only its owner or the GM. A member cannot register rolls against someone else's
+  sheet. Attacking *as* a creature is the GM's, never a player's.
+- **Immutable**: nobody (not even the GM) edits or deletes a roll. A correction is a **new roll** that
+  references the previous one (`corrects_id`). A grouped roll is **two linked rolls**, never one edited.
+- **Visibility**: `table` (everyone), `dm` (player → GM), `secret` (only the author; the GM sees everything).
+  Enforced by RLS, not by the screen.
+- **Shared resource**: the discount and the roll are **the same transaction** — no dice in hand, no roll
+  (`pool_empty`). The API also rejects (403) a request that rolls more dice tagged with a shared resource than
+  it declares in `sharedResources`, so the discount cannot be dodged.
+- The generic engine knows `NdX`, counting successes by predicate, exploding, highest/lowest and summing; **each
+  system contributes the rule**.
+- **The player never chooses the difficulty of their own challenge.** p.84, literal: «Los dados de dificultad
+  son **lanzados por el director de juego**». And **nothing is rolled into the void**: p.82, every action is an
+  **opposed roll** — difficulty if it is a challenge, the rival's characteristic if it is a conflict.
+- **The Registro does not label** whether the right-hand group is a difficulty or a rival. It is a rule of the
+  book, not an oversight — p.85, literal: «Como todas las acciones requieren tiradas opuestas, Luis **no sabe**
+  si el director de juego tira los dados porque hay otro personaje o porque es la dificultad de la acción».
+- **The breakdown is written by the SYSTEM, not by the platform** (`Engine.explain`, optional): only it knows
+  which rule applied and on what page. A system that does not declare it simply shows no breakdown.
+- **The breakdown is read off the stored roll, never off today's sheet.** A roll is immutable and its breakdown
+  has to say the same thing a month later, with the character healed and wearing other armour: that is why
+  `engine.resolve` copies into `result.detail` what the sheet knew at roll time (the characteristic's value, its
+  specialties, the wound penalty, the health state, the armour worn). When those fields are missing —old rolls,
+  or rolls resolved without a sheet, like a creature's— the breakdown **stays silent** on those lines instead of
+  inventing a number.
+- **The name of who rolled is the CHARACTER's**, joined from `characters`. If RLS will not show me that
+  character, the entry is left without a name; it **never falls back to the user's**, which says nothing about
+  who acted.
+- **What the sheet already knows, it applies without asking**: wound penalty (−1 die hurt, −2 badly hurt, p.99),
+  armour (if any failure comes up it turns as many triumphs into normal successes as its penalty, p.98 — ⚠ it
+  does **not** remove dice, an error that had to be corrected in the design), ammunition (shooting spends one
+  round; with no bullets the button is off, p.97) and the weapon bonus (melee only, p.96).
+- **The player does not choose how many dice they roll**: they are their characteristic's (p.82). They only
+  choose reserve dice and, in combat, how they split their Combate dice.
+- **Melee is a conflict** (p.93): the defender acts in the attacker's turn (p.92) and their defence spends dice
+  from their next turn (p.94). **Ranged is a challenge** against the range's difficulty (p.96) — no notice, no
+  defence dice.
+- **A creature against the environment is a challenge and carries a difficulty; against a player it is a
+  conflict and carries none** — the other side's dice are put there by the player when they defend, so the
+  dropdown must not appear.
+- **If the player does not answer, the roll waits indefinitely.** Nobody resolves it for them, not even the GM
+  (his decision, 2026-08-20). That is why the notice **cannot be dismissed**: no X, no Escape, no click outside.
+- **One notice at a time, oldest first.** If an attack and a roll request are both waiting, **the attack covers
+  the request** (being hit outranks being asked); once answered, the request appears. Today that comes out of
+  the mounting order in `TablePage` — if another order is ever wanted, that is where it lives.
+- **Turn order** (p.92–93): **Destino descending**. Tie → **PC before NPC**; among PCs → **higher Combate**; if
+  it still holds, **the GM decides** (the app asks which goes first). ⚠ Read the literal carefully: the Combate
+  tiebreak is **only between PCs** — two creatures with the same Destino go straight to «the GM decides». The GM
+  **does not reorder by hand**: the power the book gives them is breaking ties, and only that.
+- Everyone enters their turn with their Combate dice **minus what they spent defending**. Dice can only be
+  borrowed from the **next** turn, never further (p.94, literal).
+- A combat **lives in a scene** — like the encounters — and only one can be active per scene.
 
-Al tirar, unos dados en 3D caen sobre la pantalla, se paran mostrando el resultado y desaparecen a los pocos
-segundos. El registro de la derecha no cambia: la tirada queda ahí como hoy.
+## States & errors
 
-- **La animación NO decide nada.** Los dados los genera el servidor con CSPRNG y la tirada es inmutable
-  (§ «Rules & limits»); la animación recibe el resultado ya decidido y **aterriza en él**. Las librerías de dados 3D
-  aceptan justo eso — se les pasa la cara de cada dado. Lejos de debilitar el antitrampas, lo hace visible: se ve caer
-  el dado que el servidor ya eligió.
-- **Se carga aparte.** WebGL + física + mallas pesan del orden de cientos de KB; el bundle de la web va hoy por
-  105 KB gzip. La librería entra por `import()` dinámico **la primera vez que se abre el lanzador**, nunca en el
-  arranque. Si la carga falla, la tirada se resuelve igual y sólo se pierde la animación: **nada del resultado puede
-  depender de que el 3D funcione.**
-- **Duración**: los dados se van solos a los 3–4 s, y se pueden despachar con un clic. No bloquean el lienzo ni la
-  mesa: son una capa por encima, sin capturar el ratón una vez parados.
-- **Accesibilidad**: quien tenga `prefers-reduced-motion` no ve la caída — el resultado aparece directamente. La
-  animación no es la única forma de leer la tirada; el registro lateral sigue siendo la fuente.
-- Se abre desde la **primera herramienta** de la barra de la escena (`maps` rebanada 3).
-
-## Connections
-`game-system` (poolFor/resolve/actions), `table` (recursos), `characters`/`bestiary` (origen), `chat` (adjunto), `realtime`.
-
-## Modelo de datos
-- **`dice_rolls`**: una fila por tirada (sistema o libre): campaña, personaje (opcional), autor, sistema, tipo, título, la
-  intención (`request`), los **dados crudos generados por el servidor** (`dice`), el resultado del motor (`result`),
-  visibilidad `table`|`dm`|`secret`, `corrects_id` (una corrección es una tirada nueva que apunta a la anterior), fecha.
-  **Inmutable** (trigger bloquea UPDATE/DELETE, también al director; sólo pasan las acciones de FK — borrar la campaña
-  arrastra sus tiradas, borrar el personaje deja `character_id` a null). Se inserta sólo desde la API mediante
-  `dice_commit_roll` (service role): comprueba la membresía del actor, **descuenta los dados de recurso compartido de su
-  mano en la misma transacción** (si no los tiene, la tirada falla con `pool_empty`) y guarda la fila. La API además
-  rechaza (403) una petición que tire más dados etiquetados con un recurso compartido de los que declara en
-  `sharedResources`, para que el descuento no pueda esquivarse.
-- Lectura por RLS: miembros de la campaña ven `table`; el autor ve las suyas; el director lo ve todo (`dm` y `secret`).
-  El canal Realtime (`postgres_changes` en `dice_rolls`) sólo entrega lo que la RLS permite.
-- Efectos de la tirada sobre la ficha (`result.effects.patch`, p.ej. subir Destino / recargar Fortuna) se aplican en la
-  API tras guardar la tirada, con origen `roll`, por el mismo camino autoritativo que la ficha.
-- Migración: `supabase/migrations/20260818120000_dice_rolls.sql`.
-
-
----
-
-## Cómo se lanza una tirada, y el panel del director (pedido del dueño, 2026-08-20)
-
-### El problema que arregla
-La ficha tiene arriba un bloque «Tirada» con dificultad, especialidad y armadura como **preset pegajoso**: lo dejas
-en «Difícil» y todas las tiradas siguientes salen así sin avisar. Está mal por dos motivos del manual:
-- **La dificultad no la pone el jugador.** p.84, literal: «Los dados de dificultad son **lanzados por el director de
-  juego**».
-- **No se tira en el vacío.** p.82: todas las acciones son **tiradas opuestas** — dificultad si es reto, la
-  característica del rival si es conflicto.
-
-### Lado del jugador: todo al botón, y nada que adivinar
-
-> **Estado — construido** (columnas 1 y 2 del `.pen` «Mesa/Tiradas · rediseño», nodo `v3vfV`).
-> `characters/ui/RollPopover.tsx` + `characters/domain/useCases/rollIntent.ts`. Sale sobre la ficha,
-> pegado al botón (`<Sheet>` pasa el rectángulo del botón como 4.º argumento de `onAction`), con captador
-> invisible y Escape, igual que `CreatureRollPopover`. **Abre en TIRAR de una característica y en la
-> acción de un arma**; activar un don y recargar siguen yendo directas, que es como estaban — el `.pen`
-> no las diseña. **El bloque «Tirada» de la ficha TODAVÍA NO desaparece**: hoy es de donde `poolFor` saca
-> la dificultad, y quitarlo antes de que exista el panel del director dejaría las tiradas de reto sin
-> oposición ninguna. Se va con la columna 4.
->
-> Nada del desplegable sabe de Plenilunio: los alcances salen del catálogo `ranges` (nuevo, con su
-> dificultad y en orden, p.95–96), la penalización por heridas de `healthLevels`, y la reserva de
-> `engine.sharedResources` — incluido su `blockedIf`, que es lo que hace que con Destino 10 no se ofrezca.
-> Los dados de la reserva se **cogen de la mesa al confirmar** (`takeResource`/`returnResource`, los
-> mismos de la barra) porque el servidor sólo deja tirar los que ya están en la mano.
-
-- **Desaparece el bloque «Tirada».**
-- Cada botón (TIRAR de una característica, o la acción de un arma) abre su propio panel con **sólo lo que el manual
-  deja elegir en ese momento**:
-  - ~~Especialidad~~ **NO se elige aquí**: si estás tirando una característica, tu especialidad ya está asignada en
-    la ficha. Quien decide si encaja en esa acción es el director, desde su panel (p.83).
-  - **Dados de la reserva de Destino** a coger, 0–5 (p.88–89).
-  - **Alcance** si es un disparo: de él sale la dificultad, no se teclea un número (p.96). **Y lo mide el mapa**:
-    con los dos tokens colocados la app sabe la distancia, así que sabe sola si es cuerpo a cuerpo o disparo y a
-    qué alcance — el jugador sólo lo corrige si hace falta.
-- **En el modal del jugador no van las leyendas de «esto ya lo sabe la ficha»** (dueño, 2026-08-20: mataban la
-  pantalla y no aportaban nada). Lo que la ficha sabe se aplica y punto; si hace falta explicarlo, va en el
-  **tooltip del registro**, no en el modal. Lo que el modal enseña son **dos controles**: cuántos dados tiras
-  (con −/+) y cuántos coges de la reserva; en un disparo, además, el alcance. **Nada más.**
-- Lo que la ficha ya sabe y aplica sin preguntar:
-  - Penalización por heridas: −1 dado herido, −2 malherido (p.99), ya restada del total.
-  - Armadura: si sale algún fracaso, convierte tantos triunfos como su penalización en éxitos normales (p.98).
-    ⚠ **No quita dados** — error que hubo que corregir en el diseño.
-  - Munición: disparar gasta un punto de cargador; sin balas el botón sale apagado (p.97).
-  - Bonificación del arma: sólo cuerpo a cuerpo (p.96).
-- **El jugador no elige cuántos dados tira**: son los de su característica (p.82). Sólo elige dados de reserva y,
-  en combate, cómo reparte los de Combate.
-
-### Lado del director: el panel de tiradas
-Vive en la escena. Es **el mismo lanzador de dados** con un botón de **expandir**; no es una ventana nueva.
-Corregido con el dueño el 2026-08-20, punto por punto:
-
-- **Pedir una tirada**: primero marca **a quién** —y se puede marcar **a más de uno**—, y luego **mantiene pulsada
-  una característica**: el desplegable de dificultad sale **pegado a ese botón**, suelta encima de la que quiera y
-  la petición sale. **Sin botón de confirmar.** Las siete características van a **ancho igual**, dos filas de tres
-  y la séptima centrada.
-- **Si le vale la especialidad lo marca él**, no el jugador: es lo que dice p.83 («es el director de juego quien
-  debe determinar si la especialidad del personaje es adecuada en esa ocasión»).
-- **Lista de encuentros** de la escena, plegable, dentro del panel:
-  - se pueden **añadir** encuentros a mano;
-  - **el token que se tira al mapa se añade solo** a la lista;
-  - el **nombre se edita en la propia fila** con un lápiz pequeño («EL DE LA PUERTA» en vez de «Hambriento (2)»);
-  - una **flecha despliega** sus características y sus otras tiradas, y **al abrir uno se cierra el anterior**;
-  - dentro del desplegado vale el mismo mantener-pulsado para la dificultad.
-- **Atacar desde el token**: tocar la criatura en el mapa abre **su** modal de ataque. **Se suma a la lista, no la
-  sustituye** — la lista sirve cuando no quieres buscar el bicho en el mapa. Esto es lo que hace que el panel no se
-  desborde cuando hay diez criaturas en la escena.
-- **Las tiradas del director para sí mismo NO van en este panel**: van en el lanzador de dados que ya existe.
-
-**Tirada de una criatura contra el entorno vs contra un jugador**: contra el entorno es un reto y lleva dificultad
-(mismo mantener-pulsado). **Contra un jugador es un conflicto y NO lleva dificultad** — los dados del otro lado los
-pone el jugador al defenderse, así que ahí el desplegable no debe aparecer. Los dados de la criatura son su
-característica; sólo en **Combate** se eligen, porque el libro deja repartirlos entre varios objetivos (p.94), y eso
-vive en el modal de atacar.
-
-### El espejo: un JUGADOR ataca cuerpo a cuerpo a una criatura (dueño, 2026-08-22 — entra con el panel)
-Hoy el ataque c/c desde la ficha se resuelve en el acto contra unos dados que el propio jugador pone a mano
-(el bloque «Tirada», la muleta que desaparece con esta tanda): sin blanco y sin director. El dueño lo vio
-atacando con Karen: «lo resolvió solo, ¿contra qué enemigo?». El libro manda lo contrario: el c/c es un
-conflicto entre el Combate de AMBOS (p.93), el defensor actúa en el turno del atacante (p.92) y su defensa
-gasta dados de su turno siguiente (p.94) — cuando el defensor es una criatura, esa decisión es del DIRECTOR.
-- **El blanco lo declara quien ataca**: al atacar c/c desde la ficha con criaturas en la escena, el jugador
-  elige a cuál (como el director elige jugador en su modal). Sin blanco elegible no hay conflicto que abrir.
-- **Al director le salta el aviso** — «Karen ataca al Lunar (4 dados)» — y elige **cuántos dados de Combate
-  gasta la criatura en defenderse** (0 a su Combate actual), igual que el jugador en el aviso de la columna 5.
-- **Misma tubería que los ataques a la espera** (`dice_attacks`): la petición espera, el director contesta,
-  la tirada sale agrupada en el Registro con el jugador como autor. Si no contesta, espera indefinidamente.
-- **Pantalla SIN DIBUJAR en el `.pen`** — se diseña antes de construir, junto con «Tirada pedida».
-- A distancia contra una criatura sigue siendo un reto contra la dificultad del alcance, sin aviso (p.96).
-
-**Dos avisos a la vez (2026-08-22)**: si a un jugador le esperan un ataque Y una petición de tirada, el
-aviso de **ataque tapa** al de petición (que te peguen manda sobre que te pidan); contestado el ataque,
-aparece la petición. Hoy sale del orden de montaje en `TablePage` — si algún día se quiere otro orden, es
-ahí.
-
-### Tirada enfocada, y la respuesta agrupada
-Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una
-sola entrada agrupada** en el registro (pedido literal del dueño: «que quede todo agrupado»).
-- **Cuerpo a cuerpo** (conflicto, p.93): al jugador se le pregunta **cuántos dados de Combate gasta en defenderse**
-  (0 a su Combate). Los gastados **se le descuentan del turno siguiente**; si gasta todos renuncia a ese turno, y si
-  ya los gastó todos queda **indefenso** (p.94: «sólo puede tomar dados de su siguiente turno»).
-- **A distancia** (reto, p.96): el jugador **no gasta dados de defensa**. Lo que sí puede es **ponerse a cubierto**
-  —reto de Combate o Astucia, y si lo logra, dispararle cuesta **+2 dados de dificultad** (p.96).
-- **Si el jugador no contesta, la tirada espera indefinidamente.** Nadie la resuelve por él, ni el director
-  (decisión del dueño, 2026-08-20).
-
-### Reglas y límites
-- El jugador **nunca** elige la dificultad de su propio reto.
-- El registro **no etiqueta** si el grupo de la derecha es una dificultad o un rival. Es una regla del libro, no un
-  descuido — p.85, literal: «Como todas las acciones requieren tiradas opuestas, Luis **no sabe** si el director de
-  juego tira los dados porque hay otro personaje o porque es la dificultad de la acción».
-- Los dados los sigue generando el **servidor**, y las tiradas siguen siendo **inmutables**: una tirada agrupada son
-  **dos tiradas enlazadas**, nunca una editada.
-- Atacar «como» una criatura es del director; un jugador no puede.
-
-### El orden de turnos (p.92–93) — decisión del dueño, 2026-08-21
-
-Sin turnos la columna 5 no se puede construir: defenderse **gasta dados del turno siguiente**, y no había
-turno siguiente. El dueño eligió construir el orden entero en vez de fingirlo con un contador.
-
-- **Quién entra**: lo abre el director y elige; le vienen ya marcados los personajes de la campaña y los
-  encuentros de la escena.
-- **El orden lo calcula la app**: **Destino descendente**. Empate → **PJ antes que PNJ**; entre PJ → **mayor
-  Combate**; si aún persiste, **decide el director** (la app le pregunta cuál va antes). Literal de p.92–93,
-  RULES.md §5.1. **El director NO reordena a mano** — el mando que el libro le da es desempatar, y sólo ese
-  (decisión del dueño: dejar arrastrar libremente convierte la regla del Destino en una sugerencia).
-  - ⚠ Ojo al literal, que se lee mal con facilidad: el desempate por Combate es **sólo entre PJ**. Dos
-    criaturas con el mismo Destino **no** las desempata su Combate — van directas al «decide el director».
-  - **CONSTRUIDO (lado servidor, 2026-08-30)**: la regla la declara el SISTEMA (`Engine.turnOrder`, opcional,
-    como `tokenCells`) y `orderTurns` de `@rolvium/core` la aplica en las dos orillas. El comparador puede
-    devolver **0**, que no es un fallo sino el hueco del manual: `orderTurns` saca esos grupos en `undecided`
-    y **nadie los coloca por su cuenta**.
-- **Siguiente turno** y **cerrar el combate** los lleva el director.
-- **Adelantarse cuesta 1 Fortuna** (p.89 uso 5, p.92) y **el sitio nuevo se queda** para el resto del
-  combate: «el nuevo orden se mantiene».
-- Cada uno entra en su turno con sus dados de Combate **menos los que gastó defendiéndose**. Sólo se puede
-  tomar prestado del **turno siguiente**, nunca de más allá (p.94, literal).
-- Vive **en la escena**: un combate es de una escena, como los encuentros.
-
-### Columna 4 · el panel del director — lo que dibuja el `.pen` (`v3vfV` → `qHMjx` → `QWHSS`)
-
-Head **«LANZADOR · DIRECTOR»** + icono `unfold_less`: es el lanzador que ya existe, **expandido**.
-
-- **«¿A QUIÉN LE PIDES LA TIRADA?»** · «puedes marcar varios» · chips de cada personaje + **«A TODOS»**.
-- **«MANTÉN PULSADA UNA CARACTERÍSTICA»** · «y elige la dificultad sin soltar · p.84». Las siete a ancho
-  igual, **tres por fila** (la séptima queda en la columna del medio). Al mantener pulsada, el botón se
-  pone en tinta y **el desplegable sale pegado a ÉL, tapando lo que haya debajo**; la opción bajo el dedo
-  se resalta en **oro**. Opciones: `FÁCIL · 1` `MEDIA · 2` `DIFÍCIL · 3` `MUY DIFÍCIL · 5` `ÉPICA · 6`.
-  Nota del `.pen`: **«Sueltas encima de la dificultad y la petición sale. Sin botón de confirmar.»**
-- Casilla **«Le vale su especialidad — lo decides tú (p.83)»**.
-- **«ENCUENTROS EN LA ESCENA · N»** + **«+ AÑADIR»** + flecha de plegar. Cada fila: token con iniciales,
-  nombre + **lápiz**, sub «Resistencia 30 · protección 3 · p.152», botón **ATACAR** (rojo sangre) y flecha
-  de desplegar.
-  - **Renombrar se hace en la propia fila**: el lápiz pasa a **check**, el nombre se vuelve campo de texto
-    y **la línea de abajo conserva el nombre original** — «EL DE LA PUERTA» arriba, «Hambriento ·
-    Resistencia 12 · p.150» debajo. Así se sabe qué bicho es aunque le hayas puesto mote.
-  - Desplegado: las siete características como **número grande + rótulo pequeño** (`8 FOR`, `4 COM`…), una
-    fila de chips **«otras tiradas»**, y la nota «Mantén pulsada una para elegir dificultad, igual que con
-    los jugadores».
-  - **Al desplegar uno se cierra el que estuviera abierto.**
-  - **El token que se tira al mapa se añade solo a la lista.**
-- Nota del `.pen`: atacar desde el token del mapa **se suma a la lista, no la sustituye** — es lo que evita
-  que el panel se desborde con diez criaturas.
-- **Las tiradas del director para sí mismo NO van aquí**: van en el lanzador de siempre.
-
-**Chips de «otras tiradas» — RESUELTO por el dueño (2026-08-22): las SIETE características**, un chip por
-cada una — cualquier tirada de la criatura a un toque. El `.pen` dibujaba sólo tres (FORTALEZA, ASTUCIA,
-SUTILEZA) y hay que actualizarlo antes de construir.
-
-**Alcance de la tanda — decidido por el dueño (2026-08-22): TODO JUNTO.** El panel (pedir tiradas +
-encuentros) y el **orden de turnos** del combate van en la misma tanda, junto con el aviso «tirada pedida»
-del jugador y la retirada del bloque «Tirada» de la ficha (ver abajo).
-
-**Regla de construcción (dueño, 2026-08-22): seguir el `.pen` AL DETALLE.** Lo que el diseño no dibuje no
-se inventa: se enseña al dueño ANTES de construirlo. Faltas conocidas hoy: el aviso **«Tirada pedida»** del
-jugador (sin dibujar — se diseña primero) y **el orden de turnos** (comprobar si el `.pen` lo dibuja; si
-no, diseñarlo antes).
-
-### El aviso que le salta al jugador
-- **Tirada pedida**: no está dibujada en el `.pen`. **Hay que diseñarla antes de tocar pantalla.**
-- **Te atacan cuerpo a cuerpo** (columna 5, `oSBrx` → `dcTPM`) — **CONSTRUIDO 2026-08-21**: panel de papel
-  con **filete sangre a la izquierda**, icono `swords` + **«TE ATACA UN OGRO»** en sangre. Cuerpo: «Cuerpo a
-  cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez
-  (p.93).» **«¿CUÁNTOS DADOS DE COMBATE GASTAS?»** con chips `0…Combate` (el elegido en tinta) y «tienes
-  Combate: 4 dados» al lado. Caja gris con icono `schedule` y el coste, **que cambia con lo elegido**. Pie:
-  **«NO ME DEFIENDO»** (fantasma) y **«DEFENDERME · N DADOS»** (oro).
-- **Si el jugador no contesta, la petición espera indefinidamente.** Nadie tira por él, ni el director.
-  Por eso el aviso **no se puede cerrar**: ni X, ni Escape, ni pulsar fuera. Quitárselo de en medio sin
-  querer dejaría la partida parada sin que se note.
-- **A distancia NO salta este aviso**: es un reto contra la dificultad del alcance.
-- **Uno cada vez, el más viejo primero.** Dos avisos amontonados taparían el segundo.
-
-#### Cómo funciona por dentro
-1. El director ataca desde el token. **Cuerpo a cuerpo no tira**: `POST /attacks` guarda la petición ya
-   armada por el sistema, **sin oposición**, con a quién ataca y con cuántos dados.
-2. La fila está en la publicación de realtime: el aviso **le salta** al jugador sin recargar.
-3. El jugador contesta: `POST /attacks/:id/answer`. La API mete sus dados de defensa como grupo
-   `opposition` en la petición guardada, **tira ahí mismo** por el camino de siempre (`performRoll`:
-   dados del servidor, tirada inmutable) y cierra el ataque apuntando la tirada que salió.
-4. **El autor de la tirada es el DIRECTOR**, no quien contesta: quien ataca es su criatura, y el Registro
-   tiene que decir eso.
-5. Si la tirada falla, la fila **se queda pendiente** y el jugador puede volver a contestar, en vez de
-   quedarse con un ataque muerto delante que nadie puede resolver.
-
-⚠ **Cuántos dados puede gastar**: los que le daría **su propia característica ahora mismo**, pedidos al
-`poolFor` del sistema — o sea **Combate menos la penalización por heridas**. No es una cuenta nueva: es el
-mismo puñado que tiraría si actuase. El `.pen` dibuja «tienes Combate 4» y la pantalla dice «tienes
-Combate: 4 dados», que es lo mismo cuando está sano y lo cierto cuando no lo está.
-
-⚠ **El coste del próximo turno es TEXTO** (p.94). No hay orden de turnos todavía y **no se finge con un
-contador**: el aviso dice lo que le va a costar y el jugador lo lleva. Entra de verdad con el orden de
-turnos, ver arriba.
-
-⚠ **El director no ve nada mientras espera.** El `.pen` no dibuja una pantalla de espera para él; se entera
-cuando la tirada sale en el Registro. **Sin diseñar.**
-
-#### El desglose de un conflicto (p.93 contra p.84)
-La petición viaja con `conflict: true`, y sólo por eso el desglose dice **«Conflicto: 2 dados de defensa del
-otro lado» (p.93)** en vez de «Reto a dificultad 2» (p.84), y cierra con «… contra 1 **de la defensa**» en
-vez de «de dificultad». Los dados y las cuentas son idénticos: lo único que cambia es no llamar reto a un
-conflicto. El **Registro** sigue sin etiquetar el grupo de la derecha (p.85); es el desglose, que abre quien
-ya sabe de qué iba la tirada, el que lo nombra.
-
-### Ponerse a cubierto (p.96) — ⚠ NO CONSTRUIDO
-Es lo único que puede hacer un jugador al que disparan, y sin ello el ataque a distancia le deja sin
-respuesta. Sería: reto de **Combate o Astucia, la mayor de las dos**, contra dificultad **1/2/3/5 según la
-cobertura**; si lo logra, **dispararle cuesta +2 dados de dificultad**. Cerraría además la línea «A cubierto»
-que el `.pen` pide en el desglose del Registro.
-
-**Nada de esto existe todavía.** Este apartado decía «entra en esta tanda» y era falso: se dejó fuera a
-propósito porque una línea que sólo puede decir «no» para siempre miente (decisión del dueño, 2026-08-21).
-Es lo único del `.pen` de las tiradas que no está construido.
-
-### El bloque «Tirada» de la ficha desaparece con esta tanda
-Hoy es de donde `poolFor` saca la dificultad del reto. Se quita **cuando exista el panel del director**, no
-antes: quitarlo antes deja las tiradas de reto sin oposición ninguna.
-
-### Fuera de alcance (de esta tanda)
-- **Ataques y defensas múltiples** — repartir los dados de Combate entre varios oponentes (p.94).
-- ~~Atacar tocando el token de la criatura en el mapa~~ (columna 6 del `.pen`) — **construido 2026-08-21**.
-- ~~Orden de actuación por Destino~~ — **entra**, ver «El orden de turnos» arriba (dueño, 2026-08-21).
-- El **Bestiario** (H5) como módulo — ya construido.
-
-### ⚠ Bloqueo conocido antes de construirlo — RESUELTO CONTRA EL PDF 2026-08-21
-Estaba escrito que las criaturas no tenían ni Combate ni daño. **Las dos mitades eran falsas.**
-
-- **Características**: entraron con el Bestiario (H5). El ogro tiene Combate 4 y el panel puede tirar por él.
-- **Daño**: lo dice el libro. Un zarpazo es un **ataque sin armas**, y la tabla de armas (p.97) le da
-  **Daño: F**, la Fortaleza del atacante — el propio manual lo usa así en su ejemplo. El ogro pega **8** por
-  triunfo. No hace falta ni inventarlo ni teclearlo. Recogido en `RULES.md` §8.
-- ⚠ **«Garrote» y «Mordisco» son ESPECIALIDADES de Combate, no armas**: van en la columna de especialidad del
-  bloque. Darles una línea de la tabla de armas sería inventarse un dato que el libro no da.
-- ⚠ **Capacidades sin construir que tocan al combate**: Ira solar (suma al daño), Ponzoña (ataque aparte),
-  Amparo de la noche (éxitos automáticos de noche), Deflagración, Incorpóreo, Inmune al dolor (sin
-  penalización por heridas), Ancla terrenal. Tabla completa en `RULES.md` §8. **Fuera de esta tanda**, pero
-  anotadas: hasta que existan, un ogro y un solar pegan igual de fuerte aunque el libro diga que no.
-
-### Modelo de datos
-
-**`dice_attacks`** (migración `20260821000000_dice_attacks.sql`) — una fila por ataque cuerpo a cuerpo a la
-espera de respuesta. Guarda la `RollRequest` ya armada **sin el grupo de oposición**, quién ataca (nombre
-**copiado**, para poder decir «te ataca un ogro» aunque el token ya no exista), a quién (`target_character_id`,
-que es quien puede contestar), con cuántos dados, y en qué estado está (`pending` · `resolved` · `cancelled`).
-`defence_dice` es lo que contestó: **`NULL` es silencio y `0` es «no me defiendo»**, que no es lo mismo.
-
-⚠ **`cancelled` está en el CHECK pero hoy no lo escribe nadie**: no existe «el director retira el ataque».
-Un ataque sólo se va al contestarlo, o en cascada si se borra la escena o el personaje. Cuando exista ese
-botón, el sitio ya está hecho (`dice_close_attack(..., 'cancelled')`).
-
-- **RLS**: lo ve el **director** de la campaña y el **dueño del personaje atacado**, nadie más. Los demás
-  jugadores se enteran por la tirada, cuando salga en el Registro.
-- **Sin políticas de escritura para el navegador.** Crear y contestar pasan por la API con el service role,
-  igual que `dice_commit_roll`: los dados los genera el servidor, y si el navegador pudiera escribir la
-  tabla podría abrirse un ataque a sí mismo o contestarlo por otro. Tres funciones `SECURITY DEFINER`:
-  `dice_open_attack` (comprueba que es el director y que el atacado es de esa mesa), `dice_answer_attack`
-  (sólo el dueño del personaje) y `dice_close_attack`.
-- **En la publicación de realtime**, que es lo que hace que el aviso salte.
-- Los tokens se sueltan con `SET NULL`: borrar un token a mitad de partida no puede borrar el ataque que el
-  jugador tiene delante ni dejarlo sin contestar.
-
-⚠ **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces**, porque la fila no se cierra hasta que la
-tirada sale bien. Es el precio elegido a cambio de poder reintentar cuando la tirada falla: una tirada de
-más se ve en el Registro y no corrompe nada; quedarse sin poder contestar no se ve y no se arregla.
-
-## Modelo de datos — el panel del director (2026-08-22)
-
-**Peticiones de tirada (`dice_roll_requests`)**: una fila por personaje al que el director le pide una
-tirada; «A TODOS» crea varias filas con el mismo lote (`batch_id`), para que el Registro pueda agrupar las
-respuestas. Guarda la característica, la dificultad, si le vale su especialidad, y el estado (pendiente ·
-resuelta · cancelada) con la tirada que la contestó. La ven el director y el dueño del personaje al que se
-le pide, nadie más; nadie escribe desde el navegador — crear el lote y cerrarlo pasan por la API, y el
-jugador contesta TIRANDO (los dados los genera el servidor). Está en el realtime: el aviso salta sin recargar.
-
-**El espejo del ataque (columnas nuevas en `dice_attacks`)**: la misma tabla de los ataques a la espera
-aprende la dirección contraria. Si la fila lleva personaje atacado, es una criatura atacando a un PJ
-(contesta el jugador, columna 5); si no lo lleva, es un PJ atacando a una criatura — `attacker_character_id`
-dice quién ataca y el token atacado qué criatura defiende — y contesta EL DIRECTOR con los dados de defensa
-de su criatura. El dueño del personaje atacante también puede leer su fila (ve su ataque esperando).
-
-**El combate (`dice_combats` + `dice_combat_slots`)**: un combate vive en una escena y sólo puede haber uno
-activo por escena. Los puestos guardan el orden de actuación (adelantarse gastando Fortuna reordena y «el
-sitio nuevo se queda», p.92), a quién le toca y la ronda; `spent_next` son los dados ya gastados del turno
-siguiente (defensas y adelantos, p.94). El orden lo VE toda la mesa; lo mueve la API (el director pulsa
-siguiente/cerrar; el adelantarse del jugador paga su Fortuna en el mismo paso). En el realtime: el turno se
-mueve en todas las pantallas.
-
-**Las cuatro operaciones — CONSTRUIDAS (lado servidor, 2026-08-30)**, migración
-`20260830120000_dice_combat_functions.sql` (aplicada en LOCAL **y en la nube** el 2026-08-31 con permiso del
-dueño; ⚠ el sello de la nube es `20260830222940`, no el del fichero). Las tablas estaban
-desde el 22 de agosto sin consumidor; esto es su segunda mitad. API-only (`service_role`), guardias
-cruzadas en el caso de uso Y en SQL, como el resto de la tanda:
-
-| Ruta | Quién | Qué hace |
+| State | When | What is seen |
 |---|---|---|
-| `POST /combats` | director | Abre. **El orden lo pone el SERVIDOR** con `orderTurns`. |
-| `POST /combats/:id/next` | director | Pasa el turno; al dar la vuelta sube la ronda. |
-| `POST /combats/:id/close` | director | Lo cierra. |
-| `POST /combats/:id/advance` | dueño del puesto | Gana un puesto y paga **1 Fortuna**. |
+| Waiting for an answer | The GM attacked a PC in melee | The player gets a notice that cannot be dismissed; the GM sees nothing until the roll lands in the Registro (⚠ undesigned) |
+| Silence | The player never answers | The request waits **indefinitely**; `defence_dice` `NULL` is silence, `0` is «no me defiendo» — not the same thing |
+| No dice in the pool | A roll claims resource dice that are not in hand | The roll fails with `pool_empty`; nothing is discounted |
+| Over-claiming resource dice | The request declares fewer than it rolls | The API answers **403** |
+| Roll failed after answering | The API could not close it | The attack row **stays pending** and the player can answer again, instead of being left with a dead attack in front of them |
+| Two answers at the exact same time | Race between two clients | ⚠ It would roll twice. Deliberate price: an extra roll is visible in the Registro and corrupts nothing; being unable to answer is invisible and unfixable |
+| Undecided turn order | Ties the book does not resolve | `POST /combats` answers **409 UNDECIDED** with the tied groups. Not a caller error: it is the end of the rule, and the app has to ask the GM and resend the answer in `tiebreak`. A group counts as resolved only if the tiebreak names **all** of its members |
+| Old roll, or one without a sheet | The breakdown has no `result.detail` | Those lines are **silent**; no number is invented |
+| Unknown character | RLS hides the character of an entry | The entry has no name — it never falls back to the account's |
+| 3D dice fail to load | The optional library did not arrive | The roll resolves all the same and only the animation is lost |
 
-- **Abrir puede contestar `409 UNDECIDED`** con los grupos empatados. No es un error de quien llama: es el
-  final de la regla, y la app tiene que preguntárselo al director y reenviar su respuesta en `tiebreak`. Un
-  grupo sólo se da por resuelto si el desempate nombra a **todos** los suyos — con dos de tres, el tercero
-  seguiría colocado por orden de llegada, que no lo ha decidido nadie.
-- **La ficha de un personaje la lee el servidor**, y lo que el cliente mande en `stats` para ese puesto se
-  ignora: si no, quien llama se pondría el primero diciendo que tiene Destino 99. Los valores de las
-  **criaturas** sí los pone el director — mismo perímetro que sus tiradas (deuda ya anotada en bestiario).
-- **Quién es «personaje jugador»** para el desempate se DEDUCE: quien abre es el director, así que un
-  personaje de otro dueño es de un jugador. ⚠ Un PNJ aliado llevado por un jugador cuenta aquí como PJ; es
-  la misma zona gris de «pedir tirada» y se decide con ella.
-- **`spent_next` se salda** cuando el turno pasa: la deuda era del turno que acaba de gastarse (p.94). Aún
-  **no hay quien la ESCRIBA** — atarla a la defensa de un ataque es la rebanada siguiente.
-- ⚠ **Adelantarse: el libro no dice cuánto.** Se gana **un puesto por punto** (⚠ interpretación, RULES.md
-  §5.1) y no se puede saltar por encima de quien actúa ni de los que ya actuaron.
-- **Sin UI**: el `.pen` no dibuja el orden de turnos, y no se toca pantalla sin diseño aprobado.
+## Permissions
 
-**Ponerse a cubierto — sin tabla**: es un estado del token en la escena y vive en `maps_tokens.state`
-(el JSONB que ya existe y ya viaja por el realtime de tokens). Lo escribe la API al resolver la tirada de
-cubrirse; dispararle a un token a cubierto cuesta +2 dados de dificultad (p.96).
+| Action | Who | How it is enforced |
+|---|---|---|
+| Read a `table` roll | Any member of the campaign | RLS on `dice_rolls` |
+| Read a `dm` roll | Its author and the GM | RLS |
+| Read a `secret` roll | Its author (and the GM) | RLS |
+| Write a roll | **Nobody, from the browser** | Inserted only by the API through `dice_commit_roll` (service role), which checks membership and discounts the pool in the same transaction |
+| Edit / delete a roll | **Nobody, GM included** | A trigger blocks UPDATE/DELETE; only FK actions pass |
+| Roll as a character | Its owner or the GM | Checked in the API |
+| Open / answer an attack | GM (open), the attacked character's owner (answer) | `dice_open_attack` / `dice_answer_attack`, SECURITY DEFINER, API-only |
+| See a pending attack | The GM and the attacked character's owner | RLS. Other players find out through the roll in the Registro |
+| Ask for a roll / close the request | The GM | API-only; the player answers **by rolling** |
+| Open / advance / close a combat | The GM; `advance` the slot's owner | API-only (`service_role`), guards both in the use case and in SQL |
 
-Migración: `supabase/migrations/20260822120000_dice_director_panel.sql` — aplicada en local, lint 0 errores.
-✅ **Aplicada en la nube** (2026-08-23, versión `20260823005954` · advisors de seguridad 0 CRITICAL después).
+**Nothing about visibility is decided in the browser.** The Realtime channel (`postgres_changes` on
+`dice_rolls`) only delivers what RLS allows.
+
+## Data model
+
+**`dice_rolls`** — one row per roll, system or free: campaign, character (optional), author, system, kind,
+title, the intent (`request`), the **raw dice generated by the server** (`dice`), the engine's result
+(`result`), visibility `table`|`dm`|`secret`, `corrects_id`, timestamp. Immutable (see § Permissions). Effects
+of a roll on the sheet (`result.effects.patch`, e.g. raising Destino / reloading Fortuna) are applied by the API
+after storing the roll, with origin `roll`, through the same authoritative path as the sheet.
+Migration: `supabase/migrations/20260818120000_dice_rolls.sql`.
+
+**`dice_attacks`** (migration `20260821000000_dice_attacks.sql`) — one row per melee attack waiting for an
+answer. It stores the `RollRequest` already built **without the opposition group**, who attacks (the name
+**copied**, so it can still say «te ataca un ogro» when the token is long gone), whom
+(`target_character_id`, who is the one who may answer), with how many dice, and the state (`pending` ·
+`resolved` · `cancelled`). `defence_dice` is the answer.
+
+- ⚠ **`cancelled` is in the CHECK but nobody writes it today**: «the GM withdraws the attack» does not exist. An
+  attack only goes away when answered, or in cascade if the scene or the character is deleted. When that button
+  exists, the place is already made (`dice_close_attack(..., 'cancelled')`).
+- **The mirror direction** (columns added 2026-08-22): the same table learns the opposite direction. With a
+  target character it is a creature attacking a PC (the player answers, col. 5); without one it is a PC
+  attacking a creature — `attacker_character_id` says who attacks and the attacked token which creature defends
+  — and **the GM** answers with their creature's defence dice. The attacking character's owner can also read
+  their row (they see their attack waiting).
+- Tokens are released with `SET NULL`: deleting a token mid-session cannot delete the attack the player has in
+  front of them, nor leave it unanswerable.
+- It is **in the realtime publication**, which is what makes the notice pop up.
+
+**`dice_roll_requests`** — one row per character the GM asks a roll of; «A TODOS» creates several rows with the
+same `batch_id`, so the Registro can group the answers. It stores the characteristic, the difficulty, whether
+their specialty counts, and the state (pending · resolved · cancelled) with the roll that answered it. Read by
+the GM and the asked character's owner, nobody else. In realtime.
+
+**`dice_combats` + `dice_combat_slots`** — a combat lives in a scene, one active per scene. The slots hold the
+acting order (getting ahead by spending Fortuna reorders it and «el sitio nuevo se queda», p.92), whose turn it
+is, and the round; `spent_next` are the dice already spent from the next turn (defences and advances, p.94). The
+order is **seen by the whole table**; it is moved by the API. In realtime: the turn moves on every screen.
+
+**The four operations — BUILT (server side, 2026-08-30)**, migration `20260830120000_dice_combat_functions.sql`
+(applied in LOCAL **and in the cloud** on 2026-08-31 with his permission; ⚠ the cloud's stamp is
+`20260830222940`, not the file's). The tables had been there since 22 August with no consumer; this is their
+second half.
+
+| Route | Who | What it does |
+|---|---|---|
+| `POST /combats` | GM | Opens it. **The order is set by the SERVER** with `orderTurns` |
+| `POST /combats/:id/next` | GM | Passes the turn; on wrapping around, the round goes up |
+| `POST /combats/:id/close` | GM | Closes it |
+| `POST /combats/:id/advance` | The slot's owner | Gains one place and pays **1 Fortuna** |
+
+- **A character's sheet is read by the server**, and whatever the client sends in `stats` for that slot is
+  ignored — otherwise the caller would put themselves first by claiming Destino 99. **Creatures'** values are
+  set by the GM: same perimeter as their rolls (debt already noted in bestiary).
+- **Who counts as a «player character»** for the tiebreak is DEDUCED: whoever opens is the GM, so a character
+  with another owner belongs to a player. ⚠ An allied NPC run by a player counts here as a PC; it is the same
+  grey zone as «asking for a roll» and will be decided with it.
+- **`spent_next` is settled** when the turn passes: the debt belonged to the turn that just ended (p.94). There
+  is still **nobody who WRITES it** — tying it to an attack's defence is the next slice.
+- ⚠ **Getting ahead: the book does not say by how much.** One place per point (⚠ interpretation, RULES.md §5.1)
+  and you cannot jump over whoever is acting nor over those who already did.
+- **No UI**: the `.pen` does not draw the turn order, and no screen is touched without an approved design.
+
+**Ponerse a cubierto — no table**: it is a state of the token in the scene and lives in `maps_tokens.state`
+(the JSONB that already exists and already travels through the tokens' realtime). The API writes it when
+resolving the cover roll; shooting at a covered token costs +2 difficulty dice (p.96).
+
+Migration of the panel: `supabase/migrations/20260822120000_dice_director_panel.sql` — applied in local, lint 0
+errors. ✅ Applied in the cloud (2026-08-23, version `20260823005954` · security advisors 0 CRITICAL after).
+
+### Connections
+
+`game-system` (poolFor / resolve / actions) · `table` (shared resources) · `characters` / `bestiary` (where a
+roll comes from) · `chat` (attaching a roll) · `maps` (distance and range, cover state, tokens) · `realtime`.
+
+## Out of scope
+
+- **3D dice** — asked for by him on 2026-08-18, not built. When they come: dice fall on screen, stop showing the
+  result and disappear after a few seconds; the Registro does not change. **The animation decides nothing** —
+  the server generates the dice with CSPRNG and the roll is immutable; the animation receives the already
+  decided result and **lands on it** (3D dice libraries accept exactly that). It **loads apart**, by dynamic
+  `import()` the first time the launcher opens, never at boot (WebGL + physics + meshes weigh hundreds of KB
+  against a 105 KB gzip bundle), and if it fails the roll resolves anyway. Dice leave on their own after 3–4 s
+  and can be dismissed with a click; they do not block the canvas. With `prefers-reduced-motion` there is no
+  fall: the result appears directly. It opens from the **first tool** of the scene toolbar.
+- **Ponerse a cubierto (p.96)** — ⚠ **NOT BUILT**, and it is the only thing in the rolls' `.pen` that is not.
+  It would be: a challenge of **Combate or Astucia, the higher of the two**, against difficulty **1/2/3/5**
+  depending on the cover; on success, shooting at you costs **+2 difficulty dice**. It would also close the «A
+  cubierto» line the `.pen` asks for in the breakdown. It was deliberately left out: **a line that can only ever
+  say «no» lies** (his decision, 2026-08-21). It does not appear in the breakdown until the rule exists.
+- **Multiple attacks and defences** — splitting Combate dice between several opponents (p.94).
+- **Capabilities that touch combat and do not exist yet**: Ira solar (adds to damage), Ponzoña (a separate
+  attack), Amparo de la noche (automatic successes at night), Deflagración, Incorpóreo, Inmune al dolor (no
+  wound penalty), Ancla terrenal. Full table in `RULES.md` §8. Until they exist, an ogre and a solar hit equally
+  hard although the book says they should not.
+- **Withdrawing an attack** (the `cancelled` state above).
+
+## Decisions
+
+### His, 2026-08-18
+- **3D dice**, as described in § Out of scope. Pending, and explicitly not allowed to decide anything.
+
+### His, 2026-08-20 — how a roll is asked for, and the GM's panel
+- **The «Tirada» block of the sheet disappears**, and with it the sticky preset (difficulty, specialty, armour)
+  that made every later roll come out «Difícil» without warning. It goes **when the GM's panel exists**, not
+  before: removing it earlier would leave challenge rolls with no opposition at all.
+- **In the player's modal there are no «the sheet already knows this» legends** — they killed the screen and
+  added nothing. What the sheet knows is applied, full stop; if it needs explaining, it goes in the Registro's
+  breakdown, not in the modal. The modal shows **two controls**: how many dice you roll and how many you take
+  from the reserve; on a shot, the range as well. **Nothing more.**
+- **Asking for a roll has no confirm button**: mark who, hold a characteristic, drop on the difficulty.
+- **If the player does not answer, it waits forever.** Nobody rolls for them, not even the GM.
+- **The GM's own rolls do NOT go in this panel**: they go in the launcher that already exists.
+
+### His, 2026-08-21 — the turn order
+Without turns, column 5 could not be built: defending **spends dice from the next turn**, and there was no next
+turn. He chose to build the whole order rather than fake it with a counter (rules in § Rules & limits; the
+server side was built on 2026-08-30 — `Engine.turnOrder`, optional like `tokenCells`, applied on both shores by
+`orderTurns` in `@rolvium/core`; a comparator returning **0** is not a failure but the book's gap, and those
+groups come out as `undecided` for the GM to break).
+
+### His, 2026-08-22 — the mirror, the scope, and following the `.pen`
+- **A PLAYER attacking a creature in melee** is the mirror of the same pipeline. He caught it attacking with
+  Karen: «lo resolvió solo, ¿contra qué enemigo?» — it resolved on the spot against dice the player put in by
+  hand. The book says the opposite: melee is a conflict between **both** Combates (p.93). So: the attacker
+  declares the target, the GM gets the notice («Karen ataca al Lunar (4 dados)») and chooses how many Combate
+  dice the creature spends defending, over the same `dice_attacks` pipeline, and the roll comes out grouped in
+  the Registro with the player as its author.
+- **«Otras tiradas» chips: the SEVEN characteristics**, one chip each — any roll of the creature in one tap.
+  The `.pen` drew only three (FORTALEZA, ASTUCIA, SUTILEZA).
+- **The scope of the slice: ALL TOGETHER** — the panel (asking + encounters), the turn order, the player's
+  «tirada pedida» notice and the removal of the sheet's «Tirada» block.
+- **Build following the `.pen` IN DETAIL.** What the design does not draw is not invented: it is shown to him
+  BEFORE building it. That is why the three undrawn screens listed in § Screens are blocked.
+- **«Que quede todo agrupado»**: a focused roll and its answer are **one grouped entry** in the Registro.
+
+### Resolved against the PDF, 2026-08-21 — the blocker that was not one
+It was written here that creatures had neither Combate nor damage. **Both halves were false.**
+- **Characteristics**: they arrived with the Bestiary (H5). The ogre has Combate 4 and the panel can roll it.
+- **Damage**: the book says it. A claw is an **unarmed attack**, and the weapons table (p.97) gives it
+  **Daño: F**, the attacker's Fortaleza — the manual itself uses it that way in its example. The ogre hits for
+  **8** per triumph. Nothing to invent, nothing to type. Recorded in `RULES.md` §8.
+- ⚠ **«Garrote» and «Mordisco» are SPECIALTIES of Combate, not weapons**: they go in the specialty column. Giving
+  them a row of the weapons table would be inventing a datum the book does not give.
+
+### Mine, flagged rather than asked
+- **The breakdown names a conflict a conflict** (p.93 against p.84): the request travels with `conflict: true`,
+  and only because of that the breakdown says «Conflicto: 2 dados de defensa del otro lado» instead of «Reto a
+  dificultad 2», closing with «… contra 1 **de la defensa**». The dice and the arithmetic are identical; the
+  only change is not calling a conflict a challenge. The **Registro** still does not label the right-hand group
+  (p.85) — it is the breakdown, opened by someone who already knows what the roll was about, that names it.
+- **A failed roll leaves the attack pending** so it can be answered again, accepting the double-roll race
+  described in § States & errors.
