@@ -26,6 +26,27 @@ dba → scaffold → design (`.pen`) → dev → review → qa.
    futuro es poder llegar a ellos desde fuera —un MCP, una sincronización con Drive, una IA que
    los lea—, y eso sólo funciona si la fuente es la base. Ver «Deuda que esto deja al descubierto».
 
+## Decisiones añadidas (2026-09-19) — al mandar construirlo
+
+6. **Se construye JUNTO a Notas y Bitácora** (`journal`, H9): «*haz las tres juntas*». Las tres son texto
+   enriquecido y **comparten UN solo editor**, que se construye una vez en `packages/ui` y no tres veces
+   (regla de `CLAUDE.md` § Shared Packages). Antes de esto no había ningún editor de texto enriquecido en el
+   repo — comprobado el 2026-09-19.
+7. **El botón «Índice»**, el mismo de Notas y Bitácora: abre un **panel AL LADO del texto** —no un bloque
+   dentro del documento— con todos los **H1** y, colgando de cada uno, **los H2 que viven dentro de él**
+   («*le das al botón índice y te indexa todo lo que sea H1 y H2 de lo que esté en el h1 padre*» · «*al lado
+   del navegador*»). Se calcula leyendo los títulos cada vez que se abre, así que nunca se queda viejo.
+8. **Ventana aparte, NO modal.** Preguntado el 2026-09-19 si el «botón que abre un modal con lo escrito» era
+   otra cosa distinta del «abrir en ventana aparte» del punto 3, contestó: «*es lo mismo mal dicho, hazlo
+   como te había dicho originalmente*». Manda el punto 3: ventana aparte, como la ficha de personaje.
+9. **El documento de una aventura y el de Notas/Bitácora son el MISMO árbol de bloques** (`{ v, blocks[] }`).
+   Aventuras añade los suyos propios —`sceneRef` y las tablas de PNJ/encuentro—; `journal` usa el subconjunto.
+   Un solo vocabulario y un solo pintor.
+
+⏳ **Deuda de este spec**: sigue en castellano y sin las nueve secciones que `CLAUDE.md` exige desde el
+2026-09-17. Se reescribe **cuando se construya el módulo**, no antes: reescribir de golpe un spec cerrado por
+él es justo como se perdió una línea del de `bestiary` el 2026-09-18.
+
 ## What the user can do
 
 ### El director
