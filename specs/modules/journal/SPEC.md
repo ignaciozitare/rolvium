@@ -92,7 +92,8 @@ mean private, or nobody writes anything real in it.
 
 ## Data model
 
-⏳ **Pending the DBA Agent** — migration not yet written. The shape this spec commits to:
+Migration: `supabase/migrations/20260919120000_journal_notas_y_bitacora.sql`. Two tables, applied and verified
+on the local stack (2026-09-19) — `supabase db lint --local --level error` reported nothing.
 
 ```
 journal_notes                                  journal_logbook
@@ -110,6 +111,10 @@ journal_notes                                  journal_logbook
   - `journal_notes`: every command gated on `user_id = auth.uid()`. No admin bypass.
   - `journal_logbook`: gated on being a member of the campaign, through the existing campaign helper.
 - **No version history table in v1** — see § Out of scope.
+
+**Proved, not assumed** (2026-09-19, inside a transaction that was rolled back): a signed-in stranger
+querying `journal_notes`, `journal_logbook` and `adventures_adventures` gets **0 rows** of someone else's.
+The privacy of Notas is a policy that was executed, not a sentence in a document.
 
 ## Out of scope
 

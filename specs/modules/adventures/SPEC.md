@@ -98,6 +98,14 @@ maps_scenes
   + adventure_id uuid not null → adventures_adventures(id) on delete restrict
 ```
 
+✅ **CONSTRUIDA**: `supabase/migrations/20260919120100_adventures_aventuras.sql`, aplicada y verificada en la
+base local el 2026-09-19 (lint sin resultados). Dos apuntes sobre lo escrito arriba:
+- El autor de la aventura se rellena con **`campaigns_campaigns.dm_id`** — esa tabla no tiene `created_by`.
+- Además de la migración de lo ya existente, hay un **trigger** (`campaigns_seed_adventure`) para que toda
+  campaña NUEVA nazca con su «Aventura 1». Sin él, la primera escena de una campaña recién creada chocaría
+  contra el `NOT NULL` de `adventure_id`. Va en la base y no en la pantalla por la misma razón que el rol de
+  director: es un invariante de la campaña, no un paso que el front pueda olvidar. Comprobado ejecutándolo.
+
 **Migración de lo que ya existe**: por cada campaña con escenas, crear
 `adventures_adventures` («Aventura 1», status `running`) y poner su id en todas sus escenas.
 Campañas sin escenas también reciben la suya, para que la regla «toda escena tiene aventura» no
