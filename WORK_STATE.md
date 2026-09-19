@@ -86,6 +86,13 @@
 > pudiendo inyectar el puerto de Notas y Bitácora. **Sin hacer a propósito**: `adventures` usa claves `journal.*`
 > para la barra y el índice (funciona y evita duplicar; renombrar una clave de journal toca las dos pantallas).
 >
+> **Efecto en cadena del arreglo del revisor**: darle la puerta a `campaigns` y sacar el vestido del sistema a
+> `shared/lib/systemTheme.ts` hizo que la rama TOQUE `campaigns` y `characters`, así que el chequeo `specs` se
+> puso duro con los dos. Reescritos también a las nueve secciones en inglés (`6987c22`), ya con el método
+> nuevo: sacar el viejo con `git show main:` y comparar identificadores al terminar. Van 5 specs cerrados en
+> esta rama (journal, adventures, dice, campaigns, characters); quedan 8 en aviso, todos de módulos que la rama
+> no toca.
+>
 > ## ⏭️ SIGUIENTE PASO CONCRETO
 > 1. **Que lo mire en su local** (rama `feat/notas-bitacora-aventuras`, ya es la suya): mesa → pestañas Notas y
 >    Bitácora; pestaña AVENTURAS; botón ABRIR APARTE. Recarga forzada si sale raro (i18n y CSS nuevos).
