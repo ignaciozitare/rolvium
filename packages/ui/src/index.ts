@@ -79,3 +79,9 @@ export type { OptionGroupProps, OptionItem } from './components/OptionGroup';
 export { compressImage, fitDimensions, formatBytes, CompressError, IMAGE_TARGETS, LEVELED_TARGETS, DEFAULT_COMPRESSION_LEVEL, ACCEPTED_MIME, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, ALPHA_SIDE } from './lib/compressImage';
 export type { ImageTarget, CompressionLevel, CompressResult, CompressDeps, CompressOptions, CompressErrorCode, TargetSpec, AlphaMap } from './lib/compressImage';
 export { pickImageFile } from './lib/pickImageFile';
+
+// ── Editor de texto enriquecido (Notas · Bitácora · Aventuras) ────────────────
+export { RichTextEditor }                 from './components/richtext/RichTextEditor';
+export type { RichTextEditorProps, RichTextEditorLabels } from './components/richtext/RichTextEditor';
+export { DocIndexPanel }                  from './components/richtext/DocIndexPanel';
+export type { DocIndexPanelProps }        from './components/richtext/DocIndexPanel';

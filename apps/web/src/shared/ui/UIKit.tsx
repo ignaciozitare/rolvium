@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip, FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup, ErrorBoundary } from '@rolvium/ui';
-import type { SheetData } from '@rolvium/core';
+import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip, FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup, ErrorBoundary, RichTextEditor, DocIndexPanel } from '@rolvium/ui';
+import type { RichDoc, SheetData } from '@rolvium/core';
+import { buildDocIndex, heading, paragraph, quote } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 
@@ -23,6 +24,13 @@ export function UIKit(): JSX.Element {
   const [panelOpen, setPanelOpen] = useState(true);
   const [kitOn, setKitOn] = useState<'room' | 'rock' | 'fog'>('room');
   const [kitShape, setKitShape] = useState<'cone' | 'radius' | 'square'>('cone');
+  const [kitDoc, setKitDoc] = useState<RichDoc>(() => ({ v: 1, blocks: [
+    heading(1, [{ t: 'El almacén de los muelles' }]),
+    heading(2, [{ t: 'Llegada' }]),
+    paragraph([{ t: 'Llegan de noche. El portón está ' }, { t: 'entornado', b: true }, { t: '.' }]),
+    quote([{ t: '«El olor a óxido y a pescado podrido os golpea al cruzar el portón.»' }]),
+  ] }));
+  const [kitIndex, setKitIndex] = useState(true);
   const [kitSize, setKitSize] = useState(12);
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, background: 'var(--bg)', minHeight: '100vh', color: 'var(--tx)' }}>
@@ -107,6 +115,38 @@ export function UIKit(): JSX.Element {
               </FloatingPanel>
             </div>
           ) : <Btn variant="ghost" onClick={() => setPanelOpen(true)}>abrir el panel</Btn>}
+        </div>
+      </section>
+      <section><h3 style={{ marginBottom: 8 }}>RichTextEditor / DocIndexPanel (Notas · Bitácora · Aventuras — un solo editor, themed by --sys-*)</h3>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>
+          {"import { RichTextEditor, DocIndexPanel } from '@rolvium/ui'"} · {'<RichTextEditor doc onChange labels readOnly features={{tables,sceneRef}} onPickScene onOpenScene />'} · {'<DocIndexPanel entries={buildDocIndex(doc)} onJump onClose labels currentId />'}
+        </p>
+        <div style={{ ...sysVars, display: 'flex', gap: 12, padding: 24, background: 'var(--sys-bg)', fontFamily: 'var(--sys-font-body)' } as React.CSSProperties}>
+          {kitIndex && (
+            <div style={{ width: 200, flexShrink: 0 }}>
+              <DocIndexPanel
+                entries={buildDocIndex(kitDoc)} onClose={() => setKitIndex(false)}
+                labels={{ title: 'Índice', empty: 'Todavía no hay títulos', close: 'Cerrar el índice' }}
+                onJump={id => document.getElementById(`rt-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {!kitIndex && <Btn variant="ghost" onClick={() => setKitIndex(true)}>Índice</Btn>}
+            <RichTextEditor
+              doc={kitDoc} onChange={setKitDoc} features={{ tables: true, sceneRef: true }}
+              onPickScene={async () => ({ sceneId: 'sc-demo', label: 'El sótano' })}
+              onOpenScene={() => undefined}
+              labels={{
+                toolbar: 'Formato', h1: 'Título', h2: 'Subtítulo', bold: 'Negrita', italic: 'Cursiva',
+                bulleted: 'Lista', numbered: 'Lista numerada', quote: 'Cita', divider: 'Separador',
+                quoteLabel: 'Para leer en voz alta', npcTable: 'Tabla de PNJ', encounterTable: 'Tabla de encuentro',
+                npcColumns: ['PNJ', 'Qué es', 'Qué quiere', 'Notas'], encounterColumns: ['PNJ', 'N.º', 'Dificultad', 'Notas'],
+                addRow: 'Añadir fila', linkScene: 'Enlazar escena', openScene: 'Abrirla en la mesa',
+                placeholder: 'Escribe aquí…', textField: 'Texto del documento', removeBlock: 'Quitar el bloque',
+              }}
+            />
+          </div>
         </div>
       </section>
       <section><h3 style={{ marginBottom: 8 }}>Modal</h3>
