@@ -63,6 +63,29 @@
 >   Cmd+S en la pestaña de `rolvium.pen` y commitearlo** (`design(adventures): la ventana aparte…`). Sin eso el
 >   maestro no tiene la ventana, aunque él la haya visto y aprobado en pantalla.
 >
+> ## 🔍 La 2.ª vuelta del Review — APROBADA, con lo suyo (2026-09-20)
+> Cazó **dos pérdidas de datos de verdad** y las arregló: quitar un punto de en medio de una lista se llevaba
+> por delante el siguiente (React reaprovecha el nodo), y **un fallo al guardar tiraba el texto** (se vaciaba
+> lo pendiente ANTES de mandarlo, así que el `Cmd+S` y el guardado al cerrar se quedaban sin nada). También:
+> todos los títulos se anunciaban «Texto del documento» al navegar con lector de pantalla, y 3 violaciones
+> duras de la puerta de los módulos —`AdventurePage` entraba dentro de `characters/ui`—, cerradas con la
+> puerta nueva de `campaigns` y sacando `systemThemeStyle`/`useSystemFonts` a `shared/lib/systemTheme.ts`.
+>
+> Y **bloqueó por el spec de `dice`**: mi reescritura SÍ perdió cosas y la cabecera decía que no. Restaurado y
+> comprobado referencia a referencia (`401fed3`). Lo que faltaba: tres literales del manual, el ⚠ que corregía
+> «dados de defensa = Combate» (son Combate MENOS la penalización por heridas), el estado «indefenso», los dos
+> endpoints de `/attacks` con el autor de la tirada, el cascade de `dice_rolls`, la pantalla jugador→criatura
+> que sigue SIN DIBUJAR, y el bloque que ata el desplegable del jugador al código.
+> **Regla nueva, en memoria**: reordenar un spec a las nueve secciones NO es reescribirlo de memoria — se saca
+> `git show main:<spec>` a un fichero y al terminar se comparan a mano páginas del manual, ⚠, «no construido»
+> y citas. Ya van TRES specs a los que les ha pasado (bestiary, adventures, dice).
+>
+> De su lista de «no arreglado, tú decides» quedan hechos: pegar entra como texto (antes el HTML del
+> portapapeles pegaba las líneas y colaba el código de un `<script>` como prosa), ⌘B/⌘I, cada celda de tabla
+> con el rótulo de SU columna, «1 escena» en singular, la promesa colgada del enlace a escena, y la mesa
+> pudiendo inyectar el puerto de Notas y Bitácora. **Sin hacer a propósito**: `adventures` usa claves `journal.*`
+> para la barra y el índice (funciona y evita duplicar; renombrar una clave de journal toca las dos pantallas).
+>
 > ## ⏭️ SIGUIENTE PASO CONCRETO
 > 1. **Que lo mire en su local** (rama `feat/notas-bitacora-aventuras`, ya es la suya): mesa → pestañas Notas y
 >    Bitácora; pestaña AVENTURAS; botón ABRIR APARTE. Recarga forzada si sale raro (i18n y CSS nuevos).
