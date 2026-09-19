@@ -2,7 +2,57 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-18)
+> # 📍 ESTADO AL CERRAR (2026-09-18) — LA PUERTA DE CADA MÓDULO, PRIMERA TANDA — QA APROBADO
+>
+> ## 🚪 Rama `feat/la-puerta-de-cada-modulo` (`367bfa8` · `2ca7632` · `29d040f`, sobre `main` en `b42a2f2` / v0.13.0) — **lista para mergear**
+> Lo que el chat anterior dejó pendiente (ver el bloque de abajo, «LO QUE QUEDA PENDIENTE») está hecho:
+> - `apps/web/src/modules/maps/index.ts` y `.../table/index.ts`: la cara pública ya medida en `specs/SPEC.md`
+>   § «La puerta de cada módulo» — `maps`: `container` · `Scene` (entidades) · `MapsPort` · `VisionPort` ·
+>   `ToolbarOrderPort` · `mapRules` · `SceneTab`; `table`: `TablePage`.
+> - Los 9 consumidores que entraban por dentro (`bestiary/ui` × 6, `table/ui` × 2, `AppRouter.tsx`) pasan a
+>   importar `@/modules/maps` / `@/modules/table` — sólo ruta de import, cero cambio de comportamiento.
+> - El chequeo `module-index` (sección 10 de `scripts/audit.mjs`) **existe de verdad**: duro sólo para lo que
+>   la rama agrega (módulo nuevo sin puerta, import cruzado nuevo — diff contra `main`), aviso para lo viejo,
+>   mismo patrón que `specs`. Cierra la alarma «regla anunciada, guardián ausente» que cazó el QA de la
+>   cuarta vuelta de la rama anterior. Verificado: `maps`/`table` caen a 0, el resto mide 109 de deuda (10
+>   módulos sin puerta + 99 imports cruzados).
+> - Efecto forzado: tocar `bestiary/ui` disparó el chequeo `specs` (sección 9, no relacionado con esta tarea)
+>   sobre `specs/modules/bestiary/SPEC.md` — reescrito a las nueve secciones en inglés (261 líneas de diario
+>   en castellano → 173 en inglés, mismo contenido real reorganizado). El Review de esta rama cazó y corrigió
+>   una afirmación vieja e inexacta sobre `DmEncounters`: no es el desplegable de buscar-y-colocar de la
+>   escena; gestiona lo YA colocado, vive dentro del panel del lanzador de dados del director (
+>   `DmLauncherEncounters` en `table/ui/TablePage.tsx`), lo pinta `table`, no `maps` — verificado contra el
+>   código vivo por el QA también.
+> - `specs/SPEC.md`: `maps` y `table` pasan a ✅ en la tabla de la puerta.
+>
+> **QA sobre el HEAD de la rama: APROBADO a la primera, modo `block`, sin desvíos de spec.**
+> Hexagonal/seguridad/RLS/diseño/i18n limpios (0 hard en `npm run audit`); regresión completa 2528/2528 (web
+> 2059 · api 305 · core 133 · ui 31) + smoke 12 + functional 58, todo verde — un flake de jsdom-canvas en
+> `SceneTab.test.tsx` corriendo la suite completa que desaparece al re-correr (`getContext` no implementado
+> en jsdom, ya visto antes; no es de esta rama, que sólo mueve imports); `npm run typecheck` limpio; advisors
+> 0 CRITICAL (esta rama no toca migraciones, así que la base no pudo moverse); build web+api limpios; probes
+> `/health` y frontend 200/200. Las 11 archivos tocados en `apps/web/src` son import-path-only o barril de
+> re-export puro — cosmético, sin test nuevo, mismo precedente que otros barriles del repo.
+>
+> ✅ **Hallazgo del QA, YA CERRADO en esta misma rama**: `ARCHITECTURE.md` § «Hexagonal architecture» no
+> mencionaba la puerta `index.ts` que esta rama vuelve regla real — el patrón vivía sólo en `CLAUDE.md` y en
+> el backlog de `specs/SPEC.md`, no en el documento que describe cómo se arma un módulo. Añadida junto al
+> párrafo de `container.ts`, con qué es duro y qué es aviso y la lista de lo que queda.
+> Y de paso, una línea FALSA en el mismo archivo: decía «specs written in Spanish», que contradice su orden
+> del 17-09. Corregida a inglés, con la excepción de sus citas literales.
+>
+> ## 🚪 LA PUERTA DE CADA MÓDULO — lo que queda, tras esta rama
+> De la tabla de `specs/SPEC.md`: `characters` (30) · `campaigns` (17) · `dice` (14 + 7 en su `ui`) ·
+> `bestiary` (3+4) · `chat` (2+2) · `auth` (1, entra en su infra). Se cierran **según se toque cada módulo**,
+> nunca en lote — igual que los specs.
+>
+> ## ⏭️ SIGUIENTE PASO CONCRETO
+> Mergear `feat/la-puerta-de-cada-modulo` → `main` (QA en verde, decisión de mergear es suya) y, cuando toque
+> otro módulo de la lista de arriba, sumarle su `index.ts` de una vez.
+>
+> ---
+>
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-18) — sesión anterior (v0.13.0 a producción)
 >
 > ## 🚀 v0.13.0 EN PRODUCCIÓN — LA RED DE SEGURIDAD AL PINTAR
 > Merge `0e5a8bd` (`feat/red-de-seguridad-al-pintar` → `main`, 20 commits incluido el bump). QA **quinta

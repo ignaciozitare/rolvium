@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
+import { initialsOf } from '@/modules/maps';
 import { gameValuesOf } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
 

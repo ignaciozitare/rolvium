@@ -360,6 +360,7 @@ const SECTIONS = [
   ['ui-reuse',   '@rolvium/ui reuse'],
   ['ui-panels',  'table panels, sliders & options from @rolvium/ui'],
   ['i18n',       'es/en key parity'],
+  ['module-index', 'la puerta de cada módulo (index.ts)'],
 ];
 // 9. SPECS — cada módulo y área core tiene su SPEC.md, y con las secciones que lo hacen reconstruible  (HARD)
 //
@@ -409,6 +410,59 @@ const CORE_DE = [
     const msg = [faltan.length ? `sin ${faltan.join(' / ')}` : null, lineas < SPEC_MIN_LINEAS ? `${lineas} líneas (mínimo ${SPEC_MIN_LINEAS})` : null].filter(Boolean).join(' · ');
     if (!msg) continue;
     (duro ? H : W)('specs', spec, null, `${msg}${duro ? '  ← la rama toca este módulo' : ''}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. MODULE INDEX — la puerta de cada módulo (`index.ts`)  (HARD sólo para lo NUEVO)
+//
+// Orden suya, 2026-09-17: «hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a
+// poco, y procura no agregar cosas sin él». Ningún módulo tenía `index.ts`; sin esa puerta nada declaraba
+// qué es público, y 98 importaciones entraban dentro de otro módulo (7 directamente en la `ui` ajena).
+//
+// Dos violaciones, cada una dura sólo para lo que la rama AGREGA — lo viejo se cierra según se toque cada
+// módulo, igual que `specs`:
+//   · un módulo NUEVO (no existía en `main`) sin `index.ts`
+//   · una importación cruzada NUEVA (`@/modules/<otro>/<algo>`, desde fuera de ese módulo) añadida en el diff
+{
+  const nuevasLineas = new Set(); // `ruta contenido` añadido por esta rama (best-effort por diff)
+  const modulesOnMain = new Set();
+  let diffDisponible = false;
+  try {
+    const base = execSync('git merge-base HEAD main', { encoding: 'utf8' }).trim();
+    const diff = execSync(`git diff --unified=0 ${base}...HEAD -- apps/web/src`, { encoding: 'utf8' });
+    let currentFile = null;
+    for (const dl of diff.split('\n')) {
+      if (dl.startsWith('+++ b/')) { currentFile = dl.slice(6); continue; }
+      if (dl.startsWith('+++') || dl.startsWith('---')) continue;
+      if (dl.startsWith('+') && currentFile) nuevasLineas.add(`${currentFile} ${dl.slice(1)}`);
+    }
+    execSync(`git ls-tree -d --name-only ${base}:apps/web/src/modules`, { encoding: 'utf8' })
+      .split('\n').filter(Boolean).forEach((p) => modulesOnMain.add(path.basename(p)));
+    diffDisponible = true;
+  } catch { /* sin git o sin main: nada sale como nuevo, todo mide como deuda vieja (falla abierto) */ }
+
+  // 10a. cada módulo declara su puerta
+  for (const m of listDirs(modulesDir)) {
+    if (fs.existsSync(path.join(modulesDir, m, 'index.ts'))) continue;
+    const esNuevo = diffDisponible && !modulesOnMain.has(m);
+    (esNuevo ? H : W)('module-index', path.join(modulesDir, m), 0,
+      `módulo "${m}" sin index.ts${esNuevo ? '  ← nace en esta rama' : ''}`);
+  }
+
+  // 10b. nada entra por dentro de otro módulo desde fuera — se importa `@/modules/<nombre>`, nunca un fichero de dentro
+  const crossRe = /from\s+['"]@\/modules\/([^/'"]+)\/([^'"]+)['"]/;
+  for (const f of webTsx) {
+    if (isTest(f)) continue;
+    const relF = rel(f).replace(/^apps\/web\/src\//, '');
+    const ownModule = relF.startsWith('modules/') ? relF.split('/')[1] : null;
+    lines(f).forEach((ln, i) => {
+      const m = ln.match(crossRe);
+      if (!m || m[1] === ownModule) return;
+      const esNueva = nuevasLineas.has(`${rel(f)} ${ln}`);
+      (esNueva ? H : W)('module-index', f, i + 1,
+        `entra dentro de "${m[1]}" en vez de "@/modules/${m[1]}":  ${ln.trim().slice(0, 90)}${esNueva ? '  ← nueva en esta rama' : ''}`);
+    });
   }
 }
 

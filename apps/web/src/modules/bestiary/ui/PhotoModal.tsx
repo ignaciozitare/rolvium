@@ -1,6 +1,6 @@
 import { useTranslation } from '@rolvium/i18n';
 import { SheetOverlay } from './SheetOverlay';
-import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
+import { initialsOf } from '@/modules/maps';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
 

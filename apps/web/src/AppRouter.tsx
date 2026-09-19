@@ -7,7 +7,7 @@ import { ForgotPage } from '@/modules/identity/ui/ForgotPage';
 import { ResetPage } from '@/modules/identity/ui/ResetPage';
 import { AccountPage } from '@/modules/identity/ui/AccountPage';
 import { CampaignsPage } from '@/modules/campaigns/ui/CampaignsPage';
-import { TablePage } from '@/modules/table/ui/TablePage';
+import { TablePage } from '@/modules/table';
 import { CharactersPage } from '@/modules/characters/ui/CharactersPage';
 import { CharacterSheetPage } from '@/modules/characters/ui/CharacterSheetPage';
 import { SystemsPage } from '@/modules/systems/ui/SystemsPage';

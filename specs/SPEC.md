@@ -59,18 +59,19 @@ secciones de `CLAUDE.md` § «Specs» antes de dar la tarea por terminada. Nunca
 > «*hay que arreglar esto del index, ponlo en el backlog y ve corrigiéndolo de a poco, y procura no agregar
 > cosas sin él*»
 
-**Ningún módulo tiene `index.ts`.** Sin esa puerta, 98 importaciones entran dentro de otro módulo. Se cierra
-**según se toque cada uno**; lo nuevo nace ya con puerta (duro en `npm run audit`).
+**Ningún módulo tenía `index.ts`.** Sin esa puerta, 98 importaciones entraban dentro de otro módulo. Se cierra
+**según se toque cada uno**; lo nuevo nace ya con puerta — chequeo `module-index` en `npm run audit`, duro sólo
+para un módulo nuevo sin puerta o una importación cruzada nueva (lo viejo mide como aviso y se cierra de a poco).
 
-| Módulo | Importaciones que entran por dentro | Su cara pública sería |
+| Módulo | Importaciones que entraban por dentro | Su cara pública |
 |---|---|---|
+| ✅ `maps` | 12 + 1 en su `ui` | `container` · `Scene` (entidades) · `MapsPort` · `VisionPort` · `ToolbarOrderPort` · `mapRules` (reglas) · `SceneTab` — `apps/web/src/modules/maps/index.ts` |
+| ✅ `table` | 1 | `TablePage` — `apps/web/src/modules/table/index.ts` |
 | `characters` | 30 | `container` · `Character` · `CharactersPort` · `characterRules` · `systemText` · 3 páginas |
 | `campaigns` | 17 | `container` · `Campaign` · `CampaignsPort` · `campaignRules` · `CampaignsPage` |
 | `dice` | 14 + 7 en su `ui` | `container` · `Roll` · sus puertos · sus paneles |
-| `maps` | 12 + 1 en su `ui` | `container` · `Scene` · `MapsPort` · `VisionPort` · `ToolbarOrderPort` · `mapRules` · `SceneTab` |
 | `bestiary` · `chat` | 3 + 4 · 2 + 2 | ⏳ |
 | `auth` | 1 (entra en su **infra**) | ⏳ |
-| `table` | 1 | `TablePage` |
 
 ### Specs existentes por debajo del listón
 

@@ -57,7 +57,8 @@ Rules:
 - Design source of truth is `rolvium.pen`; system visual assets live in
   `design/<system>/` (design) and `apps/web/public/systems/<system>/` (runtime).
 
-Naming: **code and ids in English**, UI copy through i18n keys, specs written in Spanish.
+Naming: **code and ids in English**, UI copy through i18n keys, **specs written in English**
+(owner's decision, 2026-09-17 — his own words stay quoted verbatim in Spanish).
 
 ## Hexagonal architecture (both apps)
 - **domain/** ports (interfaces) + entities — no framework imports.
@@ -67,6 +68,12 @@ Naming: **code and ids in English**, UI copy through i18n keys, specs written in
   from `/infra/`, never `fetch()`/`supabase.from()` directly.
 - **container.ts** per module: instantiates adapters and exports them (`authRepository`,
   `adminDeps`). Tests inject fakes through props (`AdminShell deps=`, `AuthProvider repo=`).
+- **index.ts** per module — **the module's door** (owner's order, 2026-09-17): it declares the whole
+  public surface (its container, entities, ports, rules and pages) and nothing else. From outside you
+  import `@/modules/<name>`, never a file inside it; within the module, relative paths as always.
+  Enforced by the `module-index` check in `npm run audit`: HARD for a new module without a door or a
+  newly added import reaching inside another module, WARN with the debt measured for what predates it
+  (`maps` and `table` done; `characters` · `campaigns` · `dice` · `bestiary` · `chat` · `auth` pending).
 
 ### Web modules
 | Module | Purpose | Key files |
