@@ -17,7 +17,8 @@ dba → scaffold → design (`.pen`) → dev → review → qa.
 2. **Las tablas de PNJ y encuentros son texto enriquecido en v1.** Se escriben y se leen dentro
    del documento, como en un manual impreso. Enlazarlas con entidades reales exige el **Bestiario
    (H5)**, que no está construido, y es otra rebanada.
-3. **Sección propia en la cabecera de la plataforma**, no una pestaña más de la Mesa. Con **rail
+3. ⚠️ *(Leer junto al punto 10: las aventuras van DENTRO de la campaña, no en el menú de arriba.)*
+   **Sección propia en la cabecera de la plataforma**, no una pestaña más de la Mesa. Con **rail
    lateral** de aventuras (1, 2, 3…) a lo OneNote, y **abrible en ventana aparte** como la ficha
    de personaje.
 4. **El editor guarda solo.** Sin botón de guardar.
@@ -42,6 +43,16 @@ dba → scaffold → design (`.pen`) → dev → review → qa.
 9. **El documento de una aventura y el de Notas/Bitácora son el MISMO árbol de bloques** (`{ v, blocks[] }`).
    Aventuras añade los suyos propios —`sceneRef` y las tablas de PNJ/encuentro—; `journal` usa el subconjunto.
    Un solo vocabulario y un solo pintor.
+10. ⚠️ **LAS AVENTURAS VIVEN DENTRO DE LA CAMPAÑA — corrige la lectura del punto 3.** El punto 3 dice
+    «sección propia en la cabecera de la plataforma» y el 2026-09-19 se leyó como una entrada más del menú de
+    arriba (Campañas · **Aventuras** · Personajes · Sistemas), con un selector de campaña dentro. Él lo paró en
+    cuanto lo vio: «*pero estas poniendo las aventuras fuera de la cmapaña, y una campaña es un conjunto de
+    aventuras, no tiene sentido lo que haces*». Y era lo que había pedido desde el principio: «*la vista de la
+    campaña donde el director en algo similar a one note pueda poner las aventuras*».
+    **Lo que manda**: las aventuras son **lo que se ve al entrar en una campaña**. Menú de arriba sin tocar
+    (Campañas marcada); debajo, la cabecera de la campaña (← Campañas · su nombre · «Ir a la mesa»); dentro, el
+    cuaderno. Lo que el punto 3 sí quería decir, y sigue en pie: **no es una pestaña de la Mesa**. La ruta del
+    modelo de datos ya lo decía bien: `/campanas/:id/aventuras/:adventureId?`, colgando de la campaña.
 
 ⏳ **Deuda de este spec**: sigue en castellano y sin las nueve secciones que `CLAUDE.md` exige desde el
 2026-09-17. Se reescribe **cuando se construya el módulo**, no antes: reescribir de golpe un spec cerrado por
