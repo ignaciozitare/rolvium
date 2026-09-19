@@ -1821,5 +1821,43 @@
       "others": "Other rolls",
       "othersHint": "Press and hold one to pick the difficulty, same as with the players."
     }
+  },
+  "journal": {
+    "loading": "Opening…",
+    "loadError": "This could not be opened.",
+    "retry": "Try again",
+    "index": "Index",
+    "indexEmpty": "No headings yet. Add an H1 and it will show up here.",
+    "indexClose": "Close the index",
+    "saving": "saving…",
+    "savedJustNow": "saved a moment ago",
+    "savedMinutes": "saved {{n}} min ago",
+    "savedHours": "saved {{n}} h ago",
+    "saveError": "could not be saved",
+    "conflict": "someone saved first",
+    "conflictHelp": "Someone else saved the logbook while you were writing. Your text is still here and theirs was not overwritten.",
+    "reload": "See what is there",
+    "notes": {
+      "hint": "Private: nobody else sees them, not even the GM. They save by themselves.",
+      "placeholder": "Your notes for this campaign…"
+    },
+    "logbook": {
+      "hint": "Shared: everyone can read and write it. It saves by itself.",
+      "placeholder": "What happened in the session…"
+    },
+    "editor": {
+      "toolbar": "Formatting",
+      "h1": "Heading",
+      "h2": "Subheading",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulleted": "Bulleted list",
+      "numbered": "Numbered list",
+      "quote": "Quote",
+      "divider": "Divider",
+      "quoteLabel": "To read out loud",
+      "textField": "Document text",
+      "removeBlock": "Remove block"
+    }
   }
 }

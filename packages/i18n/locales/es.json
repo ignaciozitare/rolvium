@@ -1821,5 +1821,43 @@
       "others": "Otras tiradas",
       "othersHint": "Mantén pulsada una para elegir dificultad, igual que con los jugadores."
     }
+  },
+  "journal": {
+    "loading": "Abriendo…",
+    "loadError": "No se ha podido abrir esto.",
+    "retry": "Reintentar",
+    "index": "Índice",
+    "indexEmpty": "Todavía no hay títulos. Pon un H1 y aparecerá aquí.",
+    "indexClose": "Cerrar el índice",
+    "saving": "guardando…",
+    "savedJustNow": "guardado hace un momento",
+    "savedMinutes": "guardado hace {{n}} min",
+    "savedHours": "guardado hace {{n}} h",
+    "saveError": "no se ha podido guardar",
+    "conflict": "alguien guardó antes",
+    "conflictHelp": "Otra persona guardó la bitácora mientras escribías. Tu texto sigue aquí y no se ha pisado el suyo.",
+    "reload": "Ver lo que hay",
+    "notes": {
+      "hint": "Privadas: nadie más las ve, tampoco el director. Se guardan solas.",
+      "placeholder": "Tus apuntes de esta campaña…"
+    },
+    "logbook": {
+      "hint": "Compartida: todos pueden leer y escribir. Se guarda sola.",
+      "placeholder": "Qué pasó en la partida…"
+    },
+    "editor": {
+      "toolbar": "Formato",
+      "h1": "Título",
+      "h2": "Subtítulo",
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "bulleted": "Lista",
+      "numbered": "Lista numerada",
+      "quote": "Cita",
+      "divider": "Separador",
+      "quoteLabel": "Para leer en voz alta",
+      "textField": "Texto del documento",
+      "removeBlock": "Quitar el bloque"
+    }
   }
 }

@@ -3,3 +3,4 @@
 export * from './container';
 export * from './domain/entities/Journal';
 export type { JournalPort } from './domain/ports/JournalPort';
+export { JournalPanel } from './ui/JournalPanel';

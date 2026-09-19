@@ -1,0 +1,35 @@
+/* Notas y Bitácora (H9) dentro del carril lateral de la mesa.
+   Diseño: rolvium.pen § 4 · «Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE».
+   Aquí no hay claro/oscuro: dentro de la mesa manda el tema del sistema (--sys-*). */
+
+.jr-panel{display:flex;flex-direction:column;gap:8px;min-height:0;position:relative;}
+
+/* La línea de arriba: de quién es lo que se escribe. Es lo que evita escribir en el sitio equivocado. */
+.jr-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);}
+
+.jr-bar{display:flex;align-items:center;gap:8px;}
+.jr-index-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid var(--sys-blood);
+  background:transparent;color:var(--sys-blood);font-family:var(--sys-font-body);font-size:var(--fs-2xs);
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
+.jr-index-btn.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.jr-index-btn .material-symbols-outlined{font-size:var(--icon-xs);}
+.jr-saved{margin-left:auto;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+
+.jr-conflict{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:6px 8px;
+  font-size:var(--fs-2xs);line-height:var(--lh-normal);color:var(--sys-ink);
+  background:color-mix(in srgb,var(--sys-gold) 18%,transparent);}
+.jr-link{border:none;background:transparent;padding:0;color:var(--sys-blood);font-family:var(--sys-font-body);
+  font-size:inherit;text-decoration:underline;cursor:pointer;}
+
+.jr-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px 8px;text-align:center;
+  font-size:var(--fs-sm);font-style:italic;color:var(--sys-ink-dim);}
+
+/* El ÍNDICE se abre PEGADO AL CARRIL Y POR ENCIMA DE LA MESA, a su izquierda — no dentro del texto ni
+   empujando el editor (orden suya, 19-09: «al lado del navegador»). El carril es estrecho: si el índice
+   entrara dentro, no quedaría sitio para escribir. */
+.jr-index-float{position:absolute;top:34px;right:calc(100% + 10px);width:204px;max-height:60vh;overflow-y:auto;
+  z-index:5;box-shadow:var(--sys-card-shadow);}
+
+.jr-editor{min-height:0;}
+/* Dentro del carril la página no lleva su propio filo ni tanto aire: el panel ya es el papel. */
+.jr-editor .rv-rt-page{padding:10px 12px;border:none;background:transparent;}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { RichBlock, RichDoc, RichText, TableBlock } from '@rolvium/core';
 import {
   addTableRow, divider, docForEditing, insertAfter, insertItemAfter, list, paragraph, removeBlock, removeItem,
@@ -68,7 +68,15 @@ export interface RichTextEditorProps {
 export function RichTextEditor({
   doc, onChange, labels, readOnly, features, onPickScene, onOpenScene, className,
 }: RichTextEditorProps) {
-  const blocks = docForEditing(doc).blocks;
+  /**
+   * El documento con el que se TRABAJA. Un documento vacío se abre con un párrafo para tener dónde poner el
+   * cursor, y hay que editar contra ESTE, no contra el de fuera: si no, lo que se escribiera en ese primer
+   * párrafo no encontraría su bloque y se perdía tecla a tecla (cazado por el test de la Bitácora vacía).
+   * Y va con `useMemo` porque ese párrafo tiene que ser SIEMPRE EL MISMO mientras el documento no cambie:
+   * creándolo en cada pintada, el primer clic ya lo sustituía por otro y el foco se perdía antes de escribir.
+   */
+  const current = useMemo(() => docForEditing(doc), [doc]);
+  const blocks = current.blocks;
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const active = blocks.find(b => b.id === activeId) ?? null;
@@ -77,14 +85,14 @@ export function RichTextEditor({
   const apply = useCallback((next: RichDoc) => { onChange(next); }, [onChange]);
 
   // Cambiar de estilo NO puede echar al cursor del bloque: se vuelve a pedir el foco para el mismo bloque.
-  const style = (s: TextBlockStyle) => { if (activeId) { apply(setTextStyle(doc, activeId, s)); setFocusId(activeId); } };
+  const style = (s: TextBlockStyle) => { if (activeId) { apply(setTextStyle(current, activeId, s)); setFocusId(activeId); } };
   const inline = (command: 'bold' | 'italic') => {
     // `execCommand` sigue siendo la única forma de poner negrita en lo SELECCIONADO sin montar un motor de
     // edición entero. El `input` que provoca es el que mete el cambio en el documento.
     const exec = (globalThis as { document?: { execCommand?: (c: string) => boolean } }).document?.execCommand;
     if (typeof exec === 'function') exec.call(globalThis.document, command);
   };
-  const insert = (block: RichBlock) => { apply(insertAfter(doc, activeId, block)); setFocusId(block.id); };
+  const insert = (block: RichBlock) => { apply(insertAfter(current, activeId, block)); setFocusId(block.id); };
 
   const addScene = async () => {
     if (!onPickScene) return;
@@ -131,9 +139,9 @@ export function RichTextEditor({
             as={block.type === 'heading' ? (block.level === 1 ? 'h1' : 'h2') : 'div'}
             className={block.type === 'heading' ? `rv-rt-h${block.level}` : `rv-rt-${block.type}`}
             text={block.text}
-            onChange={text => apply(setText(doc, block.id, text))}
+            onChange={text => apply(setText(current, block.id, text))}
             onEnter={() => insert(paragraph())}
-            onBackspaceAtStart={() => { if (block.text.length === 0) apply(removeBlock(doc, block.id)); }}
+            onBackspaceAtStart={() => { if (block.text.length === 0) apply(removeBlock(current, block.id)); }}
           />
         );
         if (block.type !== 'quote') return editable;
@@ -153,9 +161,9 @@ export function RichTextEditor({
                 <EditableText
                   {...textProps(block)}
                   text={item}
-                  onChange={text => apply(setItem(doc, block.id, i, text))}
-                  onEnter={() => apply(insertItemAfter(doc, block.id, i))}
-                  onBackspaceAtStart={() => { if (item.length === 0) apply(removeItem(doc, block.id, i)); }}
+                  onChange={text => apply(setItem(current, block.id, i, text))}
+                  onEnter={() => apply(insertItemAfter(current, block.id, i))}
+                  onBackspaceAtStart={() => { if (item.length === 0) apply(removeItem(current, block.id, i)); }}
                 />
               </li>
             ))}
@@ -196,7 +204,7 @@ export function RichTextEditor({
                     {...textProps(block)}
                     placeholder={block.columns[c] ?? ''}
                     text={cell}
-                    onChange={text => apply(setCell(doc, block.id, r, c, text))}
+                    onChange={text => apply(setCell(current, block.id, r, c, text))}
                   />
                 </td>
               ))}
@@ -205,7 +213,7 @@ export function RichTextEditor({
         </tbody>
       </table>
       {!readOnly && (
-        <button type="button" className="rv-rt-addrow" onClick={() => apply(addTableRow(doc, block.id))}>
+        <button type="button" className="rv-rt-addrow" onClick={() => apply(addTableRow(current, block.id))}>
           <span className="material-symbols-outlined" aria-hidden="true">add</span>
           {labels.addRow ?? ''}
         </button>
