@@ -35,13 +35,13 @@ strictly separate Notas.
 
 | Screen / part | What it is | Plate |
 |---|---|---|
-| Notas | Side-rail tab: the editor, filling the rail, plus the save indicator | ⏳ `rolvium.pen` — pending design |
-| Bitácora | Same editor, shared document; header names the campaign | ⏳ `rolvium.pen` — pending design |
-| Index panel | Opens beside the text on «Índice»: H1s with their H2s nested, click to jump | ⏳ `rolvium.pen` — pending design |
-| Empty state | A campaign with nothing written yet | ⏳ `rolvium.pen` — pending design |
+| Notas | Side-rail tab: the editor, filling the rail, plus the save indicator | § 4 · `Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE` |
+| Bitácora | Same editor, shared document | § 4 · same plate, second panel |
+| Index panel | Opens beside the rail on «Índice»: H1s with their H2s nested, click to jump | § 4 · same plate, third panel |
+| Empty state | A campaign with nothing written yet | § 4 · same plate (the editor with its placeholder line) |
 
-⚠️ **Not yet designed.** The `.pen` blueprint has to exist and be approved by him before a line of UI is
-written (`CLAUDE.md` § Design Agent). These rows get their plate names once it does.
+✅ **Designed and approved by him on 2026-09-19** («*aprobado*»). The two panels of 2026-09-15 that this
+replaces are marked «SUSTITUIDO 19-09» in the `.pen`.
 
 **The editor is not this module's.** It is a shared component in `packages/ui` — `Notas`, `Bitácora` and
 `adventures` (H12) all mount the same one. See § Decisions.
@@ -107,6 +107,9 @@ journal_notes                                  journal_logbook
 
 - `doc` is the **same block tree as `adventures_adventures.doc`** (`{ "v": 1, "blocks": [...] }`), minus the
   blocks that only make sense in an adventure (`sceneRef`, the npc/encounter tables). One schema, one painter.
+  The shape is fixed by `specs/modules/adventures/SPEC.md` § «The document (`doc`)» and lives in code at
+  `packages/core/src/richDoc.ts`: `parseDoc` is the only way in (it drops what it does not understand rather
+  than breaking the screen) and `buildDocIndex` computes the index.
 - **RLS**, `TO authenticated` only, never `TO anon`:
   - `journal_notes`: every command gated on `user_id = auth.uid()`. No admin bypass.
   - `journal_logbook`: gated on being a member of the campaign, through the existing campaign helper.
