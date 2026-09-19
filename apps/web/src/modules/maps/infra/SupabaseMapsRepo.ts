@@ -8,7 +8,7 @@ import { DEFAULT_BAND_ROUGHNESS, DEFAULT_BAND_TIP, isBandTip } from '../domain/u
 import { propPath } from '../domain/useCases/propRules';
 import { layerPaintPath, rockPaintPath, roomPaintPath } from '../domain/useCases/paintRules';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; wall_texture_rotation?: number; floor_texture_rotation?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 B — la punta de «A pulso», opcionales por lo mismo */ band_tip?: string; band_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
+interface SceneRow { id: string; campaign_id: string; adventure_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; wall_texture_rotation?: number; floor_texture_rotation?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 B — la punta de «A pulso», opcionales por lo mismo */ band_tip?: string; band_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
@@ -23,7 +23,7 @@ interface TextureRow { id: string; name: string; category: TextureCategory; url:
 interface PropRow { id: string; pack_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; /* § 6.9 — la silueta, en fracciones de la huella. `null` = pieza de antes, o PNG sin contorno */ default_silhouette: Silhouette | null; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; /* rebanada 6 · orden de apilado — opcional a propósito: una fila anterior a la columna no lo trae */ z?: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; /* § 6.9 — copiada de la biblioteca al plantar */ silhouette: Silhouette | null; created_at: string; updated_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, wall_texture_rotation, floor_texture_rotation, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, band_tip, band_roughness, rock_paint_url, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, adventure_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, wall_texture_rotation, floor_texture_rotation, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, band_tip, band_roughness, rock_paint_url, created_at, updated_at';
 const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, floor_paint_url, created_at, updated_at';
 const COLOR_COLS = 'id, campaign_id, color, created_at';
 /**
@@ -72,7 +72,7 @@ function doorPatchRow(p: Partial<DoorSettings>): Record<string, unknown> {
 }
 
 export const mapSceneRow = (r: SceneRow): Scene => ({
-  id: r.id, campaignId: r.campaign_id, name: r.name, width: r.width, height: r.height, bgColor: r.bg_color, bgImageUrl: r.bg_image_url,
+  id: r.id, campaignId: r.campaign_id, adventureId: r.adventure_id, name: r.name, width: r.width, height: r.height, bgColor: r.bg_color, bgImageUrl: r.bg_image_url,
   bgTransform: r.bg_transform ?? { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: r.grid ?? { size: 27, visible: true }, fogMode: r.fog_mode,
   lighting: r.lighting ?? 'day', nightRadiusM: r.night_radius_m ?? DEFAULT_NIGHT_RADIUS_M,
   // Una escena guardada antes de la rebanada 4 no trae la columna: se lee como «no sólidas», que es como estaba.
@@ -243,6 +243,8 @@ const mapImageRow = (r: ImageRow): ImageAsset => ({ id: r.id, campaignId: r.camp
 
 function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};
+  // Mover una escena a otra aventura es cambiar esta columna; la escena, con todo lo suyo, no se toca.
+  if (p.adventureId !== undefined) row.adventure_id = p.adventureId;
   if (p.name !== undefined) row.name = p.name;
   if (p.width !== undefined) row.width = p.width;
   if (p.height !== undefined) row.height = p.height;
@@ -335,6 +337,8 @@ export class SupabaseMapsRepo implements MapsPort {
   }
   async createScene(input: CreateSceneInput): Promise<Scene> {
     const row: Record<string, unknown> = { campaign_id: input.campaignId, name: input.name, created_by: await this.me() };
+    // Sin aventura, la base la cuelga sola de la aventura en curso (trigger `maps_scenes_default_adventure`).
+    if (input.adventureId !== undefined) row.adventure_id = input.adventureId;
     if (input.width !== undefined) row.width = input.width;
     if (input.height !== undefined) row.height = input.height;
     if (input.bgColor !== undefined) row.bg_color = input.bgColor;

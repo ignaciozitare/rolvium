@@ -5,7 +5,7 @@ import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
 import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPackRow, mapPropRow, mapRoomRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
-const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
+const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', adventure_id: 'adv-1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
 const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false, group_id: null };
 const LAYER_ROW = { id: 'ly-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'terrain' as const, name: 'Musgo', sort_order: 1, visible: true, locked: false, image_url: 'https://x/moss.png', transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, mask_url: 'https://x/masks/ly-1.png', mask_version: 3, created_at: 't', updated_at: 't' };
@@ -92,6 +92,21 @@ describe('SupabaseMapsRepo — scenes', () => {
     expect(m.updateSpy).toHaveBeenLastCalledWith({ active_scene_id: 'sc-1' });
     const noSession = createSupabaseMock();
     await expect(new SupabaseMapsRepo(noSession.client as unknown as SupabaseClient).createScene({ campaignId: 'c1', name: 'x' })).rejects.toThrow('not_authenticated');
+  });
+
+  it('la escena lleva su AVENTURA encima (H12): se lee, se puede decir al crearla, y moverla de aventura es cambiarla', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: SCENE_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(withSession(m.client, 'u-gm') as unknown as SupabaseClient);
+    expect((await repo.getScene('sc-1'))?.adventureId).toBe('adv-1');
+
+    // Sin decirla, NO se manda: la cuelga la base de la aventura en curso (trigger `maps_scenes_default_adventure`).
+    await repo.createScene({ campaignId: 'c1', name: 'Almacén' });
+    expect(m.insertSpy).toHaveBeenCalledWith({ campaign_id: 'c1', name: 'Almacén', created_by: 'u-gm' });
+    await repo.createScene({ campaignId: 'c1', name: 'El sótano', adventureId: 'adv-2' });
+    expect(m.insertSpy).toHaveBeenLastCalledWith({ campaign_id: 'c1', name: 'El sótano', created_by: 'u-gm', adventure_id: 'adv-2' });
+
+    await repo.updateScene('sc-1', { adventureId: 'adv-2' });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ adventure_id: 'adv-2' });
   });
 });
 
