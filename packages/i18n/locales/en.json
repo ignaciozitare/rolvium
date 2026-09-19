@@ -1902,6 +1902,7 @@
       "running": "Running",
       "done": "Done",
       "archived": "Archived"
-    }
+    },
+    "sceneCountOne": "1 scene"
   }
 }

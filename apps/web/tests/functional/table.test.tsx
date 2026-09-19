@@ -9,6 +9,8 @@ import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, fakeChatPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, initialTabFor, tabsFor, askTargetsFrom } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
+import type { AdventuresPort } from '@/modules/adventures';
+import { heading, paragraph, type RichDoc } from '@rolvium/core';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
 
@@ -49,12 +51,29 @@ const fakeBestiaryRepo = (): BestiaryPort => ({
   create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
 });
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort()) {
+/**
+ * AVENTURAS (H12) se inyecta por la misma razón exacta que el Bestiario: sin el puerto, abrir la pestaña en
+ * un test iría contra el contenedor real —y contra Supabase—, y la pestaña del director no se podría probar.
+ */
+const ADVENTURE_DOC: RichDoc = { v: 1, blocks: [heading(1, [{ t: 'El almacén' }]), paragraph([{ t: 'Llegan de noche.' }])] };
+const fakeAdventuresRepo = (): AdventuresPort => ({
+  list: vi.fn().mockResolvedValue([{
+    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc: ADVENTURE_DOC,
+    status: 'running', sortOrder: 0, updatedAt: '2026-09-20T10:00:00Z',
+  }]),
+  getById: vi.fn(async () => ({
+    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc: ADVENTURE_DOC,
+    status: 'running', sortOrder: 0, updatedAt: '2026-09-20T10:00:00Z',
+  })),
+  create: vi.fn(), update: vi.fn(), saveDoc: vi.fn(), remove: vi.fn(),
+} as unknown as AdventuresPort);
+
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog, maps, vision, bestiary, attacks, chat };
+  return { rolls, rollLog, maps, vision, bestiary, attacks, chat, adventures };
 }
 
 describe('table: rules', () => {
@@ -161,6 +180,40 @@ describe('table: page', () => {
     await u.click(within(card).getByRole('button', { name: 'Colocar' }));
 
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Ogro' })).not.toBeInTheDocument());
+  });
+
+  /**
+   * AVENTURAS (H12) — la pestaña del director, del 2026-09-20. Es SÓLO suya (`tabsFor`), monta el hexágono de
+   * verdad con la campaña de la mesa, y abrir una escena desde el carril hace las DOS cosas que prometía el
+   * comentario de `TablePage`: la marca activa y salta a la escena.
+   */
+  it('la pestaña AVENTURAS es del director, y monta el cuaderno con la campaña de la mesa', async () => {
+    const u = userEvent.setup();
+    const { adventures } = mount(GM, fakeTableRepo('dm'));
+    await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
+
+    await waitFor(() => expect(adventures.list).toHaveBeenCalledWith('c1'));
+    expect(await screen.findByRole('textbox', { name: 'Título de la aventura' })).toHaveValue('El almacén de los muelles');
+  });
+
+  it('el jugador no tiene la pestaña AVENTURAS', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('button', { name: 'Escena' });
+    expect(screen.queryByRole('button', { name: 'Aventuras' })).toBeNull();
+  });
+
+  it('abrir una escena desde una aventura la marca activa Y lleva a la escena', async () => {
+    const u = userEvent.setup();
+    // La escena tiene que colgar de ESTA aventura: el carril sólo enseña las suyas.
+    const maps = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }] });
+    mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps);
+    await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
+    await screen.findByRole('textbox', { name: 'Título de la aventura' });
+
+    await u.click(await screen.findByRole('button', { name: new RegExp(SCENE_WAREHOUSE.name) }));
+    await waitFor(() => expect(maps.activated).toContain(SCENE_WAREHOUSE.id));
+    // Y se sale del cuaderno: se coloca en la escena, no se queda leyendo.
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Título de la aventura' })).toBeNull());
   });
 
   it('non-member sees the notice', async () => {

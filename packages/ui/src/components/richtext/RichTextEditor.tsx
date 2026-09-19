@@ -142,6 +142,17 @@ export function RichTextEditor({
             onChange={text => apply(setText(current, block.id, text))}
             onEnter={() => insert(paragraph())}
             onBackspaceAtStart={() => { if (block.text.length === 0) apply(removeBlock(current, block.id)); }}
+            // Pegar varias líneas deja un párrafo por línea, en vez de pegarlas todas seguidas.
+            onPasteLines={lines => {
+              let next = current;
+              let after: string = block.id;
+              for (const line of lines) {
+                const b = paragraph([{ t: line }]);
+                next = insertAfter(next, after, b);
+                after = b.id;
+              }
+              apply(next);
+            }}
           />
         );
         if (block.type !== 'quote') return editable;
@@ -202,6 +213,9 @@ export function RichTextEditor({
                 <td key={`${block.id}-${r}-${c}`}>
                   <EditableText
                     {...textProps(block)}
+                    // Cada celda se llama por SU columna: en una tabla de cuatro, oír «Texto del documento»
+                    // cuatro veces no dice en cuál estás.
+                    ariaLabel={block.columns[c] ?? labels.textField}
                     placeholder={block.columns[c] ?? ''}
                     text={cell}
                     onChange={text => apply(setCell(current, block.id, r, c, text))}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spansFromNode, syncNode } from './spans';
+import { caretAtStart, placeCaret, sameText, spansFromNode, syncNode } from './spans';
 
 const div = (html: string): HTMLElement => {
   const el = document.createElement('div');
@@ -61,5 +61,42 @@ describe('syncNode — escribir los tramos en el DOM', () => {
     syncNode(el, [{ t: 'algo' }]);
     syncNode(el, []);
     expect(el.childNodes).toHaveLength(0);
+  });
+});
+
+/**
+ * Es lo que decide si un trozo CON EL CURSOR DENTRO hay que repintarlo: si el documento dice lo mismo que hay
+ * escrito, no se toca (o el cursor saltaría a cada tecla); si dice otra cosa, es que el cambio viene de fuera
+ * y manda el documento.
+ */
+describe('sameText — ¿el DOM y el documento dicen lo mismo?', () => {
+  it('sí cuando dicen lo mismo, aunque sean tramos distintos', () => {
+    expect(sameText([{ t: 'hola' }], [{ t: 'hola' }])).toBe(true);
+    expect(sameText([], [])).toBe(true);
+    // `undefined` y `false` son lo mismo: sin formato.
+    expect(sameText([{ t: 'x' }], [{ t: 'x', b: false, i: false }])).toBe(true);
+  });
+
+  it('no cuando cambia el texto, el formato o cuántos tramos hay', () => {
+    expect(sameText([{ t: 'hola' }], [{ t: 'adiós' }])).toBe(false);
+    expect(sameText([{ t: 'x' }], [{ t: 'x', b: true }])).toBe(false);
+    expect(sameText([{ t: 'x' }], [{ t: 'x' }, { t: 'y' }])).toBe(false);
+    expect(sameText([{ t: 'x' }], [])).toBe(false);
+  });
+});
+
+describe('placeCaret — dónde queda el cursor', () => {
+  it('lo deja al principio o al final de lo escrito', () => {
+    const el = document.createElement('p');
+    document.body.appendChild(el);
+    syncNode(el, [{ t: 'hola' }]);
+
+    placeCaret(el, 'end');
+    expect(caretAtStart(el)).toBe(false);
+
+    placeCaret(el, 'start');
+    expect(caretAtStart(el)).toBe(true);
+
+    el.remove();
   });
 });

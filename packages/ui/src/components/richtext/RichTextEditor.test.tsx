@@ -39,6 +39,20 @@ describe('RichTextEditor — lo que se ve', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
+  /**
+   * ♿ UN TÍTULO SE LLAMA POR LO QUE DICE. El `aria-label` del trozo editable iba también en los `h1`/`h2`, y
+   * PISABA su texto: quien navega por títulos con un lector de pantalla oía «Texto del documento» en todos
+   * —exactamente lo que el índice existe para evitar—. Cazado en la revisión del 2026-09-20.
+   */
+  it('cada título se anuncia por su texto, no con el rótulo de la caja', () => {
+    render(<Montado inicial={doc(heading(1, [{ t: 'El almacén' }]), heading(2, [{ t: 'Llegada' }]))} />);
+    expect(screen.getByRole('heading', { level: 1, name: 'El almacén' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Llegada' })).toBeInTheDocument();
+    // Lo que sí es una caja de texto conserva su rótulo: sin él no tendría nombre ninguno.
+    render(<Montado inicial={doc(paragraph([{ t: 'x' }]))} />);
+    expect(screen.getAllByRole('textbox', { name: 'Texto' }).length).toBeGreaterThan(0);
+  });
+
   it('el formato de un tramo se ve: la negrita es negrita y la cursiva, cursiva', () => {
     const { container } = render(<Montado inicial={doc(paragraph([{ t: 'lo ' }, { t: 'importante', b: true }, { t: ' y lo otro', i: true }]))} />);
     expect(container.querySelector('strong')?.textContent).toBe('importante');
@@ -151,6 +165,32 @@ describe('RichTextEditor — escribir', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
+  /**
+   * 🐞 QUITAR UN PUNTO DE EN MEDIO SE LLEVABA EL DE ABAJO (cazado en la revisión del 2026-09-20).
+   *
+   * Los puntos de una lista se pintan por su sitio (0, 1, 2…), así que al quitar el de en medio React
+   * REAPROVECHA el nodo que tenía el cursor para el punto de abajo. Como un trozo con el cursor no se
+   * repintaba nunca, lo que se veía seguía siendo el punto viejo —el de abajo desaparecía de la pantalla
+   * estando en el documento— y la siguiente tecla lo pisaba. Se perdía texto escrito, en silencio.
+   */
+  it('quitar un punto de en medio de una lista NO se lleva por delante el de abajo', async () => {
+    const user = userEvent.setup();
+    render(<Montado inicial={doc(list(false, [[{ t: 'uno' }], [], [{ t: 'dos' }]]))} />);
+    const cajas = () => screen.getAllByRole('textbox', { name: 'Texto' });
+    expect(cajas()).toHaveLength(3);
+
+    await user.click(cajas()[1]!);       // el punto VACÍO de en medio
+    await user.keyboard('{Backspace}');  // se lo lleva
+
+    expect(cajas()).toHaveLength(2);
+    // «dos» sigue en pantalla, en el sitio que ocupaba el que se fue.
+    expect(cajas().map(c => c.textContent)).toEqual(['uno', 'dos']);
+
+    // Y el cursor se queda a su principio: lo que se escriba ahora se AÑADE, no pisa.
+    await user.keyboard('X');
+    expect(cajas()[1]!.textContent).toBe('Xdos');
+  });
+
   it('el Retroceso en un bloque vacío se lo lleva, pero nunca deja el documento sin sitio donde escribir', async () => {
     const user = userEvent.setup();
     render(<Montado inicial={doc(paragraph([{ t: 'uno' }]), paragraph())} />);
@@ -209,10 +249,61 @@ describe('las tablas de una aventura', () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<RichTextEditor doc={doc(table('encounter', ['PNJ', 'N.º'], 1))} onChange={onChange} labels={LABELS} features={{ tables: true }} />);
-    const celdas = screen.getAllByRole('textbox', { name: 'Texto' });
-    await user.click(celdas[1]!);
+    // Cada celda se llama por su columna desde la revisión del 20-09: aquí se escribe en la de «N.º».
+    await user.click(screen.getByRole('textbox', { name: 'N.º' }));
     await user.keyboard('3');
     const ultimo = onChange.mock.calls[onChange.mock.calls.length - 1]![0] as RichDoc;
     expect(ultimo.blocks[0]).toMatchObject({ rows: [{ cells: [[], [{ t: '3' }]], npcId: null }] });
+  });
+});
+
+describe('pegar, atajos y rótulos — lo que la revisión del 2026-09-20 dejó apuntado', () => {
+  const paste = (el: Element, html: string, text: string) => {
+    const data = { getData: (kind: string) => (kind === 'text/plain' ? text : html) };
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    el.dispatchEvent(event);
+    return event;
+  };
+
+  it('pegar entra como TEXTO: ni marcado, ni el código de un <script> colado como prosa', () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor doc={doc(paragraph())} onChange={onChange} labels={LABELS} />);
+    const caja = screen.getByRole('textbox', { name: 'Texto' });
+    const event = paste(caja, '<b>hola</b><script>alert(1)</script>', 'hola');
+    // Se queda con el del portapapeles en texto plano y NO deja que el navegador meta su HTML.
+    expect(event.defaultPrevented).toBe(true);
+    expect(caja.querySelector('script')).toBeNull();
+  });
+
+  it('pegar varias líneas deja un párrafo por línea, no todo pegado', () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor doc={doc(paragraph([{ t: 'antes' }]))} onChange={onChange} labels={LABELS} />);
+    paste(screen.getByRole('textbox', { name: 'Texto' }), '', 'uno\ndos\r\ntres');
+    const ultimo = onChange.mock.calls.at(-1)![0] as RichDoc;
+    expect(ultimo.blocks).toHaveLength(3);
+    expect(ultimo.blocks.slice(1)).toMatchObject([
+      { type: 'paragraph', text: [{ t: 'dos' }] },
+      { type: 'paragraph', text: [{ t: 'tres' }] },
+    ]);
+  });
+
+  it('⌘B y ⌘I ponen negrita y cursiva, no sólo el botón de la barra', async () => {
+    const user = userEvent.setup();
+    const exec = vi.fn().mockReturnValue(true);
+    const original = document.execCommand;
+    (document as unknown as { execCommand: unknown }).execCommand = exec;
+    render(<Montado inicial={doc(paragraph([{ t: 'hola' }]))} />);
+    await user.click(screen.getByRole('textbox', { name: 'Texto' }));
+    await user.keyboard('{Meta>}b{/Meta}');
+    await user.keyboard('{Control>}i{/Control}');
+    expect(exec.mock.calls.map(c => c[0])).toEqual(['bold', 'italic']);
+    (document as unknown as { execCommand: unknown }).execCommand = original;
+  });
+
+  it('cada celda de una tabla se llama por SU columna, no «Texto» cuatro veces', async () => {
+    render(<RichTextEditor doc={doc(table('encounter', ['PNJ', 'N.º'], 1))} onChange={vi.fn()} labels={LABELS} features={{ tables: true }} />);
+    expect(screen.getByRole('textbox', { name: 'PNJ' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'N.º' })).toBeInTheDocument();
   });
 });

@@ -8,6 +8,10 @@ import './adventures.css';
 
 export interface AdventureScene { id: string; name: string }
 
+/** Lo que devuelve elegir una escena, y quien está esperando esa elección. */
+type PickedScene = { sceneId: string; label: string };
+type SceneResolver = (picked: PickedScene | null) => void;
+
 interface Props {
   adventure: Adventure;
   doc: RichDoc;
@@ -41,7 +45,7 @@ export function AdventureDocument({
 }: Props): JSX.Element {
   const { t } = useTranslation();
   const [indexOpen, setIndexOpen] = useState(true);
-  const [picking, setPicking] = useState<((picked: { sceneId: string; label: string } | null) => void) | null>(null);
+  const [picking, setPicking] = useState<SceneResolver | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -114,7 +118,10 @@ export function AdventureDocument({
           className="av-editor" doc={doc} onChange={onChange} labels={labels}
           features={{ tables: true, sceneRef: true }}
           onOpenScene={onOpenScene}
-          onPickScene={() => new Promise(resolve => setPicking(() => resolve))}
+          onPickScene={() => new Promise<PickedScene | null>(resolve => {
+            // Pulsarlo dos veces dejaba la primera promesa colgada para siempre: la anterior se cierra sola.
+            setPicking((prev: SceneResolver | null) => { prev?.(null); return resolve; });
+          })}
         />
       </div>
 

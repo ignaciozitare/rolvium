@@ -131,6 +131,29 @@ describe('JournalPanel — guarda sola', () => {
     expect(await screen.findByText('no se ha podido guardar')).toBeInTheDocument();
   });
 
+  /**
+   * 🐞 UN FALLO AL GUARDAR SE LLEVABA EL TEXTO (cazado en la revisión del 2026-09-20). `write` vaciaba lo
+   * pendiente ANTES de mandarlo, así que al fallar no quedaba nada: ni el `Cmd+S` ni el guardado al cerrar
+   * tenían qué mandar, y quien dejara de escribir al ver el aviso perdía lo escrito sin enterarse.
+   */
+  it('tras un fallo, lo escrito sigue pendiente: el cierre lo reintenta en vez de tirarlo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const saveNotes = vi.fn().mockRejectedValueOnce(new Error('red')).mockResolvedValue('2026-09-20T10:06:00Z');
+    const journal = fakeJournal({ saveNotes });
+    const { unmount } = paint(journal);
+    await screen.findByRole('heading', { level: 1 });
+    await user.click(screen.getAllByRole('textbox')[0]!);
+    await user.keyboard('lo que no entró');
+    vi.advanceTimersByTime(SAVE_DELAY_MS);
+    expect(await screen.findByText('no se ha podido guardar')).toBeInTheDocument();
+
+    // Cerrar la mesa vuelve a intentarlo — y con el MISMO texto, no con uno vacío.
+    unmount();
+    expect(saveNotes).toHaveBeenCalledTimes(2);
+    const primero = saveNotes.mock.calls[0]![1] as RichDoc;
+    expect(saveNotes.mock.calls[1]![1]).toEqual(primero);
+  });
+
   it('cambiar de pestaña no se lleva por delante lo que quedaba a medio guardar', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const journal = fakeJournal();

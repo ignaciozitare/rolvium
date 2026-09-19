@@ -6,6 +6,7 @@ import { SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
 import type { Adventure } from '../domain/entities/Adventure';
 import type { AdventuresPort } from '../domain/ports/AdventuresPort';
 import { AdventuresTab } from './AdventuresTab';
+import { SAVE_DELAY_MS } from './useAdventureDoc';
 
 const DOC: RichDoc = { v: 1, blocks: [heading(1, [{ t: 'El almacén' }]), paragraph([{ t: 'Llegan de noche.' }])] };
 
@@ -41,7 +42,8 @@ describe('AdventuresTab — el carril', () => {
     paint(adventures, fakeMaps([scene({ id: 's1', adventureId: 'a1' }), scene({ id: 's2', adventureId: 'a2' })]));
     expect(await screen.findByText('El almacén de los muelles')).toBeInTheDocument();
     expect(screen.getByText('La feria')).toBeInTheDocument();
-    expect(screen.getAllByText(/1 escenas/)).toHaveLength(2);
+    // «1 escena», en singular: es lo primero que se lee de cada aventura.
+    expect(screen.getAllByText(/1 escena\b/)).toHaveLength(2);
     expect(adventures.list).toHaveBeenCalledWith('c1');
   });
 
@@ -141,5 +143,31 @@ describe('AdventuresTab — el documento', () => {
     await waitFor(() => expect(adventures.update).toHaveBeenCalledWith('a1', { title: 'X' }));
     // El carril lo dice también: el título es uno solo, no dos que se separan mientras se escribe.
     expect(screen.getByText('X')).toBeInTheDocument();
+  });
+
+  /**
+   * 🐞 Lo mismo que en `journal` (revisión del 2026-09-20): lo pendiente se vaciaba ANTES de mandarlo, así que
+   * un fallo al guardar dejaba el texto en el limbo — al cerrar la ventana no había nada que reintentar.
+   */
+  it('tras un fallo al guardar, lo escrito sigue pendiente y el cierre lo reintenta', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const saveDoc = vi.fn().mockRejectedValueOnce(new Error('red')).mockResolvedValue('2026-09-20T10:06:00Z');
+    const adventures = fakeAdventures([adv()], { saveDoc });
+    const { unmount } = paint(adventures, fakeMaps([]));
+    await screen.findByRole('heading', { level: 1 });
+
+    const texto = screen.getAllByRole('textbox', { name: 'Texto del documento' });
+    expect(texto.length).toBeGreaterThan(0);
+    await user.click(texto[0]!);
+    await user.keyboard(' y llueve');
+    vi.advanceTimersByTime(SAVE_DELAY_MS);
+    await waitFor(() => expect(saveDoc).toHaveBeenCalled());
+    expect(await screen.findByText('no se ha podido guardar')).toBeInTheDocument();
+
+    unmount();
+    expect(saveDoc).toHaveBeenCalledTimes(2);
+    expect(saveDoc.mock.calls[1]![1]).toEqual(saveDoc.mock.calls[0]![1]);
+    vi.useRealTimers();
   });
 });

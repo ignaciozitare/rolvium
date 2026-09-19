@@ -75,6 +75,29 @@ export function syncNode(node: HTMLElement, text: RichText): void {
   }
 }
 
+/**
+ * ¿Dicen lo mismo dos tramos? Es lo que deja saber si lo escrito en el DOM y lo que dice el documento YA están
+ * de acuerdo — y por tanto si hace falta repintar un trozo que tiene el cursor dentro.
+ */
+export function sameText(a: RichText, b: RichText): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((span, i) => {
+    const other = b[i];
+    return !!other && span.t === other.t && !!span.b === !!other.b && !!span.i === !!other.i;
+  });
+}
+
+/** Deja el cursor dentro del trozo, al principio o al final. */
+export function placeCaret(node: HTMLElement, where: 'start' | 'end'): void {
+  const selection = node.ownerDocument.defaultView?.getSelection();
+  if (!selection) return;
+  const range = node.ownerDocument.createRange();
+  range.selectNodeContents(node);
+  range.collapse(where === 'start');
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 /** ¿Está el cursor al principio del todo? Es lo que decide si un Retroceso junta con el bloque de arriba. */
 export function caretAtStart(node: HTMLElement): boolean {
   const selection = node.ownerDocument.defaultView?.getSelection();

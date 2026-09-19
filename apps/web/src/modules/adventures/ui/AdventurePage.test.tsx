@@ -3,7 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders, screen, waitFor } from '../../../../tests/helpers/render';
 import { heading, type RichDoc } from '@rolvium/core';
 import type { MapsPort, Scene } from '@/modules/maps';
-import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
+import type { CampaignsPort } from '@/modules/campaigns';
 import { SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
 import type { Adventure } from '../domain/entities/Adventure';
 import type { AdventuresPort } from '../domain/ports/AdventuresPort';

@@ -72,6 +72,9 @@ export function useAdventureDoc(adventureId: string | null, adventures: Adventur
       setSave('saved');
       setSavedAt(Date.now());
     }).catch((error: unknown) => {
+      // Lo que NO entró sigue pendiente (lo mismo que en `journal`): si no, un fallo de red se llevaba el
+      // texto en silencio — `Cmd+S` y el guardado al cerrar se quedaban sin nada que mandar.
+      if (!pending.current) pending.current = next;
       if (!alive.current) return;
       setSave(error instanceof AdventureConflictError ? 'conflict' : 'error');
     });

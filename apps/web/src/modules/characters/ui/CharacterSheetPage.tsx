@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge } from '@rolvium/ui';
-import type { GameSystem } from '@rolvium/core';
 import { useAuth } from '@/shared/hooks/useAuth';
+// `systemThemeStyle`/`useSystemFonts` salieron de aquí a `shared` el 2026-09-20: vestir una página con el
+// papel del sistema no es cosa de `characters`, y la ventana de una aventura las necesita igual.
+import { systemThemeStyle, useSystemFonts } from '@/shared/lib/systemTheme';
 import { campaignsRepo as defaultCampaigns } from '@/modules/campaigns/container';
 import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
 import '@/modules/table/ui/table.css';
@@ -14,24 +16,6 @@ import { canEditCharacter } from '../domain/useCases/characterRules';
 import { useCharacterSheet } from './useCharacterSheet';
 import { CharacterSheetView } from './CharacterSheetView';
 import './characters.css';
-
-/** Inline `--sys-*` vars from a system theme (same mapping the table uses). */
-export function systemThemeStyle(system: GameSystem | null): CSSProperties {
-  if (!system) return {};
-  const vars: Record<string, string> = {};
-  for (const [k, v] of Object.entries(system.theme.vars)) vars[`--sys-${k}`] = v;
-  if (system.theme.backgroundImage) vars['--sys-bg-image'] = `url(${system.theme.backgroundImage})`;
-  return vars as CSSProperties;
-}
-
-/** Loads the system's fonts once (theme.fonts.url). */
-export function useSystemFonts(system: GameSystem | null): void {
-  useEffect(() => {
-    const url = system?.theme.fonts?.url;
-    if (!url || document.querySelector(`link[data-sys-font="${system?.id}"]`)) return;
-    const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = url; link.dataset.sysFont = system?.id ?? ''; document.head.appendChild(link);
-  }, [system]);
-}
 
 interface Props { repo?: CharactersPort; campaigns?: CampaignsPort; rolls?: RollsPort }
 

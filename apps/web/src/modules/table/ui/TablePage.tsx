@@ -35,7 +35,8 @@ import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
-import { AdventuresTab } from '@/modules/adventures';
+import { AdventuresTab, type AdventuresPort } from '@/modules/adventures';
+import type { JournalPort } from '@/modules/journal';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
@@ -45,7 +46,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -225,7 +226,9 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
             {/* AVENTURAS (H12): sólo la pinta el director — `tabsFor` no se la da a nadie más. Abrir una escena
                 desde el texto es lo mismo que pincharla en el carril: se marca activa y se salta a la escena. */}
-            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})}
+            {/* El puerto se inyecta como el del Bestiario: sin esto la pestaña iría contra Supabase en cuanto
+                un test la abriera, y no se podía probar. */}
+            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
               onOpenScene={sceneId => { void (maps ?? defaultMaps).setActiveScene(campaign.id, sceneId).catch(() => {}); setTab('scene'); }} />}
             </SafeRegion>
           </main>
@@ -234,7 +237,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               aria-label={sideOpen ? t('table.side.hide') : t('table.side.show')} onClick={() => setSideOpen(o => !o)}>
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
             </button>
-            {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog}
+            {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
               myUserId={user.id} chatUnread={chatUnread}
               onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
           </aside>

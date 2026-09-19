@@ -9,6 +9,10 @@ import { AdventureDocument } from './AdventureDocument';
 import { useAdventureDoc } from './useAdventureDoc';
 import './adventures.css';
 
+/** «1 escena» y no «1 escenas»: es lo primero que se lee de cada aventura en el carril. */
+const sceneCountText = (t: (k: string, p?: Record<string, string>) => string, n: number): string =>
+  (n === 1 ? t('adventures.sceneCountOne') : t('adventures.sceneCount', { n: String(n) }));
+
 interface Props {
   campaignId: string;
   /** Abrir una escena en la mesa: lo hace `TablePage`, que es quien sabe de escena activa. */
@@ -88,7 +92,7 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
                 <span className="av-rail-text">
                   <span className="av-rail-title">{adventure.title}</span>
                   <span className="av-rail-sub">
-                    {t(`adventures.status.${adventure.status}`)} · {t('adventures.sceneCount', { n: String(scenes.filter(s => s.adventureId === adventure.id).length) })}
+                    {t(`adventures.status.${adventure.status}`)} · {sceneCountText(t, scenes.filter(s => s.adventureId === adventure.id).length)}
                   </span>
                 </span>
               </button>

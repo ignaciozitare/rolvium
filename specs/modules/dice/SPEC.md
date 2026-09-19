@@ -4,9 +4,11 @@
 > `CLAUDE.md` § «Specs» mandates since 2026-09-17. English throughout; his own words and the manual's are quoted
 > verbatim in Spanish, because they are the evidence for why something is the way it is.
 >
-> Restructured to the template on 2026-09-20, when the branch touched the side rail. **Nothing was dropped**:
-> every rule, page reference, ⚠ warning and «no construido» note of the previous version is still here, moved
-> into the section it belongs to.
+> Restructured to the template on 2026-09-20, when the branch touched the side rail. The first pass of that
+> rewrite **did drop things** —three manual literals, a ⚠ that corrected a loose rule, the two `/attacks`
+> endpoints, and the block that anchors the player's popover to the code— and the review caught it against
+> `main` the same day. They are back, in the section each belongs to. The lesson is written down in
+> `WORK_STATE.md`: a spec of his is not rewritten wholesale without diffing the result against what it replaced.
 
 ## Purpose
 
@@ -44,6 +46,9 @@ order).
   and, for a shot, the **range** (the difficulty comes from it, p.96 — and the map measures it: with both tokens
   placed the app knows the distance, so it knows by itself whether it is melee or a shot, and the player only
   corrects it if needed).
+  - ~~Specialty~~ **is NOT chosen here**: if you are rolling a characteristic, your specialty is already assigned
+    on the sheet. Whether it fits *this* action is the GM's call, from their panel — p.83, literal: «*es el
+    director de juego quien debe determinar si la especialidad del personaje es adecuada en esa ocasión*».
 - **Declare the target** when attacking in melee with creatures in the scene: without an eligible target there
   is no conflict to open.
 - **Answer «te atacan»**: choose how many Combate dice to spend defending (0 to their Combate). What they spend
@@ -108,6 +113,25 @@ with chips `0…Combate` (the chosen one in ink) and «tienes Combate: 4 dados»
 - The player's **«Tirada pedida»** notice.
 - The **turn order** screen.
 - **What the GM sees while waiting** for an answer — today they find out when the roll shows up in the Registro.
+- **A PLAYER attacking a creature in melee** — the mirror screen of § Decisions 2026-08-22. «**SIN DIBUJAR en el
+  `.pen`** — se diseña antes de construir, junto con “Tirada pedida”.»
+
+⚠ **Outstanding on the `.pen` itself**: the «otras tiradas» chips are drawn as three (FORTALEZA, ASTUCIA,
+SUTILEZA) and he resolved on 2026-08-22 that they are **the seven characteristics** — «hay que actualizarlo
+antes de construir».
+
+**The player's roll popover — built** (cols. 1 and 2 of the plate, node `v3vfV`):
+`characters/ui/RollPopover.tsx` + `characters/domain/useCases/rollIntent.ts`. It comes out over the sheet,
+**pinned to the button** (`<Sheet>` passes the button's rectangle as the 4th argument of `onAction`), with an
+invisible catcher and Escape, like `CreatureRollPopover`. **It opens on TIRAR of a characteristic and on a
+weapon's action**; activating a gift and reloading still go straight through, which is how they were — the
+`.pen` does not design them.
+
+⚠ **Nothing in that popover knows about Plenilunio**: the ranges come from the `ranges` catalogue (with their
+difficulty and in order, p.95–96), the wound penalty from `healthLevels`, and the reserve from
+`engine.sharedResources` — including its `blockedIf`, which is what makes it not offer dice at Destino 10. The
+reserve dice are **taken from the table on confirm** (`takeResource`/`returnResource`, the same ones as the
+bar) because the server only lets you roll the ones already in hand.
 
 **No light/dark here.** Everything lives under `.tb-root`, where the game system's theme rules (`--sys-*`).
 
@@ -152,18 +176,33 @@ with chips `0…Combate` (the chosen one in ink) and «tienes Combate: 4 dados»
   defence dice.
 - **A creature against the environment is a challenge and carries a difficulty; against a player it is a
   conflict and carries none** — the other side's dice are put there by the player when they defend, so the
-  dropdown must not appear.
+  dropdown must not appear. **A creature's dice are its characteristic**; only in **Combate** are they chosen,
+  because the book allows splitting them between several targets (p.94), and that lives in the attack modal.
+- **Who enters a combat**: the GM opens it and chooses, and the campaign's characters and the scene's encounters
+  come **pre-ticked**.
+- ⚠ **The cost of the next turn is TEXT** (p.94) wherever there is no combat open: it is not faked with a
+  counter — the notice says what it will cost and the player carries it. With a combat open it is real
+  (`spent_next`).
 - **If the player does not answer, the roll waits indefinitely.** Nobody resolves it for them, not even the GM
   (his decision, 2026-08-20). That is why the notice **cannot be dismissed**: no X, no Escape, no click outside.
 - **One notice at a time, oldest first.** If an attack and a roll request are both waiting, **the attack covers
   the request** (being hit outranks being asked); once answered, the request appears. Today that comes out of
   the mounting order in `TablePage` — if another order is ever wanted, that is where it lives.
 - **Turn order** (p.92–93): **Destino descending**. Tie → **PC before NPC**; among PCs → **higher Combate**; if
-  it still holds, **the GM decides** (the app asks which goes first). ⚠ Read the literal carefully: the Combate
+  it still holds, **the GM decides** (the app asks which goes first) — literal of p.92–93, `RULES.md` §5.1.
+  ⚠ Read the literal carefully: the Combate
   tiebreak is **only between PCs** — two creatures with the same Destino go straight to «the GM decides». The GM
   **does not reorder by hand**: the power the book gives them is breaking ties, and only that.
 - Everyone enters their turn with their Combate dice **minus what they spent defending**. Dice can only be
-  borrowed from the **next** turn, never further (p.94, literal).
+  borrowed from the **next** turn, never further — p.94, literal: «*sólo puede tomar dados de su siguiente
+  turno*». **Spending them all forfeits that turn**, and someone who already spent them all is **indefenso**.
+- ⚠ **How many dice someone can spend defending**: the ones **their own characteristic would give them right
+  now**, asked of the system's `poolFor` — that is, **Combate MINUS the wound penalty**, not raw Combate. It is
+  not a new calculation: it is the same handful they would roll if they acted. The `.pen` draws «tienes Combate
+  4» and the screen says «tienes Combate: 4 dados», which is the same thing when healthy and the true one when
+  not.
+- **Getting ahead** costs 1 Fortuna and **the new position stays** for the rest of the combat — p.92: «*el nuevo
+  orden se mantiene*».
 - A combat **lives in a scene** — like the encounters — and only one can be active per scene.
 
 ## States & errors

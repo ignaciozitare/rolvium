@@ -82,6 +82,11 @@ export function useJournalDoc(
       ? journal.saveNotes(id, next)
       : journal.saveLogbook(id, next, updatedAt.current, myUserId);
     promise.then(done).catch((error: unknown) => {
+      // Lo que NO entró sigue pendiente. Sin esto, un fallo de red se llevaba el texto en silencio: se había
+      // vaciado `pending` al empezar, así que ni el `Cmd+S` ni el guardado al cerrar tenían ya nada que
+      // mandar, y quien dejara de escribir al ver el aviso perdía lo escrito. Si mientras tanto se ha seguido
+      // escribiendo, manda lo nuevo — es más reciente.
+      if (!pending.current) pending.current = next;
       if (!alive.current) return;
       setSave(error instanceof LogbookConflictError ? 'conflict' : 'error');
     });
