@@ -171,3 +171,16 @@ describe('AdventuresTab — el documento', () => {
     vi.useRealTimers();
   });
 });
+
+describe('AdventuresTab — Cmd+S', () => {
+  it('fuerza el guardado sin esperar al retardo, como en Notas y Bitácora', async () => {
+    const user = userEvent.setup();
+    const adventures = fakeAdventures([adv()]);
+    paint(adventures, fakeMaps([]));
+    await screen.findByRole('heading', { level: 1 });
+    await user.click(screen.getAllByRole('textbox', { name: 'Texto del documento' })[0]!);
+    await user.keyboard('x');
+    await user.keyboard('{Meta>}s{/Meta}');
+    await waitFor(() => expect(adventures.saveDoc).toHaveBeenCalled());
+  });
+});

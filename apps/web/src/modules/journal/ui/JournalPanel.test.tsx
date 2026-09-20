@@ -195,3 +195,23 @@ describe('JournalPanel — el índice', () => {
     expect(screen.getByText(/Todavía no hay títulos/)).toBeInTheDocument();
   });
 });
+
+describe('JournalPanel — el tope del documento', () => {
+  /**
+   * El tope de 200 KB estaba escrito en el spec y no lo miraba nadie (lo cazó el QA del 2026-09-20). Se avisa y
+   * NO se manda: la base lo aceptaría hoy, pero un documento sin tope acaba siendo uno que no se puede abrir.
+   */
+  it('avisa y no guarda un documento que pasa del tope, sin borrar lo escrito', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const enorme: RichDoc = { v: 1, blocks: [paragraph([{ t: 'x'.repeat(220 * 1024) }])] };
+    const journal = fakeJournal({ openNotes: vi.fn().mockResolvedValue({ ...NOTES, doc: enorme }) });
+    paint(journal);
+    const caja = await screen.findByRole('textbox');
+    await user.click(caja);
+    await user.keyboard('y');
+    vi.advanceTimersByTime(SAVE_DELAY_MS * 2);
+    expect(await screen.findByText(/no cabe: el documento pasa de 200 KB/)).toBeInTheDocument();
+    expect(journal.saveNotes).not.toHaveBeenCalled();
+  });
+});

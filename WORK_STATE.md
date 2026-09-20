@@ -16,7 +16,7 @@
 >   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
-> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → **Dev ✅** → **Review ⏳ (2.ª vuelta lanzada)** → él lo mira → QA.
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → **Dev ✅** → **Review ✅ (2 vueltas, cerradas)** → **QA ⏳** → él lo mira.
 > - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
 >   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
 >   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
@@ -51,7 +51,10 @@
 >   trigger `campaigns_seed_adventure` para que toda campaña nueva nazca con su «Aventura 1»). Sus 5 escenas,
 >   315 salas y 50 objetos intactos. **Comprobado ejecutándolo**: un jugador REAL de su campaña ve 0 aventuras
 >   (ni por id), un extraño 0 notas / 0 bitácoras. ⚠️ **En producción NO están**: van por MCP `apply_migration`,
->   una a una y en orden, ANTES del merge a `main` — **son TRES**, con la del 20-09.
+>   una a una y en orden, ANTES del merge a `main` — **son CUATRO**, en este orden exacto:
+>   `20260919120000_journal_notas_y_bitacora` → `20260919120100_adventures_aventuras` →
+>   `20260920090000_maps_scenes_adventure_por_defecto` → `20260920093000_maps_scenes_aventura_de_su_campana`
+>   (la última ata la escena a una aventura DE SU PROPIA campaña con una clave ajena compuesta).
 > - ✅ **Diseño aprobado** en `rolvium.pen` § 4 · LA MESA, los dos últimos marcos antes de § 5:
 >   `Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE` y `Mesa/Plenilunio · Director · AVENTURAS · sólo el
 >   director`. Los paneles viejos del 15-09 marcados «SUSTITUIDO 19-09». Además se devolvieron a su sección

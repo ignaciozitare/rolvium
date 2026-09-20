@@ -120,7 +120,7 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
         ? (
           <AdventureDocument
             adventure={doc.adventure} doc={doc.doc} onChange={doc.edit} onRename={doc.rename}
-            save={doc.save} savedAt={doc.savedAt} onReload={doc.reload}
+            save={doc.save} savedAt={doc.savedAt} onReload={doc.reload} onForceSave={doc.flush}
             scenes={mine.map(s => ({ id: s.id, name: s.name }))} onOpenScene={onOpenScene}
             onOpenApart={() => window.open(`/adventures/${doc.adventure?.id ?? ''}`, '_blank', 'noopener')}
           />

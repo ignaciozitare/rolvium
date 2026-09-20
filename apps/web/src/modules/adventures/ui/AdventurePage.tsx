@@ -71,7 +71,7 @@ export function AdventurePage({ adventures = defaultAdventures, maps = defaultMa
       <div className="av-window">
         <AdventureDocument
           adventure={doc.adventure} doc={doc.doc} onChange={doc.edit} onRename={doc.rename}
-          save={doc.save} savedAt={doc.savedAt} onReload={doc.reload}
+          save={doc.save} savedAt={doc.savedAt} onReload={doc.reload} onForceSave={doc.flush}
           scenes={mine.map(s => ({ id: s.id, name: s.name }))}
           // La mesa está en la OTRA ventana: al pinchar una escena se abre allí, no aquí.
           onOpenScene={sceneId => window.open(`/table/${doc.adventure?.campaignId ?? ''}?scene=${sceneId}`, '_blank', 'noopener')}

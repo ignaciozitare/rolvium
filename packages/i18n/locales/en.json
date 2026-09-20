@@ -1859,7 +1859,8 @@
       "quoteLabel": "To read out loud",
       "textField": "Document text",
       "removeBlock": "Remove block"
-    }
+    },
+    "tooBig": "too long: the document is over 200 KB"
   },
   "adventures": {
     "title": "Adventures",

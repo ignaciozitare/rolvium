@@ -89,7 +89,8 @@ export function JournalPanel({ kind, campaignId, myUserId, journal = defaultJour
           {save === 'saving' ? t('journal.saving')
             : save === 'error' ? t('journal.saveError')
               : save === 'conflict' ? t('journal.conflict')
-                : savedAt !== null ? savedAgo(t, savedAt, now) : ''}
+                : save === 'too_big' ? t('journal.tooBig')
+                  : savedAt !== null ? savedAgo(t, savedAt, now) : ''}
         </span>
       </div>
 

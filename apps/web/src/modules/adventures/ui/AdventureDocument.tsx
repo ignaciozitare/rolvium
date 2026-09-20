@@ -20,6 +20,8 @@ interface Props {
   save: DocSave;
   savedAt: number | null;
   onReload: () => void;
+  /** `Cmd+S` fuerza el guardado, igual que en Notas y Bitácora (spec § What the user can do). */
+  onForceSave: () => void;
   /** Las escenas de esta aventura: son las que se pueden enlazar desde el texto. */
   scenes: readonly AdventureScene[];
   onOpenScene: (sceneId: string) => void;
@@ -41,12 +43,21 @@ function savedText(t: (k: string, p?: Record<string, string>) => string, at: num
  * aparte—, que es lo que garantiza que no se separen: `rolvium.pen` § 4, los dos marcos.
  */
 export function AdventureDocument({
-  adventure, doc, onChange, onRename, save, savedAt, onReload, scenes, onOpenScene, onOpenApart,
+  adventure, doc, onChange, onRename, save, savedAt, onReload, onForceSave, scenes, onOpenScene, onOpenApart,
 }: Props): JSX.Element {
   const { t } = useTranslation();
   const [indexOpen, setIndexOpen] = useState(true);
   const [picking, setPicking] = useState<SceneResolver | null>(null);
   const [now, setNow] = useState(() => Date.now());
+
+  // Cmd+S (o Ctrl+S) fuerza el guardado, como en la ficha y como en Notas y Bitácora.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); onForceSave(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onForceSave]);
 
   useEffect(() => {
     if (savedAt === null) return undefined;
@@ -80,7 +91,8 @@ export function AdventureDocument({
           {save === 'saving' ? t('adventures.saving')
             : save === 'error' ? t('adventures.saveError')
               : save === 'conflict' ? t('adventures.conflict')
-                : savedAt !== null ? savedText(t, savedAt, now) : ''}
+                : save === 'too_big' ? t('journal.tooBig')
+                  : savedAt !== null ? savedText(t, savedAt, now) : ''}
         </span>
         <button
           type="button" className={`av-btn${indexOpen ? ' on' : ''}`} aria-pressed={indexOpen}

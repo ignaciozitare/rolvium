@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { emptyDoc, type RichDoc } from '@rolvium/core';
+import { docFitsLimit, emptyDoc, type RichDoc } from '@rolvium/core';
 import { AdventureConflictError, type Adventure } from '../domain/entities/Adventure';
 import type { AdventuresPort } from '../domain/ports/AdventuresPort';
 
 export type DocLoad = 'loading' | 'ready' | 'not_found' | 'error';
-export type DocSave = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
+export type DocSave = 'idle' | 'saving' | 'saved' | 'error' | 'conflict' | 'too_big';
 
 /** Lo mismo que en Notas y Bitácora: ni a cada letra, ni tan tarde que se note. */
 export const SAVE_DELAY_MS = 1200;
@@ -88,6 +88,14 @@ export function useAdventureDoc(adventureId: string | null, adventures: Adventur
 
   const edit = useCallback((next: RichDoc) => {
     setDoc(next);
+    // EL TOPE DE 200 KB del spec (§ Rules & limits). Se avisa y NO se manda: la base lo aceptaría hoy, pero un
+    // documento sin tope acaba siendo un documento que no se puede abrir. Lo escrito se queda en pantalla.
+    if (!docFitsLimit(next)) {
+      if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+      pending.current = null;
+      setSave('too_big');
+      return;
+    }
     pending.current = next;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => { timer.current = null; write(next); }, SAVE_DELAY_MS);

@@ -1859,7 +1859,8 @@
       "quoteLabel": "Para leer en voz alta",
       "textField": "Texto del documento",
       "removeBlock": "Quitar el bloque"
-    }
+    },
+    "tooBig": "no cabe: el documento pasa de 200 KB"
   },
   "adventures": {
     "title": "Aventuras",
