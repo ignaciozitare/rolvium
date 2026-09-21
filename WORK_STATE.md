@@ -2,8 +2,8 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-21) — NOTAS · BITÁCORA · AVENTURAS
-> ## ⛔ NO MERGEADO: el QA lo paró, y él eligió CONSTRUIR lo que falta (opción A)
+> # 📍 ESTADO (2026-09-21, tarde) — NOTAS · BITÁCORA · AVENTURAS
+> ## ⛔ NO MERGEADO. La mitad que el QA echó en falta: DISEÑADA, APROBADA, CONSTRUIDA y REVISADA → falta el QA
 >
 > ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
 > «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
@@ -17,8 +17,8 @@
 >   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
-> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → **QA 🚫 BLOQUEADO** →
-> **Design ⏳ de la mitad que falta** → Dev → QA otra vez → migraciones → merge.
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → QA 🚫 (20-09) →
+> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅** → **QA ⏳** → migraciones → merge.
 > - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
 >   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
 >   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
@@ -125,8 +125,14 @@
 >    miraba nadie al guardar. Ahora avisa y no manda, sin borrar lo escrito.
 >
 > ## ⏭️ SIGUIENTE PASO CONCRETO
-> 0. ⏳ **(21-09) DIBUJADO, ESPERANDO SU «APROBADO» Y SU Cmd+S** — en § 4, detrás de la ventana aparte (índices
->    39-41): `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` · `Aventuras/Carril · MENÚ DE UNA ESCENA ·
+> 0. ✅ **(21-09) DISEÑO APROBADO** («*aprobado*», guardado y commiteado en `a9de9f4`) **Y CONSTRUIDO**
+>    (`d4dece5`, revisor APROBADO; 2.231 pruebas web verdes, audit 0 hard, builds OK). Lo nuevo: menú de los tres
+>    puntos en `adventures/ui/RailMenu.tsx` (propio del módulo, como los de `maps`), reglas puras en
+>    `adventures/domain/useCases/adventureRules.ts`. 🐞 **Arreglado de paso, medido en su base local**: cualquier
+>    cambio de la fila mueve `updated_at`, y el texto se guardaba contra la marca vieja («se guardó desde otro
+>    sitio» tras renombrar) → ahora todo lo que se escribe va en fila y con una marca por aventura. Deuda anotada
+>    por el revisor, sin tocar: un menú compartido en `@rolvium/ui` (obligaría a pasar `maps`), y los menús no se
+>    recorren con flechas (sí con tabulador). Láminas, en § 4 detrás de la ventana aparte (índices 39-41): `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` · `Aventuras/Carril · MENÚ DE UNA ESCENA ·
 >    mover a otra aventura` · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas`. Y en el marco de
 >    AVENTURAS: tres puntos en cada fila, la aventura abierta en sangre (estaba en NEGRO en el `.pen`; el código
 >    ya la tenía en sangre), «ARCHIVADAS · 1» plegado y el estado de la cabecera como desplegable.
@@ -134,12 +140,12 @@
 >    TERMINADA—; reordenar con Subir/Bajar del menú, sin arrastrar; borrar una escena sigue en la mesa; la
 >    última aventura de la campaña no se puede borrar (sí archivar); al borrar con escenas, sale marcada la
 >    EN CURSO como destino.
-> 1. **DISEÑO PRIMERO** (`.claude/commands/design.md`): dibujar en `rolvium.pen` § 4, sobre el marco
+> 1. ~~**DISEÑO PRIMERO**~~ ✅ hecho: dibujar en `rolvium.pen` § 4, sobre el marco
 >    `Mesa/Plenilunio · Director · AVENTURAS`, los controles que faltan — el estado de la aventura (hoy es una
 >    insignia muerta en la cabecera), el menú de una aventura del carril (en curso · archivar · borrar) y el de
 >    una escena (renombrar · mover a otra aventura · reordenar). **Enseñárselo y que lo apruebe ANTES de tocar
 >    código**, y pedirle el Cmd+S del `.pen` (sin su guardado no hay disco).
-> 2. Construirlo, con sus pruebas. El puerto `AdventuresPort` ya tiene `update` (status, sortOrder) y `remove`;
+> 2. ~~Construirlo~~ ✅ hecho, con sus pruebas. El puerto `AdventuresPort` ya tiene `update` (status, sortOrder) y `remove`;
 >    `maps` ya acepta `ScenePatch.adventureId`. **No hace falta ninguna migración nueva.**
 > 3. **QA otra vez** (modo `block`; no volver a preguntárselo).
 > 4. **ANTES del merge, las CUATRO migraciones a producción por MCP `apply_migration`**, una a una y en este
@@ -151,7 +157,8 @@
 > 5. Merge a `main` y comprobar los dos despliegues de producción con el SHA del merge.
 >
 > ## 🧾 Estado de la rama al cerrar
-> `feat/notas-bitacora-aventuras`, **publicada** (`cab8e50`), limpia, **⚠️ SU LOCAL ESTÁ EN ELLA**. Despliegues
+> `feat/notas-bitacora-aventuras`, local en `d4dece5` (**sin publicar** lo del 21-09: `a9de9f4` y `d4dece5`),
+> **⚠️ SU LOCAL ESTÁ EN ELLA**. Publicada hasta `cab8e50`. Despliegues
 > de prueba de Vercel **READY** los dos (web y api) con `57691c1`; el `cab8e50` es posterior y no se comprobó
 > en preview — **volver a mirarlo antes del merge**. Local: las cuatro migraciones aplicadas con
 > `migration up --local` (nunca `db:reset`), sus datos intactos.
