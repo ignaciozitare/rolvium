@@ -36,7 +36,8 @@ export class SupabaseAdventuresRepo implements AdventuresPort {
   async list(campaignId: string, opts: { includeArchived?: boolean } = {}): Promise<Adventure[]> {
     let query = this.db.from('adventures_adventures').select(COLS).eq('campaign_id', campaignId);
     if (!opts.includeArchived) query = query.neq('status', 'archived');
-    const { data, error } = await query.order('sort_order', { ascending: true });
+    // `created_at` desempata: sin él, dos con el mismo sitio salían cada vez en un orden distinto.
+    const { data, error } = await query.order('sort_order', { ascending: true }).order('created_at', { ascending: true });
     if (error) throw error;
     return ((data ?? []) as AdventureRow[]).map(mapAdventureRow);
   }
@@ -47,18 +48,21 @@ export class SupabaseAdventuresRepo implements AdventuresPort {
     return data ? mapAdventureRow(data as AdventureRow) : null;
   }
 
-  async create(campaignId: string, title: string): Promise<Adventure> {
-    const { data, error } = await this.db.from('adventures_adventures')
-      .insert({ campaign_id: campaignId, title }).select(COLS).single();
+  async create(campaignId: string, title: string, sortOrder?: number): Promise<Adventure> {
+    const row: Record<string, unknown> = { campaign_id: campaignId, title };
+    if (sortOrder !== undefined) row.sort_order = sortOrder;
+    const { data, error } = await this.db.from('adventures_adventures').insert(row).select(COLS).single();
     if (error) throw error;
     return mapAdventureRow(data as AdventureRow);
   }
 
-  async update(id: string, patch: AdventurePatch): Promise<void> {
+  async update(id: string, patch: AdventurePatch): Promise<string | null> {
     const row = adventurePatchRow(patch);
-    if (Object.keys(row).length === 0) return;
-    const { error } = await this.db.from('adventures_adventures').update(row).eq('id', id);
+    if (Object.keys(row).length === 0) return null;
+    const { data, error } = await this.db.from('adventures_adventures').update(row).eq('id', id)
+      .select('updated_at').maybeSingle();
     if (error) throw error;
+    return (data as { updated_at: string } | null)?.updated_at ?? null;
   }
 
   async saveDoc(id: string, doc: RichDoc, expectedUpdatedAt: string): Promise<string> {

@@ -49,6 +49,13 @@ describe('AdventurePage — la aventura en su propia ventana', () => {
     expect(screen.queryByRole('button', { name: /Abrir aparte/ })).toBeNull();
   });
 
+  it('el estado se lee y no se toca: cambiarlo es cosa del carril, que ve las demás', async () => {
+    paint(fakeAdventures(ADV));
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.queryByRole('button', { name: /^Estado de la aventura/ })).toBeNull();
+    expect(screen.getByText('En curso')).toBeInTheDocument();
+  });
+
   it('tampoco trae el carril de aventuras: una aventura por ventana', async () => {
     paint(fakeAdventures(ADV));
     await screen.findByRole('heading', { level: 1 });

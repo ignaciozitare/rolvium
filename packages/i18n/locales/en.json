@@ -1904,6 +1904,38 @@
       "done": "Done",
       "archived": "Archived"
     },
-    "sceneCountOne": "1 scene"
+    "sceneCountOne": "1 scene",
+    "archived": "Archived · {{n}}",
+    "noneActive": "No adventure left in the rail: they are all archived.",
+    "actionError": "That could not be done. The rail shows what is really there.",
+    "statusMenu": "Adventure status",
+    "newScene": "New scene in this adventure",
+    "menu": {
+      "label": "Adventure options",
+      "for": "Options for “{{title}}”",
+      "running": "Mark as running",
+      "runningHint": "It is the one that opens when you enter the tab, and where the scenes you create from the table go.",
+      "up": "Move up",
+      "down": "Move down",
+      "archive": "Archive",
+      "unarchive": "Take out of the archive",
+      "remove": "Delete adventure",
+      "lastOne": "It is the only one in the campaign: archive it, or create another one first."
+    },
+    "sceneMenu": {
+      "label": "Scene options",
+      "for": "Options for “{{name}}”",
+      "moveTo": "Move to another adventure",
+      "moveToLabel": "Move it to",
+      "noOther": "There is no other adventure to move it to."
+    },
+    "remove": {
+      "title": "Delete “{{title}}”",
+      "confirm": "It is deleted with everything written in it. It has no scenes.",
+      "withScenes": "It has {{n}} scenes, and the scenes are not deleted with it. Choose which adventure they go to before deleting it.",
+      "withSceneOne": "It has 1 scene, and the scene is not deleted with it. Choose which adventure it goes to before deleting it.",
+      "moveTo": "Move its scenes to",
+      "confirmMove": "Move and delete"
+    }
   }
 }

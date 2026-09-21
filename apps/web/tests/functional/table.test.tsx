@@ -192,7 +192,7 @@ describe('table: page', () => {
     const { adventures } = mount(GM, fakeTableRepo('dm'));
     await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
 
-    await waitFor(() => expect(adventures.list).toHaveBeenCalledWith('c1'));
+    await waitFor(() => expect(adventures.list).toHaveBeenCalledWith('c1', { includeArchived: true }));
     expect(await screen.findByRole('textbox', { name: 'Título de la aventura' })).toHaveValue('El almacén de los muelles');
   });
 
@@ -210,7 +210,8 @@ describe('table: page', () => {
     await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
     await screen.findByRole('textbox', { name: 'Título de la aventura' });
 
-    await u.click(await screen.findByRole('button', { name: new RegExp(SCENE_WAREHOUSE.name) }));
+    // Por su nombre EXACTO: sus tres puntos se llaman «Opciones de «Almacén de Queens»».
+    await u.click(await screen.findByRole('button', { name: SCENE_WAREHOUSE.name }));
     await waitFor(() => expect(maps.activated).toContain(SCENE_WAREHOUSE.id));
     // Y se sale del cuaderno: se coloca en la escena, no se queda leyendo.
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Título de la aventura' })).toBeNull());

@@ -24,8 +24,9 @@ cannot, not even by asking for one by its id — see § Permissions.
 
 **The GM**
 - **Open the AVENTURAS tab** of the table, next to BESTIARIO. Only they have it.
-- **See the adventures of the campaign** in the rail, with their state (draft · running · done), how many
-  scenes each one has and when it was last touched.
+- **See the adventures of the campaign** in the rail, numbered in their order, with their state (draft ·
+  running · done) and how many scenes each one has. The archived ones wait folded underneath, in
+  «ARCHIVADAS · n»; unfolded, they open and read like the others.
 - **Create an adventure**: a title, and little else — the rest is written inside.
 - **Write the adventure** in rich text: headings (H1/H2), paragraphs, bold, italic, lists, quotes (to read out
   loud) and dividers.
@@ -34,10 +35,24 @@ cannot, not even by asking for one by its id — see § Permissions.
   - *Encounter*: PNJ · how many · difficulty · notes.
 - **Press «Índice»** and get a navigation panel beside the text: every **H1** with its **H2s** nested under it.
 - **Link a scene** from the text: a chip that opens it at the table.
-- **Manage the scenes of the adventure**: create, rename, reorder, move a scene to another adventure, and open
-  it at the table.
-- **Mark the adventure as running** — it is the one the table opens by default.
-- **Archive** an adventure (it is not deleted: it is moved out of the way).
+- **Manage the scenes of the adventure**, from the three dots of each scene in the rail:
+  - **create** one with the «+» of «ESCENAS DE ESTA AVENTURA» — it asks for the name, exactly like «+ ESCENA» at
+    the table, and it is born in THIS adventure;
+  - **rename** it;
+  - **move it up / down** inside the adventure;
+  - **move it to another adventure** — a list beside the menu with the other adventures of the rail. The scene
+    goes whole, with everything inside it; it is never copied;
+  - **open it at the table** — clicking the scene itself, as before.
+  Deleting a scene is NOT here: it stays where it always was, in the table's scene rail.
+- **Mark an adventure as running**, from its three dots or from the header of the document. Only one is running:
+  it is the one the tab opens, and where the scenes created from the table go.
+- **Change the state** from the header of the document: the state is a button that drops down «Borrador · En
+  curso · Terminada».
+- **Move an adventure up / down** in the rail, from its three dots.
+- **Archive** an adventure (it is not deleted: it leaves the rail and waits in «ARCHIVADAS»), and **take it out
+  of the archive** (it comes back at the end of the rail, as a draft).
+- **Delete** an adventure. Without scenes it only asks for confirmation. With scenes it first asks **which
+  adventure they go to** — they are never deleted with it.
 - **Open the adventure in a separate window**, the same pattern as a character sheet, to read it while the map
   stays on the other screen.
 - Watch it **save by itself** — no Save button; the header says «guardando…» / «guardado» with the time, and
@@ -55,13 +70,24 @@ cannot, not even by asking for one by its id — see § Permissions.
 | Separate window | The same notebook for ONE adventure, without the rail, opened by «ABRIR APARTE» | § 4 · `Aventuras/Aventura en ventana aparte` |
 | Index panel | Opens beside the text: H1s with their H2s nested, click to jump | Inside both plates above |
 | Editor bar | H1 · H2 · bold · italic · lists · quote · divider · PNJ/encounter table · link a scene | Inside both plates above |
+| Menu of an adventure + the state | The three dots of an adventure (mark running · up · down · archive · delete) and the state drop-down of the header | § 4 · `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` |
+| Menu of a scene | Rename · up · down · move to another adventure, with the list of adventures beside it | § 4 · `Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura` |
+| Archived + delete | «ARCHIVADAS» unfolded with «Sacar del archivo», and the dialog that asks where the scenes go | § 4 · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas` |
 
-Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20.
+Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20; the rail controls on
+2026-09-21 («*aprobado*»).
 
 **The rail**, left side: the adventures of the campaign, and under them the scenes of the open one. The «+» of
 each block creates. Collapsible, like the table's scene rail.
 
-**The document header**: the editable title, the save indicator and the **open-in-a-separate-window** button.
+**The document header**: the editable title, the **state** (a drop-down in the tab; read-only in the separate
+window, which cannot see the other adventures), the save indicator and the **open-in-a-separate-window** button.
+
+**The three dots** sit on every adventure and every scene of the rail, like the scenes of the table's rail. The
+menu floats FIXED to the window, never inside the rail: the rail scrolls and would clip it (the lesson of the
+table's scene menu, «*que el modal quede por encima, que no se tape*»). It closes on a click outside, on Escape
+(focus back to its three dots) and when the window scrolls or resizes. The open adventure is painted in blood,
+never in black.
 
 ⚠️ **The known trap of the separate window** (carried over from the character sheet, and the reason
 `sheet-standalone-scroll.test.tsx` exists): the standalone page **must NOT inherit `.tb-root`**, which carries
@@ -88,6 +114,19 @@ trap, same test to pin it.
 - Deleting an adventure **does not delete its scenes**: it asks first where they go, or it is archived.
 - The document is **single-author at a time** in v1: no concurrent editing, no CRDT. It saves with a delay, and
   a save that would overwrite someone else's is refused and reported (comparing `updated_at`).
+- **Only ONE adventure is running.** Marking another one passes the one that was running to **done**.
+- **The last adventure of the campaign cannot be deleted** (archived ones count): its scenes would have nowhere to
+  go. It can be archived; if every adventure ends up archived, a scene created from the table gets a new
+  «Aventura 1» from the database trigger.
+- **Order**: up / down swap places with the neighbour. Ties in `sort_order` are real (every adventure used to be
+  born with 0; the table numbers its scenes with `scenes.length`), so the move redistributes the existing slots
+  and breaks ties — the same rule as the terrain layers. A new adventure, or one taken out of the archive, goes
+  at the end. The list is ordered by `sort_order` and then `created_at`, so ties never shuffle between loads.
+- **Everything written to the open adventure goes through ONE queue**, with ONE timestamp per adventure. Any
+  change of the row —title, state, order— moves `updated_at` (`adventures_touch`), and the text is saved against
+  it: without the queue, renaming and then writing reported a conflict nobody had caused (measured on his local
+  database, 2026-09-21). Text still pending when the tab jumps to another adventure (archiving or deleting the
+  open one) is saved into ITS adventure, with ITS timestamp.
 - Rough limits: **50 adventures per campaign, 200 KB per document**.
 - Title: 1 to 120 characters, enforced by the database.
 
@@ -102,7 +141,12 @@ trap, same test to pin it.
 | Save failed | Network or RLS refused | The notice stays, the text is NOT lost, and it retries |
 | Conflict | The tab and the separate window (or two admins) saved the same document | Told plainly, with the option to reload — never a silent overwrite |
 | Index on a document with no headings | «Índice» pressed | The panel says there are no headings yet |
-| Deleting an adventure that still has scenes | The database refuses (`ON DELETE RESTRICT`) | Asked where the scenes go before anything is deleted |
+| Deleting an adventure that still has scenes | Its menu → «Borrar aventura» | A dialog: «Tiene n escenas, y las escenas no se borran con ella». The other adventures to choose from (rail first, archived last), the RUNNING one preselected; «MOVER Y BORRAR» moves them first and only then deletes (the database would refuse otherwise: `ON DELETE RESTRICT`) |
+| Deleting an adventure without scenes | Its menu → «Borrar aventura» | A plain confirmation |
+| The last adventure of the campaign | Its menu | «Borrar aventura» switched off, with the reason underneath |
+| Moving a scene with no other adventure | The scene's menu | «Mover a otra aventura» switched off, with the reason underneath |
+| Every adventure archived | The tab | The rail with «ARCHIVADAS», and a line saying none is left in the rail |
+| An action of the rail fails | Network or RLS refused (mark running, order, archive, delete, scenes…) | A line in the rail («No se ha podido hacer…») and the rail reloads what is REALLY in the database, without flashing |
 | A broken part | The editor throws while painting | The net from `core/errors`: the tab falls, not the table |
 | A player who somehow reaches it | Direct URL / id | Nothing: for them the row does not exist |
 
@@ -269,6 +313,23 @@ right from the beginning. **His words today rule over an old line of the spec.**
 - **`id` per block** in the document tree, so the index has something stable to jump to.
 - **Conflict detection on save** (`updated_at`) was already in the spec for two GMs; it matters with a single
   one, because the tab and the separate window are two views of the same document.
+
+### Mine, 2026-09-21, flagged when he approved the rail controls («*aprobado*»)
+
+When the QA stopped the merge (2026-09-20: the spec promised a GM who **organises** and the code only let him
+**write** — every new scene fell into «Aventura 1» and could not be moved), he chose to build what was missing
+(«*a, pero actualiza ws y vamos a chat nuevo*»). Designed first, and these were decided by me and shown to him
+before his approval, to be corrected if he disagrees:
+- **Only one running**; marking another passes the previous one to **done** (the usual thing is to start the
+  next adventure when the previous one ends).
+- **Up / down from the menu, no dragging.**
+- **Deleting a scene stays at the table**, not in this rail.
+- **The last adventure of the campaign cannot be deleted**; it can be archived.
+- **Deleting with scenes preselects the running adventure** as their destination — where they would go by
+  themselves if created from the table.
+- **Taking one out of the archive** brings it back at the end of the rail, as a draft.
+- In the `.pen` the open adventure was painted in **black**; the code already had it in blood. Fixed in the
+  master (his rule of 2026-09-04: no black chrome at the table).
 
 ### Debt this uncovers
 

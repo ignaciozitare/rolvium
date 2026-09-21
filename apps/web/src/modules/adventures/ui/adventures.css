@@ -63,3 +63,56 @@
 
 /* La ventana aparte: el cuaderno con aire alrededor, sobre el papel del sistema. */
 .av-window{padding:16px;}
+
+/* ── Los tres puntos de cada fila del carril (rolvium.pen § 4, 21-09) ───────────────────────────────────────
+   Hermanos de la fila y no dentro: un botón no puede ir dentro de otro. Como en el carril de escenas de la mesa. */
+.av-rail-row{position:relative;}
+.av-rail-row > .av-rail-item,.av-rail-row > .av-rail-scene{padding-right:26px;}
+.av-kebab{position:absolute;top:50%;right:4px;transform:translateY(-50%);display:inline-flex;border:none;background:transparent;
+  padding:2px;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+.av-kebab:hover{color:var(--sys-ink);}
+.av-kebab.on,.av-kebab.on:hover{color:var(--sys-paper-hi);}
+.av-kebab .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* ARCHIVADAS: plegadas debajo de las aventuras; se abren y se leen como las demás, pero apagadas. */
+.av-rail-fold{display:flex;align-items:center;gap:5px;width:100%;padding:6px 8px 2px;border:none;background:transparent;cursor:pointer;
+  font-family:var(--sys-font-body);font-size:var(--fs-2xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sys-ink-dim);}
+.av-rail-fold .material-symbols-outlined{font-size:var(--icon-xs);}
+.av-rail-item.archived{background:transparent;color:var(--sys-ink-dim);}
+.av-rail-item.archived .av-rail-title{font-style:italic;}
+.av-rail-item.archived.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.av-rail-item.archived .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* ── El menú flotante y el desplegable del estado ──────────────────────────────────────────────────────────
+   Flota FIJO a la ventana: el carril se desplaza y lo recortaría (la lección del menú de escenas de la mesa). */
+.av-pop{position:fixed;z-index:60;min-width:200px;max-width:260px;padding:4px;display:flex;flex-direction:column;
+  background:var(--sys-paper-hi);box-shadow:0 3px 14px color-mix(in srgb,var(--sys-ink) 35%,transparent);color:var(--sys-ink);}
+.av-pop-item{display:flex;align-items:flex-start;gap:7px;width:100%;padding:6px 7px;border:none;background:transparent;cursor:pointer;
+  text-align:left;font-family:var(--sys-font-body);font-size:var(--fs-xs);color:var(--sys-ink-soft);}
+.av-pop-item .material-symbols-outlined{font-size:var(--icon-xs);color:var(--sys-ink-dim);}
+.av-pop-item:hover,.av-pop-item:focus-visible,.av-pop-item.open{background:var(--sys-paper);outline:none;}
+.av-pop-item:disabled{opacity:.45;cursor:default;}
+.av-pop-item:disabled:hover{background:transparent;}
+.av-pop-item.danger,.av-pop-item.danger .material-symbols-outlined{color:var(--sys-blood);}
+/* Lo ELEGIDO en sangre, nunca en negro (regla suya del 04-09). */
+.av-pop-item.on{background:var(--sys-paper);color:var(--sys-blood);font-weight:700;}
+.av-pop-item.on .material-symbols-outlined{color:var(--sys-blood);}
+.av-pop-text{flex:1;display:flex;flex-direction:column;gap:1px;min-width:0;}
+.av-pop-title{font-weight:700;}
+.av-pop-hint{font-size:var(--fs-2xs);font-style:italic;font-weight:400;color:var(--sys-ink-dim);line-height:var(--lh-tight);}
+.av-pop-n{font-size:var(--fs-sm);font-weight:700;color:var(--sys-ink-dim);}
+.av-pop-sep{height:1px;margin:0;background:var(--sys-line);}
+.av-pop-label{padding:6px 7px 3px;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sys-ink-dim);}
+
+/* El estado en la cabecera, cuando se puede cambiar: un botón con su flecha, en sangre como los demás. */
+.av-status-btn{display:inline-flex;align-items:center;gap:2px;padding:2px 3px 2px 7px;border:1px solid var(--sys-blood);cursor:pointer;
+  background:transparent;color:var(--sys-blood);font-family:var(--sys-font-body);font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;}
+.av-status-btn .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* Borrar una aventura con escenas: a dónde se van. */
+.av-remove{display:flex;flex-direction:column;gap:14px;}
+.av-remove p{margin:0;}
+.av-remove-label{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+.av-remove-foot{display:flex;justify-content:flex-end;gap:8px;}
+.av-notice{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-blood);}
+.av-btn.quiet{border-color:var(--sys-line);color:var(--sys-ink-soft);}

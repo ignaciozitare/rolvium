@@ -6,16 +6,17 @@ import { SupabaseAdventuresRepo, adventurePatchRow, mapAdventureRow } from './Su
 type Response = { data: unknown; error: unknown };
 
 function fakeDb(responses: Response[]) {
-  const calls: { table: string; op: string; payload?: unknown; filters: [string, string, unknown][] }[] = [];
+  const calls: { table: string; op: string; payload?: unknown; filters: [string, string, unknown][]; orders: string[] }[] = [];
   let i = 0;
   const client = {
     from: vi.fn((table: string) => {
-      const call: { table: string; op: string; payload?: unknown; filters: [string, string, unknown][] } = { table, op: 'select', filters: [] };
+      const call: { table: string; op: string; payload?: unknown; filters: [string, string, unknown][]; orders: string[] } = { table, op: 'select', filters: [], orders: [] };
       calls.push(call);
       const chain: Record<string, unknown> = {
         then: (resolve: (r: Response) => unknown) => Promise.resolve(responses[i++] ?? { data: null, error: null }).then(resolve),
       };
-      for (const op of ['select', 'single', 'maybeSingle', 'order', 'limit']) chain[op] = vi.fn(() => chain);
+      for (const op of ['select', 'single', 'maybeSingle', 'limit']) chain[op] = vi.fn(() => chain);
+      chain.order = vi.fn((col: string) => { call.orders.push(col); return chain; });
       for (const op of ['insert', 'update', 'delete', 'upsert']) {
         chain[op] = vi.fn((payload: unknown) => { call.op = op; call.payload = payload; return chain; });
       }
@@ -57,6 +58,8 @@ describe('listar y crear', () => {
     const list = await new SupabaseAdventuresRepo(client).list('c1');
     expect(list.map(a => a.id)).toEqual(['a1']);
     expect(calls[0]?.filters).toEqual([['eq', 'campaign_id', 'c1'], ['neq', 'status', 'archived']]);
+    // Con el mismo sitio desempata la antigüedad: si no, dos empatadas cambiaban de orden a cada carga.
+    expect(calls[0]?.orders).toEqual(['sort_order', 'created_at']);
   });
 
   it('con `includeArchived` no filtra por estado', async () => {
@@ -70,6 +73,13 @@ describe('listar y crear', () => {
     const created = await new SupabaseAdventuresRepo(client).create('c1', 'El almacén de los muelles');
     expect(created.status).toBe('running');
     expect(calls[0]).toMatchObject({ op: 'insert', payload: { campaign_id: 'c1', title: 'El almacén de los muelles' } });
+    expect(calls[0]?.payload).not.toHaveProperty('sort_order');
+  });
+
+  it('crea en el sitio que le dicen del carril, para no empatar con las demás en el primero', async () => {
+    const { client, calls } = fakeDb([{ data: ROW, error: null }]);
+    await new SupabaseAdventuresRepo(client).create('c1', 'Aventura 4', 3);
+    expect(calls[0]?.payload).toEqual({ campaign_id: 'c1', title: 'Aventura 4', sort_order: 3 });
   });
 
   it('una aventura que la base no te da (jugador) se lee como «no hay»', async () => {
@@ -81,8 +91,24 @@ describe('listar y crear', () => {
 describe('guardar y borrar', () => {
   it('no manda un update vacío a la base', async () => {
     const { client, calls } = fakeDb([]);
-    await new SupabaseAdventuresRepo(client).update('a1', {});
+    await expect(new SupabaseAdventuresRepo(client).update('a1', {})).resolves.toBeNull();
     expect(calls).toHaveLength(0);
+  });
+
+  /**
+   * 🐞 Cambiar el título (o el estado, o el orden) mueve `updated_at` en la base, y el siguiente guardado del
+   * texto se comparaba contra la marca VIEJA: salía «se guardó desde otro sitio» sin que nadie más lo tocara.
+   * Comprobado en su base local el 2026-09-21. Por eso `update` devuelve la marca nueva.
+   */
+  it('cambiar la cabecera devuelve la marca de tiempo nueva', async () => {
+    const { client, calls } = fakeDb([{ data: { updated_at: '2026-09-21T15:39:14Z' }, error: null }]);
+    await expect(new SupabaseAdventuresRepo(client).update('a1', { status: 'done' })).resolves.toBe('2026-09-21T15:39:14Z');
+    expect(calls[0]).toMatchObject({ op: 'update', payload: { status: 'done' }, filters: [['eq', 'id', 'a1']] });
+  });
+
+  it('si la base no le deja cambiarla, sube el error', async () => {
+    const { client } = fakeDb([{ data: null, error: new Error('rls') }]);
+    await expect(new SupabaseAdventuresRepo(client).update('a1', { title: 'X' })).rejects.toThrow('rls');
   });
 
   it('guarda el documento contra la marca con la que se abrió', async () => {

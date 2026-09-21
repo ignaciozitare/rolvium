@@ -13,8 +13,14 @@ export interface AdventuresPort {
   /** Las aventuras de la campaña por orden del carril. Sin las archivadas salvo que se pidan. */
   list(campaignId: string, opts?: { includeArchived?: boolean }): Promise<Adventure[]>;
   getById(id: string): Promise<Adventure | null>;
-  create(campaignId: string, title: string): Promise<Adventure>;
-  update(id: string, patch: AdventurePatch): Promise<void>;
+  /** `sortOrder` = su sitio en el carril. Sin él la base pone 0, y todas las nuevas empataban en el primero. */
+  create(campaignId: string, title: string, sortOrder?: number): Promise<Adventure>;
+  /**
+   * Cambia la cabecera (título, estado, orden). Devuelve la NUEVA marca de tiempo, o `null` si no había nada
+   * que cambiar: la base la mueve con CUALQUIER cambio (`adventures_touch`), y quien tenga el documento abierto
+   * la necesita, porque el siguiente guardado del texto se compara contra ella.
+   */
+  update(id: string, patch: AdventurePatch): Promise<string | null>;
   /**
    * Guarda el documento sólo si nadie lo ha tocado desde que se abrió; si lo han tocado lanza
    * `AdventureConflictError`. Devuelve la nueva marca de tiempo.

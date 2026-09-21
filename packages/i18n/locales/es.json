@@ -1904,6 +1904,38 @@
       "done": "Terminada",
       "archived": "Archivada"
     },
-    "sceneCountOne": "1 escena"
+    "sceneCountOne": "1 escena",
+    "archived": "Archivadas · {{n}}",
+    "noneActive": "No queda ninguna aventura en el carril: están todas archivadas.",
+    "actionError": "No se ha podido hacer. El carril enseña lo que hay de verdad.",
+    "statusMenu": "Estado de la aventura",
+    "newScene": "Nueva escena en esta aventura",
+    "menu": {
+      "label": "Opciones de la aventura",
+      "for": "Opciones de «{{title}}»",
+      "running": "Marcar en curso",
+      "runningHint": "Es la que se abre al entrar en la pestaña, y adonde van las escenas que crees desde la mesa.",
+      "up": "Subir",
+      "down": "Bajar",
+      "archive": "Archivar",
+      "unarchive": "Sacar del archivo",
+      "remove": "Borrar aventura",
+      "lastOne": "Es la única de la campaña: archívala, o crea otra antes."
+    },
+    "sceneMenu": {
+      "label": "Opciones de la escena",
+      "for": "Opciones de «{{name}}»",
+      "moveTo": "Mover a otra aventura",
+      "moveToLabel": "Llevarla a",
+      "noOther": "No hay otra aventura a la que llevarla."
+    },
+    "remove": {
+      "title": "Borrar «{{title}}»",
+      "confirm": "Se borra con todo lo que tiene escrito. No tiene escenas.",
+      "withScenes": "Tiene {{n}} escenas, y las escenas no se borran con ella. Elige a qué aventura se van antes de borrarla.",
+      "withSceneOne": "Tiene 1 escena, y la escena no se borra con ella. Elige a qué aventura se va antes de borrarla.",
+      "moveTo": "Llevar sus escenas a",
+      "confirmMove": "Mover y borrar"
+    }
   }
 }

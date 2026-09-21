@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { buildDocIndex, type RichDoc } from '@rolvium/core';
 import { DocIndexPanel, Modal, RichTextEditor, type RichTextEditorLabels } from '@rolvium/ui';
-import type { Adventure } from '../domain/entities/Adventure';
+import type { Adventure, AdventureStatus } from '../domain/entities/Adventure';
+import { RailMenu } from './RailMenu';
 import type { DocSave } from './useAdventureDoc';
 import './adventures.css';
 
@@ -27,7 +28,15 @@ interface Props {
   onOpenScene: (sceneId: string) => void;
   /** Sólo en la pestaña de la mesa: en la ventana aparte ya no tiene sentido. */
   onOpenApart?: (() => void) | undefined;
+  /**
+   * Cambiar el estado desde la cabecera. Sólo en la pestaña, que es quien ve el carril entero: marcar una EN
+   * CURSO pasa la anterior a TERMINADA. Sin esto (la ventana aparte) el estado se lee y no se toca.
+   */
+  onStatusChange?: ((status: AdventureStatus) => void) | undefined;
 }
+
+/** Lo que se elige desde la cabecera. «Archivada» no: eso es quitarla del carril, y se hace desde el carril. */
+const HEADER_STATUSES: readonly AdventureStatus[] = ['draft', 'running', 'done'];
 
 function savedText(t: (k: string, p?: Record<string, string>) => string, at: number, now: number): string {
   const seconds = Math.max(0, Math.round((now - at) / 1000));
@@ -43,9 +52,11 @@ function savedText(t: (k: string, p?: Record<string, string>) => string, at: num
  * aparte—, que es lo que garantiza que no se separen: `rolvium.pen` § 4, los dos marcos.
  */
 export function AdventureDocument({
-  adventure, doc, onChange, onRename, save, savedAt, onReload, onForceSave, scenes, onOpenScene, onOpenApart,
+  adventure, doc, onChange, onRename, save, savedAt, onReload, onForceSave, scenes, onOpenScene, onOpenApart, onStatusChange,
 }: Props): JSX.Element {
   const { t } = useTranslation();
+  const statusBtn = useRef<HTMLButtonElement | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(true);
   const [picking, setPicking] = useState<SceneResolver | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -86,7 +97,27 @@ export function AdventureDocument({
           className="av-title" value={adventure.title} aria-label={t('adventures.titleField')}
           onChange={e => onRename(e.target.value)} maxLength={120}
         />
-        <span className={`av-status av-status-${adventure.status}`}>{t(`adventures.status.${adventure.status}`)}</span>
+        {onStatusChange && adventure.status !== 'archived'
+          ? (
+            <button
+              type="button" ref={statusBtn} className="av-status-btn" aria-haspopup="menu" aria-expanded={statusOpen}
+              aria-label={`${t('adventures.statusMenu')}: ${t(`adventures.status.${adventure.status}`)}`}
+              onClick={() => setStatusOpen(o => !o)}
+            >
+              {t(`adventures.status.${adventure.status}`)}
+              <span className="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
+            </button>
+          )
+          : <span className={`av-status av-status-${adventure.status}`}>{t(`adventures.status.${adventure.status}`)}</span>}
+        {statusOpen && statusBtn.current && onStatusChange && (
+          <RailMenu
+            anchor={statusBtn.current} label={t('adventures.statusMenu')} placement="below" onClose={() => setStatusOpen(false)}
+            rows={HEADER_STATUSES.map(status => ({
+              key: status, icon: '', label: t(`adventures.status.${status}`), checked: status === adventure.status,
+              onSelect: () => { if (status !== adventure.status) onStatusChange(status); },
+            }))}
+          />
+        )}
         <span className="av-saved" aria-live="polite">
           {save === 'saving' ? t('adventures.saving')
             : save === 'error' ? t('adventures.saveError')
