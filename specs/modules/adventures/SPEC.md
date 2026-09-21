@@ -127,7 +127,12 @@ trap, same test to pin it.
   it: without the queue, renaming and then writing reported a conflict nobody had caused (measured on his local
   database, 2026-09-21). Text still pending when the tab jumps to another adventure (archiving or deleting the
   open one) is saved into ITS adventure, with ITS timestamp.
-- Rough limits: **50 adventures per campaign, 200 KB per document**.
+- **200 KB per document**, checked before every save: over it, the save is not sent, the header says so, and
+  the text stays on screen.
+- **50 adventures per campaign is the size the rail is designed for, NOT a lock**: nothing stops the 51st. The
+  spec of 2026-08-19 called both figures «orientativos»; the 200 KB one protects the document from becoming
+  impossible to open, the 50 one protects nothing, so it is not enforced (decided 2026-09-21, when the second QA
+  found it written and unchecked).
 - Title: 1 to 120 characters, enforced by the database.
 
 ## States & errors
@@ -168,10 +173,11 @@ no new way in and takes none away. The new column is data, not a permission boun
 
 ## Data model
 
-Migrations: `supabase/migrations/20260919120100_adventures_aventuras.sql` (the table, the column on scenes and
-the seed trigger) and `20260920090000_maps_scenes_adventure_por_defecto.sql` (a new scene falls into an
-adventure by itself). Both applied and verified on the local stack; `supabase db lint --local --level error`
-reports nothing.
+Migrations, in this order: `supabase/migrations/20260919120100_adventures_aventuras.sql` (the table, the column
+on scenes and the seed trigger), `20260920090000_maps_scenes_adventure_por_defecto.sql` (a new scene falls into
+an adventure by itself) and `20260920093000_maps_scenes_aventura_de_su_campana.sql` (a scene can only hang off
+an adventure of ITS OWN campaign). All applied and verified on the local stack; `supabase db lint --local
+--level error` reports nothing.
 
 ```
 adventures_adventures
@@ -183,11 +189,20 @@ adventures_adventures
   status         text not null default 'draft' check in ('draft','running','done','archived')
   sort_order     int  not null default 0
   created_by     uuid → users(id) on delete set null
-  created_at / updated_at  timestamptz
+  created_at / updated_at  timestamptz          -- updated_at moved by `adventures_touch` on ANY update
+  unique (id, campaign_id)                      -- adventures_id_campaign_key: the target of the scene's key
 
 maps_scenes
-  + adventure_id uuid not null → adventures_adventures(id) on delete restrict
+  + adventure_id uuid not null
+  foreign key (adventure_id, campaign_id) → adventures_adventures(id, campaign_id) on delete restrict
+                                                -- maps_scenes_adventure_fkey
 ```
+
+- **The scene's key is COMPOSITE** (`20260920093000`): until then the foreign key only proved the adventure
+  EXISTS, not whose it is — a GM could, with an id at hand, hang his scene off another campaign's adventure and
+  the database accepted it. Not a privacy hole (RLS of both tables still rules what each one sees), but broken,
+  silent data: the scene would vanish from its campaign's rail. With `UNIQUE (id, campaign_id)` on the adventure
+  and the composite key from the scene, both campaigns have to be the same.
 
 - The author is filled from **`campaigns_campaigns.dm_id`** — that table has no `created_by`.
 - **Migration of what already existed**: for every campaign, create «Aventura 1» (status `running`) and put its
@@ -243,6 +258,7 @@ only way in, and it drops what it does not understand instead of breaking the sc
 
 ## Out of scope
 
+- A hard cap on the number of adventures of a campaign (see § Rules & limits: 50 is a design size, not a lock).
 - Linking real PNJs (needs H5) · dropping an encounter onto the map from the table.
 - Two GMs editing at once · version history of the document.
 - Images inside the document · import / export.

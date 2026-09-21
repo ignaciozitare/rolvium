@@ -22,7 +22,7 @@ describe('crear bloques', () => {
   });
 
   it('una lista nace con un punto, no vacía', () => {
-    expect(list(false).items).toEqual([[]]);
+    expect(list(false)).toMatchObject({ type: 'list', items: [[]] });
   });
 });
 
