@@ -2,7 +2,8 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-20) — NOTAS · BITÁCORA · AVENTURAS · **CONSTRUIDO, a falta de que él lo mire**
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-21) — NOTAS · BITÁCORA · AVENTURAS
+> ## ⛔ NO MERGEADO: el QA lo paró, y él eligió CONSTRUIR lo que falta (opción A)
 >
 > ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
 > «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
@@ -16,7 +17,8 @@
 >   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
-> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → **Dev ✅** → **Review ✅ (2 vueltas, cerradas)** → **QA ⏳** → él lo mira.
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → **QA 🚫 BLOQUEADO** →
+> **Design ⏳ de la mitad que falta** → Dev → QA otra vez → migraciones → merge.
 > - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
 >   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
 >   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
@@ -96,15 +98,55 @@
 > esta rama (journal, adventures, dice, campaigns, characters); quedan 8 en aviso, todos de módulos que la rama
 > no toca.
 >
+> ## 🚫 POR QUÉ EL QA PARÓ EL MERGE (modo `block`, 2026-09-20) — y qué eligió él
+> Todo lo mecánico en verde (2.188 pruebas, 0 hard, builds, advisors, i18n, sondas 200/200). Lo que bloquea es
+> **una sola cosa, y es de producto**: el spec de `adventures` promete un director que **organiza**, y lo
+> construido es un director que **escribe**.
+>
+> **El callejón sin salida, medido**: `create()` inserta sólo `campaign_id` y `title` → toda aventura nueva nace
+> `draft`; **no hay control para marcar «en curso»**; y el trigger de la base elige
+> `ORDER BY (status='running') DESC, sort_order, created_at`. ⇒ **TODAS las escenas nuevas caen siempre en
+> «Aventura 1»** y no hay forma de moverlas. Se puede crear una segunda aventura y escribirla, pero no meterle
+> ni una escena — que es justo para lo que él la pidió.
+>
+> **Le ofrecí construirlo (A) o mergear y ajustar el spec (B). Eligió A** («*a, pero actualiza ws y vamos a chat
+> nuevo*», 2026-09-21).
+>
+> ### Lo que falta por construir (los 8 desvíos del QA, ya arreglados los dos últimos)
+> 1. **Marcar una aventura EN CURSO** — sin esto no funciona nada de lo demás. **Es lo primero.**
+> 2. **Mover una escena a otra aventura** (es cambiar `adventureId`, el puerto y la base ya lo aceptan).
+> 3. **Gestionar las escenas desde el carril**: crear · renombrar · reordenar (hoy sólo lista y abre).
+> 4. **Archivar** una aventura (`list({includeArchived})` ya existe; no hay quien ponga `archived`).
+> 5. **Borrar** una aventura — `remove()` está en el puerto y no lo llama nadie. Con escenas dentro la base lo
+>    RECHAZA (`ON DELETE RESTRICT`), así que hay que preguntar antes a dónde van: es el estado que el spec
+>    describe y hoy no se puede alcanzar.
+> 6. **Reordenar aventuras** (`sortOrder` no se toca nunca).
+> 7. ~~`Cmd+S` en una aventura~~ ✅ hecho (`cab8e50`).
+> 8. ~~El tope de 200 KB por documento~~ ✅ hecho (`cab8e50`): estaba escrito y probado en `core`, y no lo
+>    miraba nadie al guardar. Ahora avisa y no manda, sin borrar lo escrito.
+>
 > ## ⏭️ SIGUIENTE PASO CONCRETO
-> 1. **Que lo mire en su local** (rama `feat/notas-bitacora-aventuras`, ya es la suya): mesa → pestañas Notas y
->    Bitácora; pestaña AVENTURAS; botón ABRIR APARTE. Recarga forzada si sale raro (i18n y CSS nuevos).
-> 2. Cerrar lo que diga él, y lo que saque la 2.ª vuelta del Review.
-> 3. **QA** (`.claude/agents/qa.md`) y, ANTES del merge, **las CUATRO migraciones a producción por MCP
->    `apply_migration`**, una a una y en este orden: `20260919120000` (notas y bitácora) · `20260919120100`
->    (aventuras) · `20260920090000` (la escena cae sola en una aventura) · `20260920093000` (y sólo en una de
->    SU campaña). En producción NO está ninguna todavía.
-> 4. Merge y despliegue.
+> 1. **DISEÑO PRIMERO** (`.claude/commands/design.md`): dibujar en `rolvium.pen` § 4, sobre el marco
+>    `Mesa/Plenilunio · Director · AVENTURAS`, los controles que faltan — el estado de la aventura (hoy es una
+>    insignia muerta en la cabecera), el menú de una aventura del carril (en curso · archivar · borrar) y el de
+>    una escena (renombrar · mover a otra aventura · reordenar). **Enseñárselo y que lo apruebe ANTES de tocar
+>    código**, y pedirle el Cmd+S del `.pen` (sin su guardado no hay disco).
+> 2. Construirlo, con sus pruebas. El puerto `AdventuresPort` ya tiene `update` (status, sortOrder) y `remove`;
+>    `maps` ya acepta `ScenePatch.adventureId`. **No hace falta ninguna migración nueva.**
+> 3. **QA otra vez** (modo `block`; no volver a preguntárselo).
+> 4. **ANTES del merge, las CUATRO migraciones a producción por MCP `apply_migration`**, una a una y en este
+>    orden exacto: `20260919120000_journal_notas_y_bitacora` → `20260919120100_adventures_aventuras` →
+>    `20260920090000_maps_scenes_adventure_por_defecto` → `20260920093000_maps_scenes_aventura_de_su_campana`.
+>    **En producción NO está ninguna.** El QA las verificó contra la base de producción: prerrequisitos
+>    presentes, sin huecos, el `SET NOT NULL` es seguro (4 escenas, 0 sin campaña) y todo es re-ejecutable.
+>    Después, `get_advisors` para confirmar que siguen en 0 CRITICAL.
+> 5. Merge a `main` y comprobar los dos despliegues de producción con el SHA del merge.
+>
+> ## 🧾 Estado de la rama al cerrar
+> `feat/notas-bitacora-aventuras`, **publicada** (`cab8e50`), limpia, **⚠️ SU LOCAL ESTÁ EN ELLA**. Despliegues
+> de prueba de Vercel **READY** los dos (web y api) con `57691c1`; el `cab8e50` es posterior y no se comprobó
+> en preview — **volver a mirarlo antes del merge**. Local: las cuatro migraciones aplicadas con
+> `migration up --local` (nunca `db:reset`), sus datos intactos.
 >
 > ## 🔑 Lo que no debe perderse
 > - **Aventuras son de la MESA, del director.** Primero las puse como entrada del menú de arriba (siguiendo
@@ -120,6 +162,12 @@
 >   cambiar, se cambia el spec primero.
 > - **Medir antes de teorizar, otra vez**: lo de crear escenas no se «dedujo», se ejecutó contra su base local
 >   —y se deshizo con ROLLBACK, sin tocarle un dato— antes y después del arreglo.
+> - **Reescribir un spec suyo SIN DIFFEAR pierde cosas.** Van tres (bestiary 18-09, adventures y dice 20-09).
+>   Reordenar a las nueve secciones no es reescribir de memoria: `git show main:<spec> > /tmp/viejo.md`, mover el
+>   contenido, y al terminar comparar a mano páginas del manual, ⚠, «no construido» y citas. Y no escribir nunca
+>   «no se ha perdido nada» sin haberlo comprobado así — lo hice, y era mentira.
+> - **Lo que el spec promete, el código lo cumple o el spec cambia.** El QA bloqueó por esto y tenía razón: el
+>   tope de 200 KB llevaba días escrito y probado en `core` sin que lo llamara nadie.
 >
 > ---
 >
