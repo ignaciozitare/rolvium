@@ -57260,7 +57260,7 @@
                                       "id": "wgDU9",
                                       "name": "Aventura/El almacén de los muelles",
                                       "width": "fill_container",
-                                      "fill": "$pl-tinta",
+                                      "fill": "$pl-sangre",
                                       "gap": 8,
                                       "padding": [
                                         6,
@@ -57311,6 +57311,16 @@
                                               "fontStyle": "italic"
                                             }
                                           ]
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "L1nMU",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-papel-alto"
                                         }
                                       ]
                                     },
@@ -57370,6 +57380,16 @@
                                               "fontStyle": "italic"
                                             }
                                           ]
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "p9Wq2",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
                                         }
                                       ]
                                     },
@@ -57429,6 +57449,53 @@
                                               "fontStyle": "italic"
                                             }
                                           ]
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "TIEvR",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "tIdYQ",
+                                      "name": "ARCHIVADAS · plegado",
+                                      "width": "fill_container",
+                                      "gap": 5,
+                                      "padding": [
+                                        6,
+                                        8,
+                                        2,
+                                        8
+                                      ],
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "RnaBg",
+                                          "name": "Chevron",
+                                          "width": 13,
+                                          "height": 13,
+                                          "icon": "chevron_right",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "qxfOp",
+                                          "name": "T",
+                                          "fill": "$pl-tinta-tenue",
+                                          "content": "ARCHIVADAS · 1",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 8.5,
+                                          "fontWeight": "700",
+                                          "letterSpacing": 1.2
                                         }
                                       ]
                                     }
@@ -57524,6 +57591,16 @@
                                           "fontSize": 8,
                                           "fontWeight": "700",
                                           "letterSpacing": 1
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "Sz7qN",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
                                         }
                                       ]
                                     },
@@ -57561,6 +57638,16 @@
                                           "fontFamily": "$font-plenilunio",
                                           "fontSize": 12,
                                           "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "G7YXM",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
                                         }
                                       ]
                                     },
@@ -57598,6 +57685,16 @@
                                           "fontFamily": "$font-plenilunio",
                                           "fontSize": 12,
                                           "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "icon",
+                                          "id": "c6gynw",
+                                          "name": "Tres puntos",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "more_vert",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
                                         }
                                       ]
                                     }
@@ -57967,15 +58064,43 @@
                                           "fontWeight": "700"
                                         },
                                         {
-                                          "type": "text",
-                                          "id": "nqi1H",
-                                          "name": "T",
-                                          "fill": "$pl-oliva",
-                                          "content": "EN CURSO",
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 8.5,
-                                          "fontWeight": "700",
-                                          "letterSpacing": 1.2
+                                          "type": "frame",
+                                          "id": "uFrut",
+                                          "name": "Estado · selector (EN CURSO ▾)",
+                                          "stroke": "$pl-sangre",
+                                          "strokeWidth": 1,
+                                          "strokeAlignment": "inner",
+                                          "gap": 2,
+                                          "padding": [
+                                            2,
+                                            3,
+                                            2,
+                                            6
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "WXEAL",
+                                              "name": "T",
+                                              "fill": "$pl-sangre",
+                                              "content": "EN CURSO",
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 8.5,
+                                              "fontWeight": "700",
+                                              "letterSpacing": 1.2
+                                            },
+                                            {
+                                              "type": "icon",
+                                              "id": "DP7R8",
+                                              "name": "Desplegar",
+                                              "width": 12,
+                                              "height": 12,
+                                              "icon": "keyboard_arrow_down",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-sangre"
+                                            }
+                                          ]
                                         }
                                       ]
                                     },
@@ -60629,6 +60754,2964 @@
                   ]
                 }
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vah1D",
+      "x": 20439,
+      "y": 4679,
+      "name": "Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO  ←  NUEVO 21-09",
+      "clip": true,
+      "width": 900,
+      "height": 470,
+      "fill": "$pl-papel",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "AxOVz",
+          "x": 24,
+          "y": 24,
+          "name": "Carril · aventuras de la campaña",
+          "width": 220,
+          "height": 330,
+          "layout": "vertical",
+          "gap": 18,
+          "padding": [
+            4,
+            16,
+            4,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "N1Fce",
+              "name": "Bloque AVENTURAS",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rHxOx",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "g3TZi",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "AVENTURAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "L0RDzJ",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HOAt2",
+                  "name": "Aventura/El almacén de los muelles",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MXeGV",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Vf0Pm",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aSwgj",
+                          "name": "T",
+                          "fill": "$pl-papel-alto",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "El almacén de los muelles",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QZf2H",
+                          "name": "T",
+                          "fill": "$pl-papel-hueco",
+                          "content": "en curso · 3 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "nsF6v",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O9AfhV",
+                  "name": "Aventura/La feria de las sombras",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-alto",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qPSNA",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KyC9a",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "B867c",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "La feria de las sombras",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "xa02L",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "borrador · 1 escena",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "mqE1I",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O6m7X",
+                  "name": "Aventura/Prólogo en Queens",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Xa0xV",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wXjKd",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UqO30",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Prólogo en Queens",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "I0QSe",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "terminada · 4 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "CUfKz",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GiMOL",
+                  "name": "ARCHIVADAS · plegado",
+                  "width": "fill_container",
+                  "gap": 5,
+                  "padding": [
+                    6,
+                    8,
+                    2,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "r0eg30",
+                      "name": "Chevron",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "chevron_right",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    },
+                    {
+                      "type": "text",
+                      "id": "z8isO",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "ARCHIVADAS · 1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zFecf",
+              "name": "Bloque ESCENAS DE ESTA AVENTURA",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "M8Wjzn",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sy4Bm",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "ESCENAS DE ESTA AVENTURA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "J8rWql",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MYTzM",
+                  "name": "Escena/El portón",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Tn6jf",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Y2CJVM",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El portón",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "JSjzt",
+                      "name": "T",
+                      "fill": "$pl-sangre",
+                      "content": "ACTIVA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "ZOgzx",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "W2X2Cx",
+                  "name": "Escena/El almacén",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "rMDKK",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "he5Fh",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El almacén",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "U4c7f",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lRnSy",
+                  "name": "Escena/El sótano",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "uSywD",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "A6qvsU",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El sótano",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "t0AnM",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "L5aued",
+          "x": 222,
+          "y": 92,
+          "name": "Menú flotante",
+          "width": 216,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "u7BZB",
+              "name": "MI/Marcar EN CURSO",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "dq2T7",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "flag",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "frame",
+                  "id": "aVUGJ",
+                  "name": "Texto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 1,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jISNK",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "Marcar EN CURSO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "I9KQNH",
+                      "name": "Pista",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Es la que se abre al entrar en la pestaña, y adonde van las escenas que crees desde la mesa.",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "s18kA",
+              "name": "MI/Subir",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "fNa9m",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "arrow_upward",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "e7UCl",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Subir",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "K5Dw5a",
+              "name": "MI/Bajar",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "R9Xrt",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "arrow_downward",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "xPc9i",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Bajar",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "QbFxT",
+              "name": "Separador",
+              "fill": "$pl-linea",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "x2WOJ",
+              "name": "MI/Archivar",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "H9fj4s",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "inventory_2",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "fHrsf",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Archivar",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gQTCB",
+              "name": "MI/Borrar aventura",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "c31H3",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "delete",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-sangre"
+                },
+                {
+                  "type": "text",
+                  "id": "meqoj",
+                  "name": "T",
+                  "fill": "$pl-sangre",
+                  "content": "Borrar aventura",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "l9TAyq",
+          "x": 500,
+          "y": 28,
+          "name": "Rótulo · cabecera del documento",
+          "fill": "$pl-tinta-suave",
+          "content": "CABECERA DEL DOCUMENTO · EL ESTADO SE ELIGE AQUÍ",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 9,
+          "fontWeight": "700",
+          "letterSpacing": 1.5
+        },
+        {
+          "type": "frame",
+          "id": "O79Wzm",
+          "x": 500,
+          "y": 50,
+          "name": "Título",
+          "gap": 10,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "jCqFe",
+              "name": "Título editable",
+              "fill": "$pl-tinta",
+              "content": "El almacén de los muelles",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "EBPlu",
+              "name": "Estado · selector (EN CURSO ▾)",
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-sangre",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "gap": 2,
+              "padding": [
+                2,
+                3,
+                2,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "B4CA3",
+                  "name": "T",
+                  "fill": "$pl-sangre",
+                  "content": "EN CURSO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 8.5,
+                  "fontWeight": "700",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "icon",
+                  "id": "OBdkj",
+                  "name": "Desplegar",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "keyboard_arrow_down",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-sangre"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Omxis",
+          "x": 691,
+          "y": 73,
+          "name": "Menú flotante · estado",
+          "width": 170,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "V9AwD",
+              "name": "MI/Borrador",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "G5wUWC",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "radio_button_unchecked",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "u7ZIk",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Borrador",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "avvJu",
+              "name": "MI/En curso",
+              "width": "fill_container",
+              "fill": "$pl-papel",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "DDSUY",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "radio_button_checked",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-sangre"
+                },
+                {
+                  "type": "text",
+                  "id": "RkzML",
+                  "name": "T",
+                  "fill": "$pl-sangre",
+                  "content": "En curso",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xd98I",
+              "name": "MI/Terminada",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "jDS2i",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "radio_button_unchecked",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "I7k6q",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Terminada",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "MOxr5",
+          "x": 24,
+          "y": 372,
+          "name": "Nota",
+          "width": 852,
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "K0mRV",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Cada aventura lleva sus tres puntos, igual que las escenas de la mesa. El menú flota ENCIMA: nada lo corta. La aventura abierta va en rojo sangre, no en negro.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "ir7zh",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "EN CURSO sólo hay UNA: es la que se abre al entrar en la pestaña y adonde van las escenas nuevas que crees desde la mesa. Al marcar otra, la que estaba pasa a TERMINADA.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "SMVBA",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "El estado también se cambia desde la cabecera del documento: pinchando en él salen BORRADOR · EN CURSO · TERMINADA.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "k4ZVv",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "SUBIR y BAJAR cambian el orden del carril.  ARCHIVAR la quita del carril sin borrarla: queda abajo, en ARCHIVADAS.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "oYPdX",
+      "x": 21499,
+      "y": 4679,
+      "name": "Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura  ←  NUEVO 21-09",
+      "clip": true,
+      "width": 760,
+      "height": 560,
+      "fill": "$pl-papel",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sPdme",
+          "x": 24,
+          "y": 24,
+          "name": "Carril · aventuras de la campaña",
+          "width": 220,
+          "height": 330,
+          "layout": "vertical",
+          "gap": 18,
+          "padding": [
+            4,
+            16,
+            4,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "u8EnR",
+              "name": "Bloque AVENTURAS",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EefWz",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Gatz3",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "AVENTURAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "R2WT0",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PvdmU",
+                  "name": "Aventura/El almacén de los muelles",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n9Dee",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MFXr4",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zZVOe",
+                          "name": "T",
+                          "fill": "$pl-papel-alto",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "El almacén de los muelles",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "cjLfn",
+                          "name": "T",
+                          "fill": "$pl-papel-hueco",
+                          "content": "en curso · 3 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "i8KD8z",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BHey4",
+                  "name": "Aventura/La feria de las sombras",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zp775",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xlrfo",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "p1tT2R",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "La feria de las sombras",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Dczwv",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "borrador · 1 escena",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "RqdcK",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ACueP",
+                  "name": "Aventura/Prólogo en Queens",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rBZeX",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xQmf5",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rT5b5",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Prólogo en Queens",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "i3HMf",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "terminada · 4 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "lG7xP",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b7HTC",
+                  "name": "ARCHIVADAS · plegado",
+                  "width": "fill_container",
+                  "gap": 5,
+                  "padding": [
+                    6,
+                    8,
+                    2,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "wPQi1",
+                      "name": "Chevron",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "chevron_right",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    },
+                    {
+                      "type": "text",
+                      "id": "APBKq",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "ARCHIVADAS · 1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j9sMQZ",
+              "name": "Bloque ESCENAS DE ESTA AVENTURA",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PxLn9",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jff4E",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "ESCENAS DE ESTA AVENTURA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "bLzfk",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Uo1D3",
+                  "name": "Escena/El portón",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "c7P6b0",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RV73J",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El portón",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "V2ZzA",
+                      "name": "T",
+                      "fill": "$pl-sangre",
+                      "content": "ACTIVA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "FQGtm",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TLeWf",
+                  "name": "Escena/El almacén",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-alto",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "nCE5i",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "H4nTZv",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El almacén",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "HMs4M",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "V0yXh",
+                  "name": "Escena/El sótano",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ySldg",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fRe82",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El sótano",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "TjFCA",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mzYZ8",
+          "x": 222,
+          "y": 271,
+          "name": "Menú flotante · escena",
+          "width": 200,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "Sj79R",
+              "name": "MI/Renombrar",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ai9uR",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "edit",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "CczZl",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Renombrar",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "G7Tw6X",
+              "name": "MI/Subir",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "HO5nZ",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "arrow_upward",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "mjXEd",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Subir",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j3X2H",
+              "name": "MI/Bajar",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "h7p9T2",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "arrow_downward",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "c28gy",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Bajar",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "rQt3p",
+              "name": "Separador",
+              "fill": "$pl-linea",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "lClfL",
+              "name": "MI/Mover a otra aventura",
+              "width": "fill_container",
+              "fill": "$pl-papel",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "PNd2t",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "drive_file_move",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "SmQ6I",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Mover a otra aventura",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon",
+                  "id": "kUiKz",
+                  "name": "Más",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "chevron_right",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "d9iyN",
+          "x": 418,
+          "y": 347,
+          "name": "Submenú · a qué aventura",
+          "width": 210,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "VfnvW",
+              "name": "Rótulo",
+              "width": "fill_container",
+              "padding": [
+                6,
+                7,
+                3,
+                7
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Q3whLP",
+                  "name": "T",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "LLEVARLA A",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 8.5,
+                  "fontWeight": "700",
+                  "letterSpacing": 1.2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ac6Gj",
+              "name": "MI/La feria de las sombras",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                5,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "iLNWJ",
+                  "name": "N",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "2",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "m4pz4",
+                  "name": "Texto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "smKdG",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "La feria de las sombras",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10.5,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bGgqP",
+                      "name": "S",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "borrador",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EJdiK",
+              "name": "MI/Prólogo en Queens",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                5,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RJB5W",
+                  "name": "N",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "3",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "mYHTN",
+                  "name": "Texto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ioq25",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "Prólogo en Queens",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10.5,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EOxPs",
+                      "name": "S",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "terminada",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "w7ac1",
+          "x": 24,
+          "y": 462,
+          "name": "Nota",
+          "width": 712,
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "IYydq",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Cada escena de la aventura lleva sus tres puntos. Pinchar en la escena sigue abriéndola en la mesa, como hoy.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "mEqEv",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "MOVER A OTRA AVENTURA la saca de ésta y la mete en la elegida, entera y con todo lo que tiene dentro. No se copia.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "HoXAI",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "El + de ESCENAS DE ESTA AVENTURA crea una escena aquí: pide el nombre, igual que + ESCENA en la mesa. Borrar una escena sigue donde siempre, en el carril de escenas de la mesa.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qRsLF",
+      "x": 22419,
+      "y": 4679,
+      "name": "Aventuras/ARCHIVADAS y BORRAR una aventura con escenas  ←  NUEVO 21-09",
+      "clip": true,
+      "width": 900,
+      "height": 560,
+      "fill": "$pl-papel",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "TCjLv",
+          "x": 24,
+          "y": 24,
+          "name": "Carril · aventuras de la campaña",
+          "width": 220,
+          "height": 400,
+          "layout": "vertical",
+          "gap": 18,
+          "padding": [
+            4,
+            16,
+            4,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "jHgUV",
+              "name": "Bloque AVENTURAS",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PNtml",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f9Bdi7",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "AVENTURAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "KnCDZ",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rMxhb",
+                  "name": "Aventura/El almacén de los muelles",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "P0Z82",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BsPN2",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bT83q",
+                          "name": "T",
+                          "fill": "$pl-papel-alto",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "El almacén de los muelles",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qJYp5",
+                          "name": "T",
+                          "fill": "$pl-papel-hueco",
+                          "content": "en curso · 3 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "C48XI",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Hdes8",
+                  "name": "Aventura/La feria de las sombras",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JZCfJ",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FMmmw",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "oFqJI",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "La feria de las sombras",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "mLCax",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "borrador · 1 escena",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "YA9tG",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "z9W6Xp",
+                  "name": "Aventura/Prólogo en Queens",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JTIU5",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AHdJR",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "YcyFH",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Prólogo en Queens",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "gg4kz",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "terminada · 4 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Pg4Cp",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uChze",
+                  "name": "ARCHIVADAS · desplegado",
+                  "width": "fill_container",
+                  "gap": 5,
+                  "padding": [
+                    6,
+                    8,
+                    2,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "e4HcxC",
+                      "name": "Chevron",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "keyboard_arrow_down",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lbsAa",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "ARCHIVADAS · 1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cl2Kc",
+                  "name": "Aventura archivada/Los túneles de servicio",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-alto",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "v7yKvZ",
+                      "name": "I",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "inventory_2",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NX5vS",
+                      "name": "Texto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "z8voWB",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Los túneles de servicio",
+                          "lineHeight": 1.25,
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "700",
+                          "fontStyle": "italic"
+                        },
+                        {
+                          "type": "text",
+                          "id": "en0kB",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "archivada · 2 escenas",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon",
+                      "id": "b6Cexg",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uPpl4",
+              "name": "Bloque ESCENAS DE ESTA AVENTURA",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "C3ps7",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    5,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jwQcN",
+                      "name": "Rótulo",
+                      "fill": "$pl-tinta-suave",
+                      "content": "ESCENAS DE ESTA AVENTURA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "icon",
+                      "id": "zmjZ5",
+                      "name": "Crear",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "add",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DVeH0",
+                  "name": "Escena/El portón",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "kEkg3",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ziSTQ",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El portón",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TWgOL",
+                      "name": "T",
+                      "fill": "$pl-sangre",
+                      "content": "ACTIVA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "nFCoH",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Z8au9y",
+                  "name": "Escena/El almacén",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "v51Bzt",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "pxPxQ",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El almacén",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "j4HjrK",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vBqK7",
+                  "name": "Escena/El sótano",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "padding": [
+                    5,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "YNks4",
+                      "name": "I",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "map",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Zq7C0",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El sótano",
+                      "lineHeight": 1.2,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "tangV",
+                      "name": "Tres puntos",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "more_vert",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Zj215",
+          "x": 222,
+          "y": 222,
+          "name": "Menú flotante · archivada",
+          "width": 190,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "zBQvZ",
+              "name": "MI/Sacar del archivo",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "eLio6",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "unarchive",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "Fi8EI",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "Sacar del archivo",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "Gw404",
+              "name": "Separador",
+              "fill": "$pl-linea",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "mWCF3",
+              "name": "MI/Borrar aventura",
+              "width": "fill_container",
+              "fill": "$pl-papel",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "P5adG",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "delete",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-sangre"
+                },
+                {
+                  "type": "text",
+                  "id": "IxWZ9",
+                  "name": "T",
+                  "fill": "$pl-sangre",
+                  "content": "Borrar aventura",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "G0pJuw",
+          "x": 470,
+          "y": 40,
+          "name": "Modal/Borrar una aventura con escenas",
+          "width": 390,
+          "fill": "$pl-papel-alto",
+          "stroke": "$pl-borde",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "blur": 24
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            20,
+            22
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "U8Qo3",
+              "name": "Título",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Borrar «Los túneles de servicio»",
+              "lineHeight": 1.2,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 17,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "yM2Cq",
+              "name": "Explicación",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Tiene 2 escenas, y las escenas no se borran con ella. Elige a qué aventura se van antes de borrarla.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "RKpBP",
+              "name": "Rótulo",
+              "fill": "$pl-tinta",
+              "content": "LLEVAR SUS ESCENAS A",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9.5,
+              "fontWeight": "700",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "ZaGO4",
+              "name": "Opciones (OptionGroup · una columna)",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CFanv",
+                  "name": "Opción/El almacén de los muelles · en curso",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "geS0C",
+                      "name": "N",
+                      "fill": "$pl-papel-alto",
+                      "content": "1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ny9hB",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "EL ALMACÉN DE LOS MUELLES · EN CURSO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "USrk2",
+                  "name": "Opción/La feria de las sombras",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "y6wyhI",
+                      "name": "N",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZYgSF",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "LA FERIA DE LAS SOMBRAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fjD7j",
+                  "name": "Opción/Prólogo en Queens",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "S7oEo1",
+                      "name": "N",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "a4jmzZ",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "PRÓLOGO EN QUEENS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j49ol",
+              "name": "Pie",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                6,
+                0,
+                0,
+                0
+              ],
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "g9mUp",
+                  "name": "Botón Cancelar (PL/Boton)",
+                  "fill": "#00000000",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    7,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WGpSe",
+                      "name": "Label",
+                      "fill": "$pl-tinta-suave",
+                      "content": "CANCELAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ldvQ8",
+                  "name": "Botón Borrar",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 6,
+                  "padding": [
+                    7,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "yBfn5",
+                      "name": "I",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "delete",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
+                      "type": "text",
+                      "id": "C82PSE",
+                      "name": "Label",
+                      "fill": "$pl-papel-alto",
+                      "content": "MOVER Y BORRAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "zjbEN",
+          "x": 24,
+          "y": 452,
+          "name": "Nota",
+          "width": 852,
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "yQ3tp",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "ARCHIVADAS se despliega al pinchar. Una aventura archivada no se abre sola ni recibe escenas nuevas; con SACAR DEL ARCHIVO vuelve al carril.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "mqTA4",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Borrar una aventura SIN escenas sólo pide confirmar, como al borrar una escena. CON escenas, pregunta primero a dónde se van (marcada de salida, la que está EN CURSO): las escenas nunca se borran con la aventura.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "cknSl",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "La última aventura que le queda a la campaña no se puede borrar: el menú lo dice y deja archivarla.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
             }
           ]
         }

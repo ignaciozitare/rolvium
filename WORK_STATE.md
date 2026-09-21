@@ -64,9 +64,8 @@
 > - ✅ **La ventana aparte de una aventura, dibujada y APROBADA** («*aprobado*», 2026-09-20): marco
 >   `Aventuras/Aventura en ventana aparte`, en la § 4 detrás del de AVENTURAS (índice 38). Es el mismo cuaderno
 >   SIN el carril —una aventura por ventana, como la ficha es un personaje— y sin el botón ABRIR APARTE.
-> - 🔴 **EL `.pen` DE ESE MARCO NO ESTÁ EN DISCO**: al cerrar seguía marcando el 19-09 a las 23:23. **Pedirle
->   Cmd+S en la pestaña de `rolvium.pen` y commitearlo** (`design(adventures): la ventana aparte…`). Sin eso el
->   maestro no tiene la ventana, aunque él la haya visto y aprobado en pantalla.
+> - ✅ ~~El `.pen` de ese marco no estaba en disco~~ — comprobado el 21-09: guardado a las 00:53 del 20-09 y
+>   commiteado (`68acd2f`, `design(adventures): la ventana aparte…`).
 >
 > ## 🔍 La 2.ª vuelta del Review — APROBADA, con lo suyo (2026-09-20)
 > Cazó **dos pérdidas de datos de verdad** y las arregló: quitar un punto de en medio de una lista se llevaba
@@ -126,6 +125,15 @@
 >    miraba nadie al guardar. Ahora avisa y no manda, sin borrar lo escrito.
 >
 > ## ⏭️ SIGUIENTE PASO CONCRETO
+> 0. ⏳ **(21-09) DIBUJADO, ESPERANDO SU «APROBADO» Y SU Cmd+S** — en § 4, detrás de la ventana aparte (índices
+>    39-41): `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` · `Aventuras/Carril · MENÚ DE UNA ESCENA ·
+>    mover a otra aventura` · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas`. Y en el marco de
+>    AVENTURAS: tres puntos en cada fila, la aventura abierta en sangre (estaba en NEGRO en el `.pen`; el código
+>    ya la tenía en sangre), «ARCHIVADAS · 1» plegado y el estado de la cabecera como desplegable.
+>    **Decidido por mí y avisado** (que lo corrija si no): sólo UNA en curso —al marcar otra, la anterior pasa a
+>    TERMINADA—; reordenar con Subir/Bajar del menú, sin arrastrar; borrar una escena sigue en la mesa; la
+>    última aventura de la campaña no se puede borrar (sí archivar); al borrar con escenas, sale marcada la
+>    EN CURSO como destino.
 > 1. **DISEÑO PRIMERO** (`.claude/commands/design.md`): dibujar en `rolvium.pen` § 4, sobre el marco
 >    `Mesa/Plenilunio · Director · AVENTURAS`, los controles que faltan — el estado de la aventura (hoy es una
 >    insignia muerta en la cabecera), el menú de una aventura del carril (en curso · archivar · borrar) y el de
