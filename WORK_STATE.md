@@ -3,7 +3,16 @@
 ## 🎯 Current task
 
 > # 📍 ESTADO (2026-09-21, tarde) — NOTAS · BITÁCORA · AVENTURAS
-> ## ⛔ NO MERGEADO. La mitad que el QA echó en falta: DISEÑADA, APROBADA, CONSTRUIDA y REVISADA → falta el QA
+> ## ⛔ NO MERGEADO. La mitad que faltaba: diseñada, aprobada, construida y revisada. **2.º QA: BLOQUEADO** por
+> ## tres cosas VIEJAS del spec (los 8 fallos del 1.º, cerrados) → dos arregladas; **UNA PREGUNTA A ÉL pendiente**
+>
+> **2.º QA (21-09, modo block)**: confirma cerrados los 8 del primero. Bloqueó por 3 cosas que ya estaban en el
+> spec del 19-08 y el 1.º QA no vio: (1) «50 aventuras por campaña» sin comprobar → **decidido por mí y
+> avisado**: queda en el spec como tamaño de diseño, no cerrojo (el spec los llamaba «orientativos»); (2) § Data
+> model sin la 4.ª migración → arreglado; (3) **«el carril, plegable como el de escenas de la mesa»** — no
+> dibujado ni hecho → **PREGUNTADO A ÉL: ¿lo hago o lo quito del spec?** Además arreglado lo que pidió de
+> documentación (`ARCHITECTURE.md`, `specs/SPEC.md`) y un error de tipos en `core` (`14519fe`). Después: un QA
+> más, corto.
 >
 > ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
 > «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
@@ -18,7 +27,8 @@
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
 > Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → QA 🚫 (20-09) →
-> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅** → **QA ⏳** → migraciones → merge.
+> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅ → QA 🚫 (2.º) → docs ✅ (`14519fe`)** → ⏳ su respuesta
+> sobre el carril plegable → (diseño + construir, o tacharlo) → QA 3.º → migraciones → merge.
 > - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
 >   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
 >   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
