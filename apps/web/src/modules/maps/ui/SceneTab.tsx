@@ -1249,7 +1249,9 @@ export function SceneTab({ campaignId, adventures, role, userId, system, canMana
       onRename={(id, name) => patchScene(id, { name })}
       onActivate={id => repo.setActiveScene(campaignId, id)}
       onToggleVisible={(id, visiblePlayers) => patchScene(id, { visiblePlayers })}
-      onRemove={async id => { await repo.removeScene(id); setScenes(l => { const n = (l ?? []).filter(sc => sc.id !== id); setSelectedId(cur => (cur === id ? n[0]?.id ?? null : cur)); return n; }); }} />
+      // Al borrar la escena abierta se abre otra de la MISMA aventura del carril, si le queda alguna: con n[0] a
+      // secas el carril saltaba a otra aventura y escondía las que seguían en esta.
+      onRemove={async id => { await repo.removeScene(id); setScenes(l => { const n = (l ?? []).filter(sc => sc.id !== id); const next = (railAdventure ? n.find(sc => sc.adventureId === railAdventure) : undefined) ?? n[0]; setSelectedId(cur => (cur === id ? next?.id ?? null : cur)); return n; }); }} />
   ) : null;
 
   if (!live) {
