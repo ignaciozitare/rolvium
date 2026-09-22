@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { buildDocIndex, type RichDoc } from '@rolvium/core';
-import { DocIndexPanel, Modal, RichTextEditor, type RichTextEditorLabels } from '@rolvium/ui';
+import { DocIndexPanel, Modal, RichTextEditor, type NpcLook, type RichTextEditorLabels } from '@rolvium/ui';
 import type { Adventure, AdventureStatus } from '../domain/entities/Adventure';
 import { RailMenu } from './RailMenu';
 import type { DocSave } from './useAdventureDoc';
@@ -12,6 +12,10 @@ export interface AdventureScene { id: string; name: string }
 /** Lo que devuelve elegir una escena, y quien está esperando esa elección. */
 type PickedScene = { sceneId: string; label: string };
 type SceneResolver = (picked: PickedScene | null) => void;
+
+/** Lo mismo para una criatura del Bestiario (2026-09-22). */
+type PickedNpc = { npcId: string; name: string };
+type NpcResolver = (picked: PickedNpc | null) => void;
 
 interface Props {
   adventure: Adventure;
@@ -33,6 +37,15 @@ interface Props {
    * CURSO pasa la anterior a TERMINADA. Sin esto (la ventana aparte) el estado se lee y no se toca.
    */
   onStatusChange?: ((status: AdventureStatus) => void) | undefined;
+  /**
+   * EL BESTIARIO (2026-09-22), si esta superficie lo tiene: lo que ofrece el picker de una fila de
+   * PNJ/encuentro y qué hacer al pinchar una ya enlazada. Lo resuelve `AdventureNpcs`; sin ello las tablas
+   * se siguen escribiendo a mano, exactamente como hasta hoy.
+   */
+  npcs?: readonly { id: string; name: string; photoUrl: string | null }[] | undefined;
+  npcLook?: ((npcId: string) => NpcLook | null) | undefined;
+  onOpenNpc?: ((npcId: string) => void) | undefined;
+  onRollNpc?: ((npcId: string) => void) | undefined;
 }
 
 /** Lo que se elige desde la cabecera. «Archivada» no: eso es quitarla del carril, y se hace desde el carril. */
@@ -53,12 +66,14 @@ function savedText(t: (k: string, p?: Record<string, string>) => string, at: num
  */
 export function AdventureDocument({
   adventure, doc, onChange, onRename, save, savedAt, onReload, onForceSave, scenes, onOpenScene, onOpenApart, onStatusChange,
+  npcs, npcLook, onOpenNpc, onRollNpc,
 }: Props): JSX.Element {
   const { t } = useTranslation();
   const statusBtn = useRef<HTMLButtonElement | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(true);
   const [picking, setPicking] = useState<SceneResolver | null>(null);
+  const [pickingNpc, setPickingNpc] = useState<NpcResolver | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   // Cmd+S (o Ctrl+S) fuerza el guardado, como en la ficha y como en Notas y Bitácora.
@@ -88,7 +103,12 @@ export function AdventureDocument({
     npcColumns: [t('adventures.col.npc'), t('adventures.col.what'), t('adventures.col.wants'), t('adventures.col.notes')],
     encounterColumns: [t('adventures.col.npc'), t('adventures.col.howMany'), t('adventures.col.difficulty'), t('adventures.col.notes')],
     addRow: t('adventures.addRow'), linkScene: t('adventures.linkScene'), openScene: t('adventures.openScene'),
+    pickNpc: t('adventures.npc.pick'), npcMenu: t('adventures.npc.menu'), openNpc: t('adventures.npc.sheet'),
+    rollNpc: t('adventures.npc.roll'), unlinkNpc: t('adventures.npc.unlink'), linkedNpc: t('adventures.npc.linked'),
   };
+
+  /** Hay Bestiario si quien monta el cuaderno sabe contestar por una criatura (la mesa y la ventana aparte). */
+  const hasBestiary = !!npcLook;
 
   return (
     <div className="av-doc">
@@ -159,14 +179,46 @@ export function AdventureDocument({
         )}
         <RichTextEditor
           className="av-editor" doc={doc} onChange={onChange} labels={labels}
-          features={{ tables: true, sceneRef: true }}
+          features={{ tables: true, sceneRef: true, bestiary: hasBestiary }}
           onOpenScene={onOpenScene}
           onPickScene={() => new Promise<PickedScene | null>(resolve => {
             // Pulsarlo dos veces dejaba la primera promesa colgada para siempre: la anterior se cierra sola.
             setPicking((prev: SceneResolver | null) => { prev?.(null); return resolve; });
           })}
+          {...(hasBestiary
+            ? {
+              npcLook,
+              onOpenNpc, onRollNpc,
+              onPickNpc: () => new Promise<PickedNpc | null>(resolve => {
+                setPickingNpc((prev: NpcResolver | null) => { prev?.(null); return resolve; });
+              }),
+            }
+            : {})}
         />
       </div>
+
+      {/* ELEGIR DEL BESTIARIO para una fila (2026-09-22) — el mismo patrón que elegir escena: un `Modal` de
+          plataforma con la lista, y la fila se rellena con el nombre y la foto de lo elegido. */}
+      {pickingNpc && (
+        <Modal title={t('adventures.npc.pickTitle')} onClose={() => { pickingNpc(null); setPickingNpc(null); }}>
+          {(npcs ?? []).length === 0
+            ? <p className="av-empty">{t('adventures.npc.none')}</p>
+            : (
+              <ul className="av-picklist av-npclist">
+                {(npcs ?? []).map(npc => (
+                  <li key={npc.id}>
+                    <button type="button" onClick={() => { pickingNpc({ npcId: npc.id, name: npc.name }); setPickingNpc(null); }}>
+                      {npc.photoUrl
+                        ? <img src={npc.photoUrl} alt="" className="av-npcpic" />
+                        : <span className="material-symbols-outlined" aria-hidden="true">pest_control</span>}
+                      {npc.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </Modal>
+      )}
 
       {picking && (
         <Modal title={t('adventures.pickScene')} onClose={() => { picking(null); setPicking(null); }}>

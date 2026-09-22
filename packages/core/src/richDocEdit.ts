@@ -101,6 +101,21 @@ export function setCell(doc: RichDoc, blockId: string, row: number, col: number,
   return replaceBlock(doc, blockId, { ...block, rows });
 }
 
+/**
+ * ENLAZAR UNA FILA CON EL BESTIARIO (H5) — orden suya del 2026-09-22: «*los encuentros y personajes … deberia
+ * poder elegirlos del bestiario*». `npcId` es el hueco que cada fila lleva desde el 19-08, así que enlazar no
+ * migra ni un solo documento (spec § Data model).
+ *
+ * **Las celdas NO se tocan aquí.** El nombre escrito es del documento: quien enlaza pone el nombre con
+ * `setCell`, y desenlazar (`null`) deja lo escrito donde está — una entrada borrada del Bestiario no puede
+ * vaciar lo que el director escribió (spec § Rules & limits, el mismo principio que el `label` de `sceneRef`).
+ */
+export function setRowNpc(doc: RichDoc, blockId: string, row: number, npcId: string | null): RichDoc {
+  const block = doc.blocks.find(b => b.id === blockId);
+  if (!block || block.type !== 'table' || row < 0 || row >= block.rows.length) return doc;
+  return replaceBlock(doc, blockId, { ...block, rows: block.rows.map((r, n) => (n === row ? { ...r, npcId } : r)) });
+}
+
 /** Una fila más, vacía, al final de la tabla. */
 export function addTableRow(doc: RichDoc, blockId: string): RichDoc {
   const block = doc.blocks.find(b => b.id === blockId);

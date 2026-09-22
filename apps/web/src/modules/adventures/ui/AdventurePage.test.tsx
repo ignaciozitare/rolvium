@@ -4,6 +4,8 @@ import { renderWithProviders, screen, waitFor } from '../../../../tests/helpers/
 import { heading, type RichDoc } from '@rolvium/core';
 import type { MapsPort, Scene } from '@/modules/maps';
 import type { CampaignsPort } from '@/modules/campaigns';
+import type { BestiaryEntry, BestiaryPort } from '@/modules/bestiary';
+import type { RollsPort } from '@/modules/dice';
 import { SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
 import type { Adventure } from '../domain/entities/Adventure';
 import type { AdventuresPort } from '../domain/ports/AdventuresPort';
@@ -34,6 +36,17 @@ const paint = (adventures: AdventuresPort, maps = fakeMaps()) =>
     </Routes>,
     { providers: { routerProps: { initialEntries: ['/adventures/a1'] } } },
   );
+
+const OGRO: BestiaryEntry = {
+  id: 'be-1', origin: 'custom', name: 'Ogro del puente', notes: '', tokenUrl: null,
+  sourceRef: 'ogre', campaignId: 'c1', editable: true,
+  data: { stats: { fortitude: 8 }, endurance: 10, destiny: 0, protection: 0, abilities: [], specialties: {} },
+};
+const fakeBestiary = (): BestiaryPort => ({
+  listForCampaign: vi.fn().mockResolvedValue([OGRO]),
+  create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
+});
+const fakeRolls = (): RollsPort => ({ roll: vi.fn().mockResolvedValue(null) });
 
 describe('AdventurePage — la aventura en su propia ventana', () => {
   it('pinta el cuaderno de esa aventura, con la campaña en la barra de la ventana', async () => {
@@ -88,5 +101,41 @@ describe('AdventurePage — la aventura en su propia ventana', () => {
     chip.click();
     expect(open).toHaveBeenCalledWith('/table/c1?scene=sc-1', '_blank', 'noopener');
     open.mockRestore();
+  });
+
+  /**
+   * EL BESTIARIO TAMBIÉN AQUÍ (2026-09-22): la ventana aparte es EL MISMO cuaderno que la pestaña, y sus
+   * filas de PNJ/encuentro se eligen igual. Aquí no hay mesa que inyecte nada: el sistema lo resuelve la
+   * página y el puerto de tiradas sale del contenedor de `dice`.
+   */
+  it('sus filas de PNJ también se eligen del Bestiario', async () => {
+    const tabla = { id: 'tb', type: 'table' as const, kind: 'npc' as const, columns: ['PNJ', 'Qué es'], rows: [{ cells: [[], []], npcId: null }] };
+    renderWithProviders(
+      <Routes>
+        <Route path="/adventures/:id" element={
+          <AdventurePage adventures={fakeAdventures({ ...ADV, doc: { v: 1, blocks: [tabla] } })} maps={fakeMaps()}
+                         campaigns={fakeCampaigns()} bestiary={fakeBestiary()} rolls={fakeRolls()} />
+        } />
+      </Routes>,
+      { providers: { routerProps: { initialEntries: ['/adventures/a1'] } } },
+    );
+    expect(await screen.findByRole('button', { name: 'Elegir del Bestiario' })).toBeInTheDocument();
+  });
+
+  /**
+   * ⚠ La ventana espera a SABER si hay sistema antes de pintar el cuaderno —si llegara después, el envoltorio
+   * cambiaría y React lo desmontaría entero, tirando el cursor y el índice—. Pero si la campaña no contesta,
+   * la aventura se lee IGUAL: lo que el director quiere es su texto. Cazado al construir el punto 2 (22-09).
+   */
+  it('si la campaña no contesta, la aventura se lee igual (sin Bestiario, no «Cargando…» para siempre)', async () => {
+    const campaigns = { getById: vi.fn().mockRejectedValue(new Error('red')) } as unknown as CampaignsPort;
+    renderWithProviders(
+      <Routes>
+        <Route path="/adventures/:id" element={<AdventurePage adventures={fakeAdventures(ADV)} maps={fakeMaps()} campaigns={campaigns} />} />
+      </Routes>,
+      { providers: { routerProps: { initialEntries: ['/adventures/a1'] } } },
+    );
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('El almacén');
+    expect(screen.queryByRole('button', { name: 'Elegir del Bestiario' })).toBeNull();
   });
 });

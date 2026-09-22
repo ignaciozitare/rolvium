@@ -52,6 +52,30 @@
   cursor:pointer;}
 .rv-rt-addrow .material-symbols-outlined{font-size:var(--icon-xs);}
 
+/* ── La fila elegida del BESTIARIO (2026-09-22) ─────────────────────────────
+   `Aventuras/Fila del BESTIARIO · elegir a alguien y lo que ofrece`. La primera celda lleva la foto, el
+   nombre que se escribe, el eslabón y el botón del libro; el menú de la fila sale flotando sobre ella.
+   Todo con `--sys-*`: esto se lee dentro de la mesa, sobre el papel del sistema de juego. */
+.rv-rt-npccell{position:relative;display:flex;align-items:center;gap:6px;min-width:0;}
+.rv-rt-npccell>[contenteditable],.rv-rt-npccell>div{flex:1;min-width:0;}
+.rv-rt-npcpic{flex:none;width:22px;height:22px;border-radius:50%;object-fit:cover;}
+.rv-rt-npcini{flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;
+  border-radius:50%;background:var(--sys-blood);color:var(--sys-paper-hi);font-size:var(--fs-2xs);
+  font-weight:600;letter-spacing:.04em;}
+.rv-rt-npcchain{flex:none;font-size:var(--icon-xs);color:var(--sys-blood);}
+.rv-rt-npcbtn{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:2px;
+  border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.rv-rt-npcbtn:hover{color:var(--sys-blood);}
+.rv-rt-npcbtn .material-symbols-outlined{font-size:var(--icon-sm);}
+.rv-rt-npccatch{position:fixed;inset:0;z-index:39;background:none;}
+.rv-rt-npcmenu{position:absolute;top:calc(100% + 4px);right:0;z-index:40;display:flex;flex-direction:column;
+  min-width:172px;padding:4px;background:var(--sys-paper-hi);border:1px solid var(--sys-ink);
+  box-shadow:var(--sys-card-shadow);}
+.rv-rt-npcitem{display:flex;align-items:center;gap:8px;padding:6px 8px;border:none;background:transparent;
+  color:var(--sys-ink);font-family:var(--sys-font-body);font-size:var(--fs-xs);text-align:left;cursor:pointer;}
+.rv-rt-npcitem:hover{background:color-mix(in srgb,var(--sys-blood) 12%,transparent);color:var(--sys-blood);}
+.rv-rt-npcitem .material-symbols-outlined{font-size:var(--icon-xs);}
+
 /* El enlace a una escena: un chip que la abre en la mesa. */
 .rv-rt-scene{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--sys-blood);
   background:transparent;color:var(--sys-blood);font-family:var(--sys-font-body);font-size:var(--fs-xs);cursor:pointer;}

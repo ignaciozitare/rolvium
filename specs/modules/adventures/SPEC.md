@@ -93,7 +93,7 @@ cannot, not even by asking for one by its id — see § Permissions.
 | Folded rail | The rail folded into a column with only the button to open it («Desplegar aventuras»); the index and the document take the width | § 4 · `Aventuras/Carril PLEGADO · el documento a lo ancho` |
 | Adventure drop-down of the Escena tab's scene rail (built in `maps`) | With two or more non-archived adventures: the drop-down at the very top (no «ESCENAS» label, and since 2026-09-22 **no «AVENTURA» label inside the button either** — only the number and the name), «+ Escena» right under it, then only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` (⏳ to be redrawn without the label) |
 | The rail as a tree | Each adventure one row; the open one unfolds its scenes beneath it, with its «+» and their three dots | ⏳ to be drawn in § 4 |
-| A row filled from the Bestiary | The picker from a PNJ/encounter row, the linked row with its photo, and what clicking it offers (card · roll) | ⏳ to be drawn in § 4 |
+| A row filled from the Bestiary | The picker from a PNJ/encounter row, the linked row with its photo, and what clicking it offers (card · roll) | § 4 · `Aventuras/Fila del BESTIARIO · elegir a alguien y lo que ofrece` |
 | Photo block | The editor bar's photo button (upload · from the library) and the photo at text width | ⏳ to be drawn in § 4 |
 
 Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20; the rail controls on
@@ -193,6 +193,10 @@ trap, same test to pin it.
 | Moving a scene with no other adventure | The scene's menu | «Mover a otra aventura» switched off, with the reason underneath |
 | Every adventure archived | The tab | The rail with «ARCHIVADAS», and a line saying none is left in the rail |
 | An action of the rail fails | Network or RLS refused (mark running, order, archive, delete, scenes…) | A line in the rail («No se ha podido hacer…») and the rail reloads what is REALLY in the database, without flashing |
+| The Bestiary of the campaign is empty | The book of a PNJ/encounter row | The picker says so («El Bestiario de esta campaña todavía no tiene nada»); the row is still written by hand |
+| A linked row whose entry was deleted from the Bestiary | Any time after the deletion | The row keeps the name that was written and quietly loses the chain, the photo and the menu — the book comes back, to pick again. Nothing in the document is rewritten |
+| The Bestiary has not answered yet | The tab has just been opened | Linked rows read as plain rows with their written name, and gain their photo and menu as soon as the list lands |
+| Without the game system or the roll port | The notebook is mounted without them (a campaign whose system is not installed; the separate window while it loads) | No book anywhere: the tables are written by hand, exactly as before. The feature is missing in full and in plain sight — never a button that does nothing |
 | A broken part | The editor throws while painting | The net from `core/errors`: the tab falls, not the table |
 | A player who somehow reaches it | Direct URL / id | Nothing: for them the row does not exist |
 
@@ -408,6 +412,15 @@ before his approval, to be corrected if he disagrees:
   action in the scene rail. The scene the table asks to open wins over the last one viewed (`sceneToOpen`).
 - **The separate window's chip opens the table on that scene** through `?scene=`, which the table now reads.
   Before, nothing read it and the table opened wherever the rule above landed.
+- **The separate window waits to KNOW whether there is a game system before painting the notebook.** Having it
+  arrive late would change the notebook's wrapper (with Bestiary / without it) and React would unmount and
+  remount the whole document, taking the cursor and the open index with it. Knowing takes one round trip, and
+  if the campaign never answers the adventure is painted anyway, without the Bestiary: what the GM came for is
+  their text. Caught by this module's own index test while building the Bestiary rows (2026-09-22).
+- **The row menu («Ver su ficha · Tirar por él») lives inside the shared editor; the card and the roll do not.**
+  The editor is `@rolvium/ui` and Notas and Bitácora share it, so it cannot know what a Bestiary is: it asks
+  (`npcLook`) and it tells (`onOpenNpc`, `onRollNpc`). Who answers is `AdventureNpcs`, which is the only place
+  that knows both — and it reuses `EntrySheetModal`, `NpcSheetModal` and `CreatureRollPopover` as they are.
 
 ### His, 2026-09-22, after seeing v0.15.0 in production (verbatim)
 

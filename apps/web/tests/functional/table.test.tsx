@@ -85,13 +85,13 @@ const fakeBestiaryRepo = (): BestiaryPort => ({
  * un test iría contra el contenedor real —y contra Supabase—, y la pestaña del director no se podría probar.
  */
 const ADVENTURE_DOC: RichDoc = { v: 1, blocks: [heading(1, [{ t: 'El almacén' }]), paragraph([{ t: 'Llegan de noche.' }])] };
-const fakeAdventuresRepo = (): AdventuresPort => ({
+const fakeAdventuresRepo = (doc: RichDoc = ADVENTURE_DOC): AdventuresPort => ({
   list: vi.fn().mockResolvedValue([{
-    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc: ADVENTURE_DOC,
+    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc,
     status: 'running', sortOrder: 0, updatedAt: '2026-09-20T10:00:00Z',
   }]),
   getById: vi.fn(async () => ({
-    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc: ADVENTURE_DOC,
+    id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc,
     status: 'running', sortOrder: 0, updatedAt: '2026-09-20T10:00:00Z',
   })),
   create: vi.fn(), update: vi.fn(), saveDoc: vi.fn(), remove: vi.fn(),
@@ -223,6 +223,28 @@ describe('table: page', () => {
 
     await waitFor(() => expect(adventures.list).toHaveBeenCalledWith('c1', { includeArchived: true }));
     expect(await screen.findByRole('textbox', { name: 'Título de la aventura' })).toHaveValue('El almacén de los muelles');
+  });
+
+  /**
+   * LAS FILAS DE PNJ/ENCUENTRO, ELEGIDAS DEL BESTIARIO (su «b» del 2026-09-22). Aquí se comprueba lo que sólo
+   * la mesa puede dar: el **sistema de juego** y el **puerto de tiradas** llegando hasta la pestaña AVENTURAS,
+   * que es lo que hace que una fila pueda tener ficha y tirada. Sin ese cable, el libro no sale.
+   */
+  it('en AVENTURAS, la mesa le da el sistema y las tiradas: las filas se eligen del Bestiario', async () => {
+    const u = userEvent.setup();
+    const conTabla: RichDoc = {
+      v: 1,
+      blocks: [{ id: 'tb', type: 'table', kind: 'npc', columns: ['PNJ', 'Qué es'], rows: [{ cells: [[], []], npcId: null }] }],
+    };
+    const { bestiary } = mount(
+      GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(),
+      fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(),
+      fakeAdventuresRepo(conTabla),
+    );
+    await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
+    expect(await screen.findByRole('button', { name: 'Elegir del Bestiario' })).toBeInTheDocument();
+    // Y lee el Bestiario DE ESTA CAMPAÑA, con el sistema de la mesa.
+    await waitFor(() => expect(bestiary.listForCampaign).toHaveBeenCalledWith('c1', 'plenilunio'));
   });
 
   /**

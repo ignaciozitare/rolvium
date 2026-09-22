@@ -138,6 +138,14 @@ campaign's GM changing hands. `TO authenticated` only, no `TO anon`; no admin by
 read another GM's bestiary through this table). Table grants (`SELECT/INSERT/UPDATE/DELETE` to `authenticated`
 and `service_role`) sit next to the policies — without them PostgREST answers 403 before RLS is even evaluated.
 
+### Who else reaches this module
+
+Since **2026-09-22** the Bestiary is also read from inside an **adventure** (`specs/modules/adventures/SPEC.md`):
+a PNJ/encounter row of the document can be filled from here, and a linked row opens **the same card** and the
+same «Tirar por una criatura» as this tab — no copy of either. It enters through the module's door
+(`apps/web/src/modules/bestiary/index.ts`), which was created for it; nothing about this module's own rules,
+screens or RLS changes because of it. Placing an entry on the map from an adventure is **not** part of it.
+
 ## Out of scope
 
 - Importing a bestiary from outside (JSON, another tool's compendium).

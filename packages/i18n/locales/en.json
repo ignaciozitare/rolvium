@@ -1941,6 +1941,16 @@
       "confirmMove": "Move and delete"
     },
     "foldRail": "Fold adventures",
-    "unfoldRail": "Unfold adventures"
+    "unfoldRail": "Unfold adventures",
+    "npc": {
+      "pick": "Pick from the Bestiary",
+      "pickTitle": "Who goes in this row?",
+      "none": "This campaign's Bestiary is still empty.",
+      "menu": "From the Bestiary",
+      "linked": "From the Bestiary",
+      "sheet": "See its card",
+      "roll": "Roll for it",
+      "unlink": "Remove the link"
+    }
   }
 }

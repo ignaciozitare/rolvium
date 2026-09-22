@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { buildDocIndex, heading, list, paragraph, quote, sceneRef, table, type RichDoc } from '@rolvium/core';
+import { buildDocIndex, heading, list, paragraph, quote, sceneRef, setCell, setRowNpc, table, type RichDoc } from '@rolvium/core';
 import { RichTextEditor, type RichTextEditorLabels } from './RichTextEditor';
 import { DocIndexPanel } from './DocIndexPanel';
 
@@ -13,7 +13,13 @@ const LABELS: RichTextEditorLabels = {
   npcColumns: ['PNJ', 'Qué es'], encounterColumns: ['PNJ', 'N.º'], addRow: 'Añadir fila',
   linkScene: 'Enlazar escena', openScene: 'Abrir en la mesa', placeholder: 'Escribe aquí…',
   textField: 'Texto', removeBlock: 'Quitar',
+  pickNpc: 'Elegir del Bestiario', npcMenu: 'Del Bestiario', openNpc: 'Ver su ficha',
+  rollNpc: 'Tirar por él', unlinkNpc: 'Quitar el enlace', linkedNpc: 'Del Bestiario',
 };
+
+/** Lo que el Bestiario contesta cuando el editor pregunta por una fila enlazada. */
+const OGRO = { name: 'Ogro del puente', photoUrl: 'https://x/ogro.webp', initials: 'OP' };
+const look = (id: string) => (id === 'ogre' ? OGRO : null);
 
 const doc = (...blocks: RichDoc['blocks']): RichDoc => ({ v: 1, blocks });
 
@@ -305,5 +311,119 @@ describe('pegar, atajos y rótulos — lo que la revisión del 2026-09-20 dejó 
     render(<RichTextEditor doc={doc(table('encounter', ['PNJ', 'N.º'], 1))} onChange={vi.fn()} labels={LABELS} features={{ tables: true }} />);
     expect(screen.getByRole('textbox', { name: 'PNJ' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'N.º' })).toBeInTheDocument();
+  });
+});
+
+/**
+ * LA FILA ELEGIDA DEL BESTIARIO (H5 × H12, 2026-09-22) — «*los encuentros y personajes … deberia poder
+ * elegirlos del bestiario*», opción «b»: nombre y foto, ver su ficha y tirar por él. Colocar en la escena NO.
+ */
+describe('RichTextEditor — la fila del Bestiario', () => {
+  const BEST = { tables: true, bestiary: true };
+
+  it('sin la llave del Bestiario, la tabla sigue siendo la de siempre: ni libro ni eslabón', () => {
+    render(<RichTextEditor doc={doc(table('npc', ['PNJ', 'Qué es'], 1))} onChange={vi.fn()} labels={LABELS} features={{ tables: true }} />);
+    expect(screen.queryByRole('button', { name: 'Elegir del Bestiario' })).toBeNull();
+  });
+
+  it('una fila sin enlazar ofrece el libro SÓLO en la primera celda', () => {
+    render(<RichTextEditor doc={doc(table('encounter', ['PNJ', 'N.º'], 2))} onChange={vi.fn()} labels={LABELS}
+                           features={BEST} onPickNpc={vi.fn()} npcLook={look} />);
+    expect(screen.getAllByRole('button', { name: 'Elegir del Bestiario' })).toHaveLength(2);
+  });
+
+  it('elegir del Bestiario deja el nombre escrito Y el enlace, en un solo cambio', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const d = doc(table('npc', ['PNJ', 'Qué es'], 1));
+    render(<RichTextEditor doc={d} onChange={onChange} labels={LABELS} features={BEST} npcLook={look}
+                           onPickNpc={() => Promise.resolve({ npcId: 'ogre', name: 'Ogro del puente' })} />);
+    await user.click(screen.getByRole('button', { name: 'Elegir del Bestiario' }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect((onChange.mock.calls[0]![0] as RichDoc).blocks[0]).toMatchObject({
+      rows: [{ cells: [[{ t: 'Ogro del puente' }], []], npcId: 'ogre' }],
+    });
+  });
+
+  it('cancelar el picker no toca el documento', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor doc={doc(table('npc', ['PNJ', 'Qué es'], 1))} onChange={onChange} labels={LABELS}
+                           features={BEST} npcLook={look} onPickNpc={() => Promise.resolve(null)} />);
+    await user.click(screen.getByRole('button', { name: 'Elegir del Bestiario' }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('una fila enlazada enseña su foto y el eslabón, y el botón abre su menú', async () => {
+    const user = userEvent.setup();
+    const base = doc(table('npc', ['PNJ', 'Qué es'], 1));
+    const d = setRowNpc(base, base.blocks[0]!.id, 0, 'ogre');
+    const { container } = render(<RichTextEditor doc={d} onChange={vi.fn()} labels={LABELS} features={BEST}
+                                                 npcLook={look} onOpenNpc={vi.fn()} onRollNpc={vi.fn()} />);
+    expect(container.querySelector('img.rv-rt-npcpic')).toHaveAttribute('src', OGRO.photoUrl);
+    expect(screen.getByRole('img', { name: 'Del Bestiario' })).toBeInTheDocument();
+    // Ya no es el picker: es el menú de la fila.
+    expect(screen.queryByRole('button', { name: 'Elegir del Bestiario' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Del Bestiario · Ogro del puente/ }));
+    expect(screen.getByRole('menuitem', { name: 'Ver su ficha' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Tirar por él' })).toBeInTheDocument();
+  });
+
+  it('sin foto se pintan las iniciales, no un hueco', () => {
+    const base = doc(table('npc', ['PNJ'], 1));
+    const d = setRowNpc(base, base.blocks[0]!.id, 0, 'ogre');
+    render(<RichTextEditor doc={d} onChange={vi.fn()} labels={LABELS} features={BEST}
+                           npcLook={() => ({ ...OGRO, photoUrl: null })} />);
+    expect(screen.getByText('OP')).toBeInTheDocument();
+  });
+
+  it('«Ver su ficha» y «Tirar por él» avisan a quien manda con el id de la entrada', async () => {
+    const user = userEvent.setup();
+    const onOpenNpc = vi.fn();
+    const onRollNpc = vi.fn();
+    const base = doc(table('encounter', ['PNJ', 'N.º'], 1));
+    const d = setRowNpc(base, base.blocks[0]!.id, 0, 'ogre');
+    const abrirMenu = () => user.click(screen.getByRole('button', { name: /Del Bestiario · Ogro del puente/ }));
+    render(<RichTextEditor doc={d} onChange={vi.fn()} labels={LABELS} features={BEST} npcLook={look}
+                           onOpenNpc={onOpenNpc} onRollNpc={onRollNpc} />);
+    await abrirMenu();
+    await user.click(screen.getByRole('menuitem', { name: 'Ver su ficha' }));
+    expect(onOpenNpc).toHaveBeenCalledWith('ogre');
+    await abrirMenu();
+    await user.click(screen.getByRole('menuitem', { name: 'Tirar por él' }));
+    expect(onRollNpc).toHaveBeenCalledWith('ogre');
+  });
+
+  it('quitar el enlace deja el nombre escrito donde estaba', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const base = doc(table('npc', ['PNJ', 'Qué es'], 1));
+    const id = base.blocks[0]!.id;
+    const d = setRowNpc(setCell(base, id, 0, 0, [{ t: 'Ogro del puente' }]), id, 0, 'ogre');
+    render(<RichTextEditor doc={d} onChange={onChange} labels={LABELS} features={BEST} npcLook={look} />);
+    await user.click(screen.getByRole('button', { name: /Del Bestiario · Ogro del puente/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Quitar el enlace' }));
+    expect((onChange.mock.calls.at(-1)![0] as RichDoc).blocks[0]).toMatchObject({
+      rows: [{ cells: [[{ t: 'Ogro del puente' }], []], npcId: null }],
+    });
+  });
+
+  /**
+   * La entrada se borró del Bestiario: el documento NO se toca —el nombre escrito es suyo— pero la fila deja
+   * de prometer una ficha que ya no existe. Mismo principio que el `label` de `sceneRef` (spec § Rules & limits).
+   */
+  it('si la entrada ya no está en el Bestiario, la fila conserva el nombre y pierde el enlace', () => {
+    const base = doc(table('npc', ['PNJ'], 1));
+    const d = setRowNpc(base, base.blocks[0]!.id, 0, 'se-borro');
+    render(<RichTextEditor doc={d} onChange={vi.fn()} labels={LABELS} features={BEST} npcLook={look}
+                           onPickNpc={vi.fn()} onOpenNpc={vi.fn()} />);
+    expect(screen.queryByRole('img', { name: 'Del Bestiario' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Elegir del Bestiario' })).toBeInTheDocument();
+  });
+
+  it('una tabla `plain` no se elige del Bestiario: no es de PNJ ni de encuentro', () => {
+    render(<RichTextEditor doc={doc(table('plain', ['A', 'B'], 1))} onChange={vi.fn()} labels={LABELS}
+                           features={BEST} onPickNpc={vi.fn()} npcLook={look} />);
+    expect(screen.queryByRole('button', { name: 'Elegir del Bestiario' })).toBeNull();
   });
 });

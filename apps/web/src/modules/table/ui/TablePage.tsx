@@ -242,7 +242,11 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
                 activa —abrir ≠ activar, su regla de `maps`—: los jugadores se quedan donde estaban (4.º QA, 22-09). */}
             {/* El puerto se inyecta como el del Bestiario: sin esto la pestaña iría contra Supabase en cuanto
                 un test la abriera, y no se podía probar. */}
-            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
+            {/* El sistema y las tiradas entran igual que en el Bestiario: son lo que deja elegir una criatura
+                en una fila de PNJ/encuentro, ver su ficha y tirar por ella (su «b» del 2026-09-22). */}
+            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} system={system} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
+              {...(bestiary ? { bestiary } : {})}
+              onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenScene={sceneId => { setOpenScene(sceneId); setTab('scene'); }} />}
             </SafeRegion>
           </main>

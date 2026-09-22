@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { RichDoc } from './richDoc';
 import {
   addTableRow, docForEditing, heading, insertAfter, insertItemAfter, list, newBlockId, paragraph, quote,
-  removeBlock, removeItem, replaceBlock, setCell, setItem, setText, setTextStyle, table, textBlockStyle,
+  removeBlock, removeItem, replaceBlock, setCell, setItem, setRowNpc, setText, setTextStyle, table, textBlockStyle,
 } from './richDocEdit';
 
 const t = (s: string) => [{ t: s }];
@@ -103,6 +103,40 @@ describe('tablas', () => {
   it('añade una fila vacía con tantas celdas como columnas', () => {
     const out = addTableRow(d, id);
     expect(out.blocks[0]).toMatchObject({ rows: [{}, {}, { cells: [[], []], npcId: null }] });
+  });
+});
+
+describe('enlazar una fila con el Bestiario', () => {
+  const d = doc(table('npc', ['PNJ', 'Notas']));
+  const id = d.blocks[0]!.id;
+
+  it('guarda el id de la entrada en la fila que se enlaza, y sólo en ésa', () => {
+    const out = setRowNpc(d, id, 1, 'ogre');
+    expect(out.blocks[0]).toMatchObject({ rows: [{ npcId: null }, { npcId: 'ogre' }] });
+  });
+
+  it('acepta el id del manual (`ogre`) igual que el uuid de una entrada propia', () => {
+    const uuid = '3f1a6b2c-0000-4000-8000-000000000001';
+    expect(setRowNpc(d, id, 0, uuid).blocks[0]).toMatchObject({ rows: [{ npcId: uuid }, { npcId: null }] });
+  });
+
+  it('desenlazar NO borra lo escrito: el nombre es del documento', () => {
+    const conNombre = setCell(setRowNpc(d, id, 0, 'ogre'), id, 0, 0, t('El ogro del puente'));
+    const out = setRowNpc(conNombre, id, 0, null);
+    expect(out.blocks[0]).toMatchObject({ rows: [{ cells: [t('El ogro del puente'), []], npcId: null }, { npcId: null }] });
+  });
+
+  it('no muta el documento de partida', () => {
+    setRowNpc(d, id, 0, 'ogre');
+    expect(d.blocks[0]).toMatchObject({ rows: [{ npcId: null }, { npcId: null }] });
+  });
+
+  it('una fila que no existe, un bloque que no es tabla o un id desconocido devuelven el mismo documento', () => {
+    expect(setRowNpc(d, id, 9, 'ogre')).toBe(d);
+    expect(setRowNpc(d, id, -1, 'ogre')).toBe(d);
+    expect(setRowNpc(d, 'no-existe', 0, 'ogre')).toBe(d);
+    const p = doc(paragraph(t('hola')));
+    expect(setRowNpc(p, p.blocks[0]!.id, 0, 'ogre')).toBe(p);
   });
 });
 

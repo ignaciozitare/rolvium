@@ -104,6 +104,9 @@ describe('<SceneTab> player', () => {
   it('dragging my token broadcasts (final:false … final:true) and persists x/y; drawing a stroke inserts with my colour; erasing my stroke removes it; «Limpiar mis trazos»', async () => {
     const repo = mount('player');
     await screen.findByText(/Almacén de Queens/);
+    // El carril con el nombre se pinta ANTES que el lienzo: darlo por puesto fallaba una de cada tres veces
+    // con la suite entera en paralelo (cazado el 2026-09-22 al añadir las pruebas de la fila del Bestiario).
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
     const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
     fireEvent.pointerDown(karen, { clientX: (TOKEN_KAREN.x + 0.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1, button: 0 });
     fireEvent.pointerMove(canvas(), { clientX: (TOKEN_KAREN.x + 2.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1 });

@@ -1941,6 +1941,16 @@
       "confirmMove": "Mover y borrar"
     },
     "foldRail": "Plegar aventuras",
-    "unfoldRail": "Desplegar aventuras"
+    "unfoldRail": "Desplegar aventuras",
+    "npc": {
+      "pick": "Elegir del Bestiario",
+      "pickTitle": "¿A quién pongo en esta fila?",
+      "none": "El Bestiario de esta campaña todavía no tiene nada.",
+      "menu": "Del Bestiario",
+      "linked": "Del Bestiario",
+      "sheet": "Ver su ficha",
+      "roll": "Tirar por él",
+      "unlink": "Quitar el enlace"
+    }
   }
 }
