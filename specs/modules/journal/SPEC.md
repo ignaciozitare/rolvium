@@ -96,13 +96,20 @@ Migration: `supabase/migrations/20260919120000_journal_notas_y_bitacora.sql`. Tw
 on the local stack (2026-09-19) — `supabase db lint --local --level error` reported nothing.
 
 ```
-journal_notes                                  journal_logbook
-  id            uuid pk                          id           uuid pk
-  campaign_id   uuid → campaigns_campaigns        campaign_id  uuid → campaigns_campaigns  (unique)
-  user_id       uuid → users                      doc          jsonb not null default '{}'
-  doc           jsonb not null default '{}'       updated_by   uuid → users on delete set null
-  created_at / updated_at                         created_at / updated_at
+journal_notes
+  id            uuid pk
+  campaign_id   uuid not null → campaigns_campaigns(id) on delete cascade
+  user_id       uuid not null → users(id) on delete cascade
+  doc           jsonb not null default '{"v":1,"blocks":[]}'
+  created_at / updated_at                        -- updated_at moved by `journal_notes_touch`
   unique (campaign_id, user_id)
+
+journal_logbook
+  id            uuid pk
+  campaign_id   uuid not null unique → campaigns_campaigns(id) on delete cascade
+  doc           jsonb not null default '{"v":1,"blocks":[]}'
+  updated_by    uuid → users(id) on delete set null
+  created_at / updated_at                        -- updated_at moved by `journal_logbook_touch`
 ```
 
 - `doc` is the **same block tree as `adventures_adventures.doc`** (`{ "v": 1, "blocks": [...] }`), minus the
