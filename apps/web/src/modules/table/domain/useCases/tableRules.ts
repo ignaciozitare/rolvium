@@ -23,7 +23,9 @@ import type { TableTab } from '../entities/Table';
  * botón que llevaba a ella sin haber elegido a nadie.
  */
 export function tabsFor(role: TableRole): TableTab[] {
-  return role === 'dm' ? ['group', 'scene', 'bestiary', 'adventures', 'create'] : ['sheet', 'scene', 'create'];
+  // AVENTURAS justo antes de ESCENA (suyo, 2026-09-22: «*El boton del header de adventures tiene que estar antes de
+  // escena*»): es de donde el director salta a la escena que toca.
+  return role === 'dm' ? ['group', 'adventures', 'scene', 'bestiary', 'create'] : ['sheet', 'scene', 'create'];
 }
 
 /** Dónde aterriza cada uno al abrir la mesa. El director no tiene ficha propia, así que empieza en la escena. */

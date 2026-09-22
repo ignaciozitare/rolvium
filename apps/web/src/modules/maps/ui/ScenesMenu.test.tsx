@@ -214,6 +214,9 @@ describe('<ScenesMenu> — elegir la aventura', () => {
     expect(add.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Ver escena Túneles de servicio' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ver escena Capilla sin techo' })).toBeNull();
+    // Sin el rótulo «AVENTURA» encima del nombre (suyo, 2026-09-22: «*ocupa mucho espacio y queda feo*»):
+    // el botón es el número, el nombre y la flecha.
+    expect(picker).toHaveTextContent(/^1El almacén de los muelleskeyboard_arrow_down$/);
   });
 
   it('abierto lista las aventuras con su estado y sus escenas, y elegir otra avisa', async () => {

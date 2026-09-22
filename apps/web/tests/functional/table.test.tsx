@@ -124,9 +124,9 @@ describe('table: rules', () => {
     expect(tabsFor('dm')).not.toContain('sheet');
     expect(tabsFor('player')).toContain('sheet');
     expect(tabsFor('player')[0]).toBe('sheet');
-    // El director conserva lo suyo: nada más se ha caído por el camino. AVENTURAS (H12) entró el 20-09,
-    // junto a BESTIARIO y en el orden del `.pen` — y SÓLO él la tiene.
-    expect(tabsFor('dm')).toEqual(['group', 'scene', 'bestiary', 'adventures', 'create']);
+    // El director conserva lo suyo: nada más se ha caído por el camino. AVENTURAS (H12) entró el 20-09 junto a
+    // BESTIARIO, y desde el 22-09 va justo ANTES de ESCENA («*tiene que estar antes de escena*») — y SÓLO él la tiene.
+    expect(tabsFor('dm')).toEqual(['group', 'adventures', 'scene', 'bestiary', 'create']);
     expect(tabsFor('player')).not.toContain('adventures');
   });
 

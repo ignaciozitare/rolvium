@@ -806,7 +806,6 @@
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
       "expand": "Desplegar escenas",
-      "adventure": "Aventura",
       "pickAdventure": "Elegir la aventura",
       "showScenesOf": "Mostrar las escenas de"
     },
@@ -1871,7 +1870,8 @@
     "rail": "Aventuras de la campaña",
     "new": "Nueva aventura",
     "newTitle": "Aventura {{n}}",
-    "scenesOf": "Escenas de esta aventura",
+    "scenesUnder": "Escenas de «{{title}}»",
+    "addScene": "Escena",
     "noScenes": "Esta aventura todavía no tiene escenas.",
     "sceneCount": "{{n}} escenas",
     "loadError": "No se han podido abrir las aventuras.",

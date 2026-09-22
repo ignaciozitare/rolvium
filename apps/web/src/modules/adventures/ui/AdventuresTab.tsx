@@ -264,28 +264,64 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
   const menuAdventure = menu?.kind === 'adventure' ? shown.find(a => a.id === menu.id) : undefined;
   const menuScene = menu?.kind === 'scene' ? mine.find(s => s.id === menu.id) : undefined;
 
+  /**
+   * LAS ESCENAS DE LA ABIERTA, colgando de su aventura (suyo, 2026-09-22: «*las escenas deverian desplegarse
+   * debajo de su aventura padre no abajo del todo, si tengo 8 aventuras tendria 8 items de aventura y debajo las
+   * escenas de una de ellas*»). Sólo la abierta se despliega; las demás son una fila cada una.
+   */
+  const scenesOfOpen = (a: Adventure) => (
+    <ul className="av-rail-scenes" aria-label={t('adventures.scenesUnder', { title: a.title })}>
+      {mine.length === 0 && <li className="av-rail-empty">{t('adventures.noScenes')}</li>}
+      {mine.map(scene => (
+        <li key={scene.id} className="av-rail-row">
+          <button type="button" className="av-rail-scene" onClick={() => onOpenScene(scene.id)}>
+            <span className="material-symbols-outlined" aria-hidden="true">map</span>
+            {scene.name}
+          </button>
+          <button
+            type="button" ref={kebabRef(`scene:${scene.id}`)} className="av-kebab"
+            aria-haspopup="menu" aria-expanded={menu?.kind === 'scene' && menu.id === scene.id}
+            aria-label={t('adventures.sceneMenu.for', { name: scene.name })} onClick={() => toggleMenu('scene', scene.id)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+        </li>
+      ))}
+      <li>
+        <button type="button" className="av-rail-scene av-rail-scene-add" onClick={() => { void createScene(); }} aria-label={t('adventures.newScene')}>
+          <span className="material-symbols-outlined" aria-hidden="true">add</span>
+          {t('adventures.addScene')}
+        </button>
+      </li>
+    </ul>
+  );
+
   const adventureItem = (a: Adventure, lead: JSX.Element) => {
     const on = a.id === openId;
     const key = `adventure:${a.id}`;
     return (
-      <li key={a.id} className="av-rail-row">
-        <button
-          type="button" className={`av-rail-item${on ? ' on' : ''}${a.status === 'archived' ? ' archived' : ''}`}
-          aria-current={on} onClick={() => setOpenId(a.id)}
-        >
-          {lead}
-          <span className="av-rail-text">
-            <span className="av-rail-title">{a.title}</span>
-            <span className="av-rail-sub">{t(`adventures.status.${a.status}`)} · {sceneCountText(t, countOf(a.id))}</span>
-          </span>
-        </button>
-        <button
-          type="button" ref={kebabRef(key)} className={`av-kebab${on ? ' on' : ''}`}
-          aria-haspopup="menu" aria-expanded={menu?.kind === 'adventure' && menu.id === a.id}
-          aria-label={t('adventures.menu.for', { title: a.title })} onClick={() => toggleMenu('adventure', a.id)}
-        >
-          <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-        </button>
+      <li key={a.id} className="av-rail-node">
+        <div className="av-rail-row">
+          <button
+            type="button" className={`av-rail-item${on ? ' on' : ''}${a.status === 'archived' ? ' archived' : ''}`}
+            aria-current={on} aria-expanded={on} onClick={() => setOpenId(a.id)}
+          >
+            <span className="material-symbols-outlined av-rail-chev" aria-hidden="true">{on ? 'keyboard_arrow_down' : 'chevron_right'}</span>
+            {lead}
+            <span className="av-rail-text">
+              <span className="av-rail-title">{a.title}</span>
+              <span className="av-rail-sub">{t(`adventures.status.${a.status}`)} · {sceneCountText(t, countOf(a.id))}</span>
+            </span>
+          </button>
+          <button
+            type="button" ref={kebabRef(key)} className={`av-kebab${on ? ' on' : ''}`}
+            aria-haspopup="menu" aria-expanded={menu?.kind === 'adventure' && menu.id === a.id}
+            aria-label={t('adventures.menu.for', { title: a.title })} onClick={() => toggleMenu('adventure', a.id)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+        </div>
+        {on && scenesOfOpen(a)}
       </li>
     );
   };
@@ -333,33 +369,6 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
             )}
           </>
         )}
-
-        <div className="av-rail-head">
-          <span className="av-rail-label">{t('adventures.scenesOf')}</span>
-          {openId && (
-            <button type="button" className="av-rail-add" onClick={() => { void createScene(); }} aria-label={t('adventures.newScene')}>
-              <span className="material-symbols-outlined" aria-hidden="true">add</span>
-            </button>
-          )}
-        </div>
-        <ul className="av-rail-list">
-          {mine.length === 0 && <li className="av-rail-empty">{t('adventures.noScenes')}</li>}
-          {mine.map(scene => (
-            <li key={scene.id} className="av-rail-row">
-              <button type="button" className="av-rail-scene" onClick={() => onOpenScene(scene.id)}>
-                <span className="material-symbols-outlined" aria-hidden="true">map</span>
-                {scene.name}
-              </button>
-              <button
-                type="button" ref={kebabRef(`scene:${scene.id}`)} className="av-kebab"
-                aria-haspopup="menu" aria-expanded={menu?.kind === 'scene' && menu.id === scene.id}
-                aria-label={t('adventures.sceneMenu.for', { name: scene.name })} onClick={() => toggleMenu('scene', scene.id)}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-              </button>
-            </li>
-          ))}
-        </ul>
       </nav>
       )}
 

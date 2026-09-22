@@ -806,7 +806,6 @@
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
       "expand": "Expand scenes",
-      "adventure": "Adventure",
       "pickAdventure": "Choose the adventure",
       "showScenesOf": "Show the scenes of"
     },
@@ -1871,7 +1870,8 @@
     "rail": "Adventures of this campaign",
     "new": "New adventure",
     "newTitle": "Adventure {{n}}",
-    "scenesOf": "Scenes of this adventure",
+    "scenesUnder": "Scenes of “{{title}}”",
+    "addScene": "Scene",
     "noScenes": "This adventure has no scenes yet.",
     "sceneCount": "{{n}} scenes",
     "loadError": "The adventures could not be opened.",

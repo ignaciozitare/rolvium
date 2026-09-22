@@ -70,6 +70,45 @@ describe('AdventuresTab — el carril', () => {
     expect(screen.queryByRole('button', { name: 'La carpa' })).toBeNull();
   });
 
+  /**
+   * EL ÁRBOL (suyo, 2026-09-22): «*las escenas deverian desplegarse debajo de su aventura padre no abajo del
+   * todo … a nivel ux no tiene sentido*». Antes vivían en un bloque al fondo del carril.
+   */
+  it('las escenas cuelgan DE SU aventura: dentro de la abierta, y las demás sólo su fila', async () => {
+    const user = userEvent.setup();
+    const adventures = fakeAdventures([adv(), adv({ id: 'a2', title: 'La feria', status: 'draft' })]);
+    paint(adventures, fakeMaps([
+      scene({ id: 's1', name: 'El portón', adventureId: 'a1' }),
+      scene({ id: 's2', name: 'La carpa', adventureId: 'a2' }),
+    ]));
+    const abierta = await screen.findByRole('list', { name: 'Escenas de «El almacén de los muelles»' });
+    expect(within(abierta).getByRole('button', { name: 'El portón' })).toBeInTheDocument();
+    // La fila de la aventura dice si está desplegada, y sólo lo está la abierta.
+    expect(screen.getByRole('button', { name: /^1 El almacén de los muelles/, expanded: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^2 La feria/, expanded: false })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Escenas de «La feria»' })).toBeNull();
+
+    // Al abrir otra, las escenas se mudan debajo de ELLA.
+    await user.click(screen.getByRole('button', { name: /^2 La feria/ }));
+    const feria = await screen.findByRole('list', { name: 'Escenas de «La feria»' });
+    expect(within(feria).getByRole('button', { name: 'La carpa' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Escenas de «El almacén de los muelles»' })).toBeNull();
+  });
+
+  it('«+ Escena» vive dentro de la aventura abierta y crea en ella', async () => {
+    const user = userEvent.setup();
+    const maps = fakeMaps([scene({ id: 's1', name: 'El portón', adventureId: 'a1' })]);
+    paint(fakeAdventures([adv(), adv({ id: 'a2', title: 'La feria', status: 'draft' })]), maps);
+    await user.click(await screen.findByRole('button', { name: /^2 La feria/ }));
+    const feria = await screen.findByRole('list', { name: 'Escenas de «La feria»' });
+    // Sin escenas todavía: lo dice ahí mismo, y el botón sigue a mano.
+    expect(within(feria).getByText('Esta aventura todavía no tiene escenas.')).toBeInTheDocument();
+    await user.click(within(feria).getByRole('button', { name: 'Nueva escena en esta aventura' }));
+    await user.type(await screen.findByRole('textbox', { name: '' }), 'La carpa');
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(maps.createScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'La carpa', adventureId: 'a2' })));
+  });
+
   it('pinchar una escena la abre en la mesa', async () => {
     const user = userEvent.setup();
     const onOpenScene = vi.fn();

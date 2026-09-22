@@ -26,6 +26,13 @@
   background:transparent;color:var(--sys-ink-soft);font-family:var(--sys-font-body);font-size:var(--fs-xs);}
 .av-rail-scene:hover{color:var(--sys-blood);}
 .av-rail-scene .material-symbols-outlined{font-size:var(--icon-xs);}
+/* EL ÁRBOL (2026-09-22): las escenas de la abierta cuelgan de su aventura, con la guía a la izquierda como el
+   índice; «+ ESCENA» al final, en sangre. */
+.av-rail-node{display:flex;flex-direction:column;gap:1px;}
+.av-rail-chev{font-size:var(--icon-xs);color:var(--sys-ink-dim);}
+.av-rail-item.on .av-rail-chev{color:var(--sys-paper-hi);}
+.av-rail-scenes{list-style:none;margin:0 0 4px;padding:2px 0 4px 12px;display:flex;flex-direction:column;gap:1px;border-left:1px solid var(--sys-line);}
+.av-rail-scene-add{color:var(--sys-blood);font-size:var(--fs-2xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 
 /* ── El documento ──────────────────────────────────────────────────────────── */
 .av-doc{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;}
