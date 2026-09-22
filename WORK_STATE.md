@@ -10,7 +10,23 @@
 > spec del 19-08 y el 1.º QA no vio: (1) «50 aventuras por campaña» sin comprobar → **decidido por mí y
 > avisado**: queda en el spec como tamaño de diseño, no cerrojo (el spec los llamaba «orientativos»); (2) § Data
 > model sin la 4.ª migración → arreglado; (3) **«el carril, plegable como el de escenas de la mesa»** — no
-> dibujado ni hecho → **PREGUNTADO A ÉL: ¿lo hago o lo quito del spec?** Además arreglado lo que pidió de
+> dibujado ni hecho → preguntado: «*dibujalo*» → **DIBUJADO, esperando su «aprobado» y su Cmd+S**: marco nuevo
+> `Aventuras/Carril PLEGADO · el documento a lo ancho` (§ 4, índice 42, el último antes de § 5) + el botón de
+> plegar al lado del + de AVENTURAS en el marco de AVENTURAS. Igual que la mesa: columna de 34 px con sólo el
+> botón, rótulo «DESPLEGAR AVENTURAS», y NO recuerda el plegado (la mesa tampoco: `useState(false)`).
+> **Y ADEMÁS, orden suya del 21-09** («*en la barra de escena pon arriba de todo un desplegable que diga qué
+> aventura me mostrará… el botón de nueva escena inmediatamente debajo y luego siguen las escenas*»): el carril
+> de escenas de la pestaña ESCENA (módulo `maps`, `ScenesMenu`) elige la aventura. **DIBUJADO, esperando su
+> «aprobado»**: lámina `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` (§ 5, índice 87, la última antes
+> de § 6; en el lienzo al final de la fila de § 5). Decidido por mí y avisado: de entrada sale la aventura de la
+> escena abierta (si no hay, la EN CURSO); «+ ESCENA» crea en la elegida; las archivadas no salen.
+> Corrección suya (21-09): «*sólo aparecerá el menú de aventuras si hay aventuras creadas, si no serán sólo
+> escenas; cuando hay aventuras quita el nombre ESCENAS de arriba*» → leído como: desplegable sólo con **2 o más
+> aventuras no archivadas** (toda campaña nace con su «Aventura 1»); con una, el carril de siempre. Con
+> desplegable: sin el rótulo ESCENAS, el botón de plegar a su derecha. Avisado. ⚠️ Esto
+> CAMBIA una regla del spec de adventures («the table's scene rail knows nothing about adventures») — sus
+> palabras de hoy mandan: actualizar los specs de `adventures` y `maps`. `maps` no puede importar la infra de
+> `adventures`: el puerto se inyecta desde `TablePage`, como el del Bestiario. Además arreglado lo que pidió de
 > documentación (`ARCHITECTURE.md`, `specs/SPEC.md`) y un error de tipos en `core` (`14519fe`). Después: un QA
 > más, corto.
 >
