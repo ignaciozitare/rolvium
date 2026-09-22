@@ -146,10 +146,10 @@ trap, same test to pin it.
   of the open scene, else the running one. `maps` still does not know the adventures module: `TablePage` hands
   the GM's scene a plain list (`SceneAdventure`), like the Bestiary's encounters. Rules and plate: see
   `specs/modules/maps/SPEC.md` § «Rail de escenas».
-- **A row linked to the Bestiary keeps what it shows written in the document** (name, and the photo's
-  reference): if the entry is later deleted from the Bestiary, the row keeps its name and simply loses the link —
-  the same principle as `sceneRef`'s `label`. The link is `npcId`, the hole left on every row since 2026-08-19.
-  Only entries of the SAME campaign's Bestiary can be linked.
+- **A row linked to the Bestiary keeps its name written in the document**: if the entry is later deleted from
+  the Bestiary, the row keeps its name and simply loses the link (and the photo that came from the entry) — the
+  same principle as `sceneRef`'s `label`. The link is `npcId`, the hole left on every row since 2026-08-19. The
+  picker offers exactly what the campaign's Bestiary tab lists (the manual's blocks and the GM's own entries).
 - **Photos in an adventure** follow the rules of `specs/modules/photos/SPEC.md`: never shown to players from
   here; a deleted photo leaves «foto borrada» in its place.
 - Deleting an adventure **does not delete its scenes**: it asks first where they go, or it is archived.
@@ -281,8 +281,15 @@ only way in, and it drops what it does not understand instead of breaking the sc
 - `text` is an array of spans `{ "t": "…", "b": true, "i": true }` — bold and italic, and little else.
 - **`npcId` is on every row from day one**, always `null` in v1. It is the hole the Bestiary (H5) fills from
   2026-09-22 — a row picked from the Bestiary carries the entry's id there, without migrating a single document.
-- **`image`** (2026-09-22) points at a photo of the campaign's library; the file is never inlined in the JSON.
-  > Pending — the DBA Agent confirms the exact shape of `image` and of a linked row.
+- **`image`** (2026-09-22) is `{ id, type: "image", photoId }`: it points at a photo of the campaign's library
+  (`photos_photos`, see `specs/modules/photos/SPEC.md`); the file is never inlined in the JSON. There is no
+  foreign key from inside a JSON document: a deleted photo leaves the block pointing at nothing, and the screen
+  paints «foto borrada».
+- **A row linked to the Bestiary** keeps its `cells` as written (the name included) and carries the entry's id in
+  `npcId`. It is a **string**, not a uuid: the Bestiary lists both its own rows (uuid) and the manual's catalog
+  (ids like `ogre`), and either can be linked. The photo and the card are read from the entry while it exists;
+  if it is deleted, the row keeps its name and loses the link and the photo. **No migration**: both live inside
+  `doc`, which is why `npcId` was left on every row on 2026-08-19.
 - `sceneRef` is what ties the text to the table: a chip with the scene's name in the editor, a button that
   opens it when reading. It carries the `label` it was written with, so a renamed or deleted scene cannot break
   the document.

@@ -90,8 +90,10 @@ The tab's label is not his yet: it is proposed in the drawing and he names it wh
   - it is placed in a scene the player can see, **inside the play area**; or
   - it is attached to a message of a conversation the player is in.
   A photo in an adventure is never shown to players (adventures are the GM's).
-- **Inside the play area** means inside the scene's map rectangle. What sticks out is cut, exactly like the rest
-  of the map; a photo entirely outside is not sent to the player's browser at all.
+- **Inside the play area** means touching the scene's map rectangle (the exact rotated shape, not the box around
+  it; touching the edge exactly does not count). What sticks out is cut, exactly like the rest of the map. A photo
+  entirely outside **never reaches the player's browser**: the player's screen knows *where* it is (so that it
+  disappears the moment it leaves), but the database refuses to hand over the picture itself.
 - **The files are private.** Not in the public buckets the other images use («*nada sensible en una imagen*»
   in `core/images` does not hold here: an adventure's photo can be a spoiler). The file name is set by the
   server (uuid), never taken from the user.
@@ -138,9 +140,62 @@ No new key in the role engine: being the GM of the campaign decides, as in `adve
 
 ## Data model
 
-> Pending — the DBA Agent completes this section (private storage bucket and its policies, the photos table,
-> the placements in a scene with the «inside the play area» rule, the chat attachment, and the new compression
-> level in `app_settings`).
+Migrations, in this order: `supabase/migrations/20260922120000_photos_biblioteca.sql` (the library table and the
+private bucket, with who can write), `20260922120100_photos_en_escena_y_chat.sql` (a photo in a scene, a photo in
+the chat, and who can read each file) and `20260922120200_adventures_funciones_de_trigger_cerradas.sql` (unrelated
+hygiene: the two trigger functions of `adventures` locked like `chat`'s). Applied on the local stack with
+`supabase migration up --local` (never `db:reset`); `supabase db lint --local --level error` reports nothing.
+
+**`photos_photos` — one row per photo of the library.** Which campaign it belongs to, its name (1 to 120
+characters, searched on), its natural width and height after compressing (what lets it be placed in a scene
+keeping its proportions), who uploaded it and when. `(id, campaign_id)` is unique: it is what the scene and the
+chat point at, so a photo can only ever be used in its own campaign. Deleting the campaign deletes its photos.
+- **Reads and writes: the GM of the campaign, and a platform admin** (`is_campaign_dm` · `is_admin`). For a
+  player the row does not exist — not even its name, which can be a spoiler.
+
+**The `photos` bucket — PRIVATE**, unlike every other bucket of the app. Each file lives at
+`{campaign_id}/{photo_id}`, with no extension, so a player who has a photo in front of them (they know the
+campaign and the id) can ask for its signed link without being able to read the table. 1.5 MB per file, the same
+cap as the compressor's output; PNG, JPEG, WebP and GIF.
+- **Writing a file**: the GM of that campaign (or an admin). Uploading also requires that the photo's row already
+  exists in that campaign — nobody drops loose files in the bucket. Deleting does not require the row, so the
+  row and its file can be removed in either order.
+- **Reading a file** — the database decides, per file (`photos_can_read_object`): the GM (or an admin) always; a
+  player only if the photo is **placed in a scene they can see, on a layer that reaches them, touching the play
+  area**, or **attached to a message of a conversation they are in**. A photo in an adventure is never readable
+  by a player through here.
+- Names that are not `{uuid}/{uuid}` are simply «no»: the helpers validate the name before reading it, because
+  storage policies are also evaluated on other buckets' files and Postgres does not promise the order of an AND.
+
+**A photo in a scene is one more row of `maps_scene_props`** (the table of everything planted on a scene), with
+`photo_id` set. That is what gives it, for free, the same handles and gestures as a planted object: move, scale
+from the corners, rotate, copy, delete, stacking order and layer. Its position is its centre, like any object.
+- `(photo_id, campaign_id)` points at the library; deleting the photo **removes it from every scene**.
+- A photo row carries **no name and no image link** (both forced empty), does not come from the objects library,
+  and **never blocks sight or movement** — the server's vision has nothing to know about it.
+- Its visibility rule is the one of any planted object (`maps_scene_props` RLS unchanged): the player gets the
+  row, i.e. where it is. **The picture** is what the play-area rule protects, through the bucket.
+- The «touches the play area» test is `maps_rect_touches_play_area(x, y, width, height, rotation, scene width,
+  scene height)`: the separating-axis test of a rotated rectangle against the map, exact.
+
+**A photo in the chat is a message of kind `photo`** in `chat_messages`, with `photo_id` and an optional caption
+in `body`. Messages stay immutable.
+- **Only the GM of the conversation's campaign can send one**, and only a photo of that same campaign — refused
+  by the database for anyone else, not just hidden on screen. A photo message must carry its photo when sent.
+- Deleting the photo empties `photo_id` (and only that column): the message stays, and the screen shows «foto
+  borrada».
+
+**The compression level** needs no migration: it is one more key, `photo`, inside the existing
+`app_settings` row `images.compression_levels` (read by anyone signed in, written with `manage_settings`). With
+no value saved, the code uses «Equilibrado».
+
+**Proved on the local database, inside a rolled-back transaction (2026-09-22)**, as the GM and as a real player of
+his campaign: the player sees 0 library rows; sees the placed photo's row; can read the file while it is inside,
+cannot when it is fully outside, can when it is half inside; cannot write files; cannot send a photo through the
+chat (refused by RLS) while the GM can, and then the player can read it through the chat; a GM photo message
+without a photo is refused; a placed photo with a name is refused; deleting the photo removes it from the scene
+and leaves the chat message without a photo. The geometry: a 45° square next to the corner but outside → no;
+moved to touch it → yes; touching the edge exactly → no. A player's ordinary text message still goes through.
 
 ## Out of scope
 
