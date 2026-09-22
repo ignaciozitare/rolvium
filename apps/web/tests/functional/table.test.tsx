@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '../helpers/render';
 import userEvent from '@testing-library/user-event';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
@@ -305,6 +305,31 @@ describe('table: page', () => {
       fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), `/table/c1?scene=${SCENE_CHAPEL.id}`);
     expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}`, pressed: true })).toBeInTheDocument();
     expect(maps.activated).not.toContain(SCENE_CHAPEL.id);
+  });
+
+  /** …y se quita de la dirección: si se quedara, recargar esa ventana le devolvería a la del enlace (review, 22-09). */
+  it('el `?scene=` se lee una vez: recargar la ventana le deja en la última que miró, no otra vez en la del enlace', async () => {
+    const u = userEvent.setup();
+    withBrowserMemory();
+    const maps = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL] });
+    let url = '';
+    function Where(): null { const l = useLocation(); url = l.pathname + l.search; return null; }
+    const open = (path: string) => {
+      const attacks = fakeAttacks(); const requests = fakeRollRequests();
+      return renderWithProviders(
+        <AuthProvider repo={fakeAuthRepo(GM)}><Routes><Route path="/table/:id" element={<><TablePage repo={fakeTableRepo('dm')} charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} rolls={fakeRollsPort()} rollLog={fakeRollLog()} maps={maps} vision={fakeVisionPort()} bestiary={fakeBestiaryRepo()} adventures={fakeAdventuresRepo()} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={fakeChatPort()} /><Where /></>} /></Routes></AuthProvider>,
+        { providers: { routerProps: { initialEntries: [path] } } },
+      );
+    };
+    const first = open(`/table/c1?scene=${SCENE_CHAPEL.id}`);
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}`, pressed: true })).toBeInTheDocument();
+    await waitFor(() => expect(url).toBe('/table/c1'));
+    // Se cambia él a la otra…
+    await u.click(screen.getByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}` }));
+    first.unmount();
+    // …y «recarga»: la misma ventana, con la dirección que tiene ahora.
+    open(url);
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}`, pressed: true })).toBeInTheDocument();
   });
 
   /** El spec de `journal`, § States & errors: «the rail falls, not the table». */

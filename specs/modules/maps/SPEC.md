@@ -103,6 +103,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - **Which scene opens** when the Escena tab mounts: the one he is already looking at → the one the table asks
     him to open (clicked in AVENTURAS, or `?scene=` from an adventure's separate window) → the last one he
     looked at, kept in his browser → the active one → the first. Asking to open never activates (2026-09-22).
+    `?scene=` is read once and then removed from the address, so reloading that window keeps him on the last
+    scene he looked at instead of sending him back to the linked one.
   - **Choose which adventure's scenes the rail shows**, with two or more non-archived adventures; «+ Escena»
     creates the scene in the chosen one (§ «Rail de escenas», 2026-09-21).
 - **Fondo**: color o foto, desde la biblioteca de la campaña o subiendo una.

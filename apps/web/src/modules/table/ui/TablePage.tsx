@@ -75,9 +75,15 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
    * mesa—. Se le da a la escena para que gane a la última que miró; y se suelta en cuanto se va a otra pestaña,
    * para que al volver le devuelva a donde estaba y no a esta otra vez. Abrir NO activa (abrir ≠ activar).
    */
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [openScene, setOpenScene] = useState<string | null>(() => searchParams.get('scene'));
   useEffect(() => { if (chosenTab !== null && chosenTab !== 'scene') setOpenScene(null); }, [chosenTab]);
+  // El `?scene=` se lee UNA vez y se quita de la dirección: si se quedara, recargar esa ventana le devolvería a
+  // esa escena y no a la última que miró, que es justo lo que la memoria del navegador existe para evitar.
+  useEffect(() => {
+    if (!searchParams.has('scene')) return;
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('scene'); return next; }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // System fonts: load once per system (theme.fonts.url).
   useEffect(() => {
