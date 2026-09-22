@@ -19,10 +19,12 @@ per campaign, whoever created it) and **player** — and what one sees is never 
 - Enter the table of a campaign they belong to (`/table/:id`).
 - See **who is connected**: the GM with a gold ring, players with a green halo when present and dimmed when
   away, their own marked. And on how many devices they themselves are connected.
-- Move between **tabs**. Player: Sheet · Scene · Create character. GM: Sheet · The group · Scene · Bestiary ·
-  Create character.
+- Move between **tabs**. Player: Sheet · Scene · Create character. GM: The group · Adventures · Scene ·
+  Bestiary · Create character — the GM has no Sheet tab of their own (2026-08-21), and **Adventures sits right
+  before Scene** (2026-09-22).
 - Open and close the **dice roller**, a floating panel that can be dragged.
-- Use the **side rail**: roll log · chat · notes · campaign journal. And fold it away for room.
+- Use the **side rail**: roll log · chat · notes · campaign journal. And fold it away for room. The GM also has
+  the campaign's **photo library** there (`specs/modules/photos/SPEC.md`, 2026-09-22).
 - **Take and return** the system's shared resources (in Plenilunio, the Fate pool).
 - Open **their sheet in a separate window** (`/table/:id/sheet/:charId`), synced with the table.
 
@@ -123,3 +125,5 @@ with a row lock.
 - **The table wears the system, not the brand.** Everything under `.tb-table` uses only `--sys-*`, which is
   why a new system looks different without touching a line of this module.
 - **The GM does not take dice** from the pool: the pool belongs to the players.
+- **Adventures before Scene** (owner, 2026-09-22): «*El boton del header de adventures tiene que estar antes de
+  escena*». Until then it sat after Bestiary, where it was first placed «next to BESTIARIO».
