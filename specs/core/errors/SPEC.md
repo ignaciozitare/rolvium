@@ -53,7 +53,8 @@ better but still loses everything. The inner ones are what save the session.
 
 **Nine instances, six kinds.** The side rail's was added on 2026-09-22 (4th QA of `journal`): its spec says
 «the rail falls, not the table», and nothing was catching it — a throw in the shared editor took the table down
-to the page-level net. Removing one of them today breaks no test — see § Out of scope.
+to the page-level net. It is the only one whose placement a test pins (`apps/web/tests/functional/table.test.tsx`);
+removing any of the other eight today breaks no test — see § Out of scope.
 
 ### The rules themselves
 
@@ -92,8 +93,9 @@ None. It touches no table, stores nothing and travels over no wire. No migration
   separate thing with its own cost and its own privacy call. If it is ever wanted, `onError` on
   `ErrorBoundary` is the hook already waiting for it.
 - ❌ Automatic retries, failure counters, or switching off a part «that fails a lot». Complexity with no case.
-- ⏳ **Known debt, not closed:** the *placement* of the eight seams is pinned by no test — remove a
-  `SafeRegion` from `AppRouter` and the suite stays green. The behaviour is covered; the wiring is not.
+- ⏳ **Known debt, not closed:** the *placement* of eight of the nine seams is pinned by no test — remove a
+  `SafeRegion` from `AppRouter` and the suite stays green. The behaviour is covered; the wiring is not. The
+  exception is the side rail's (2026-09-22), whose placement `apps/web/tests/functional/table.test.tsx` pins.
 
 ## Decisions
 

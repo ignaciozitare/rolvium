@@ -2,7 +2,56 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-22) — NOTAS · BITÁCORA · AVENTURAS
+> # 📍 ESTADO (2026-09-22, tarde) — NOTAS · BITÁCORA · AVENTURAS → PRODUCCIÓN (v0.15.0)
+> ## ✅ 5.º QA PASADO · ✅ las 4 migraciones YA ESTÁN EN PRODUCCIÓN · ⏳ merge a `main`
+>
+> **Orden suya del 22-09** («*haz lo que falta para producción: push, preview, las 4 migraciones por MCP y el
+> merge*»). El 4.º QA (sobre `b3a41c7`) bloqueó por 3 desvíos del spec; arreglados (`6f8bb74`, `5bb4cf9`),
+> revisados y el 5.º QA (sobre `5bb4cf9`) pasó: smoke 12 · regression 2.174 · functional 66 · api 305 · core 166 ·
+> ui 69 · plenilunio 141; builds y `tsc` limpios; `npm run audit` 0 hard; previews de Vercel READY.
+> - Red `SafeRegion label="table:side"` alrededor de `SidePanel` (9 redes, 6 clases).
+> - **Pinchar una escena en AVENTURAS se la ABRE al director y NO la activa** — decidido por mí con su regla de
+>   `maps` («abrir ≠ activar») y avisado; si quiere que también mueva a los jugadores, es un cambio pequeño.
+> - `?scene=` de la ventana aparte: la mesa lo lee una vez y lo quita de la dirección.
+>
+> **Migraciones en producción** (`scfspsiemikfcnqteonq`, por MCP, una a una, en orden, 22-09):
+> `journal_notas_y_bitacora` → `adventures_aventuras` → `maps_scenes_adventure_por_defecto` →
+> `maps_scenes_aventura_de_su_campana`. Comprobado después con `execute_sql`: 4 escenas, 0 sin aventura, las 4
+> en la aventura de SU campaña; 2 campañas → 2 «Aventura 1»; RLS en las 3 tablas; GRANT a `authenticated`;
+> triggers y claves en su sitio. Asesores: **0 ERROR**.
+> ⚠️ **Deuda nueva, pequeña, NO arreglada** (no se tocó producción más allá de lo que pidió): los asesores
+> suman 2 avisos nuevos por cada una de las dos funciones de trigger (`adventures_seed_for_campaign`,
+> `maps_scenes_default_adventure`): SECURITY DEFINER ejecutables por `anon` y `authenticated`. Sin riesgo real
+> (una función `RETURNS trigger` no se puede llamar por RPC), pero la costumbre del repo es
+> `REVOKE ALL ON FUNCTION … FROM anon, public` (ver `20260915150000_chat_susurros.sql`). Se cierra con una
+> migración de dos líneas en la próxima rama.
+> **Queda anotado, no bloquea**: si la Escena revienta y el director pulsa «reintentar», vuelve a abrir la
+> escena pedida desde AVENTURAS (no la última que miró); se arregla soltando `openScene` en el reintento.
+>
+> *(Lo de abajo es la historia del 4.º QA, ya resuelta.)*
+>
+> ## 🚫 4.º QA (modo block, sobre `b3a41c7` = v0.15.0) BLOQUEADO por 3 desvíos del spec. — RESUELTO en el 5.º
+>
+> **Verde**: pruebas (web 2.247 · api 305 · core 166 · ui 69 · plenilunio 141; smoke 12, functional 62),
+> `typecheck`, `build:web`, `build:api`, `npm run audit` 0 hard, cobertura de cada fichero tocado, i18n
+> 1.588/1.588, producción 200/200, previews de Vercel de `b3a41c7` en verde (web y api), asesores de producción
+> sin ningún ERROR (las 4 migraciones AÚN NO están allí; en local `supabase db lint` limpio y RLS en las 3 tablas).
+> La rama YA está subida (`origin` = `b3a41c7`); lo de «10 commits sin subir» de abajo es viejo.
+> **Lo que bloquea (hay que arreglarlo y pasar otro QA)**:
+> 1. `journal` § States & errors, «A broken part → the rail falls, not the table»: el carril lateral
+>    (`TablePage` `<aside>` → `SidePanel` → `JournalPanel`) NO tiene red; si el editor revienta, cae la página
+>    entera (sólo queda la red de `AppRouter`). Falta un `SafeRegion` ahí + su prueba.
+> 2. `adventures` «open it at the table» (pinchar la escena en el carril o el chip de escena del texto):
+>    MEDIDO con una prueba de usar y tirar — si el director ya había mirado otra escena, la pestaña Escena le
+>    abre LA RECORDADA (`sceneToOpen`: actual → recordada → activa), no la pinchada. Y además la ACTIVA para el
+>    grupo (`setActiveScene`), cuando `maps` dice «abrir ≠ activar». Lo de activar es una pregunta para él.
+> 3. En la ventana aparte, el chip de escena abre `/table/:id?scene=<id>` y NADIE lee `?scene=`: la mesa sale
+>    en otra escena. La prueba de `AdventurePage` sólo mira la URL.
+> **Arreglado por el QA (sin commitear)**: el diagrama de § Data model del spec de `journal` decía
+> `default '{}'`; la migración pone `'{"v":1,"blocks":[]}'`.
+>
+> *(Lo de abajo es la historia del 3.er QA.)*
+>
 > ## ✅ 3.er QA (modo block) PASADO, con un arreglo de documentación. ⛔ Aún NO mergeado.
 >
 > **Lo nuevo desde el 2.º QA, aprobado por él el 22-09 y construido**: el carril de Aventuras se pliega
