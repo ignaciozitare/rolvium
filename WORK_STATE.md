@@ -2,8 +2,13 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-22, tarde) — NOTAS · BITÁCORA · AVENTURAS → PRODUCCIÓN (v0.15.0)
-> ## ✅ 5.º QA PASADO · ✅ las 4 migraciones YA ESTÁN EN PRODUCCIÓN · ⏳ merge a `main`
+> # 📍 ESTADO (2026-09-22, tarde) — NOTAS · BITÁCORA · AVENTURAS **EN PRODUCCIÓN (v0.15.0)**
+> ## ✅ 5.º QA · ✅ 4 migraciones en producción · ✅ mergeado a `main` (`ccd7e1a`) · ✅ Vercel READY · ✅ 200/200
+>
+> **SU LOCAL QUEDA EN `main`.** Rama `feat/notas-bitacora-aventuras` mergeada (se puede borrar). Despliegue de
+> producción de `ccd7e1a` READY en los dos proyectos; sondas: web 200, api `/health` 200 `{"ok":true}`.
+> **Siguiente paso**: lo que él diga. Deudas pequeñas de esta rebanada, anotadas abajo y sin tocar: los
+> `REVOKE` de las dos funciones de trigger, y el reintento de la Escena tras abrir desde AVENTURAS.
 >
 > **Orden suya del 22-09** («*haz lo que falta para producción: push, preview, las 4 migraciones por MCP y el
 > merge*»). El 4.º QA (sobre `b3a41c7`) bloqueó por 3 desvíos del spec; arreglados (`6f8bb74`, `5bb4cf9`),
