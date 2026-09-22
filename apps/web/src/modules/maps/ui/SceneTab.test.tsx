@@ -3182,3 +3182,42 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await waitFor(() => expect(repo.sceneProps).toHaveLength(0));
   });
 });
+
+/**
+ * EL CARRIL POR AVENTURAS (orden suya, 2026-09-21): la escena nueva nace en la aventura que enseña el carril, y al
+ * borrar la escena abierta el carril NO salta a otra aventura — antes abría la primera de la campaña, que era de
+ * otra, y escondía las que seguían en esta.
+ */
+describe('<SceneTab> · el carril por aventuras', () => {
+  const ADVENTURES = [{ id: 'a1', title: 'Uno', status: 'running' as const }, { id: 'a2', title: 'Dos', status: 'draft' as const }];
+  const mountByAdventure = () => {
+    const repo = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }, { ...SCENE_CHAPEL, adventureId: 'a2' }, { ...SCENE_TUNNELS, adventureId: 'a2' }] });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-2" charactersRepo={fakeCharactersRepo([])} repo={repo} vision={fakeVisionPort()} canManageTextures canOrderToolbar={false} memory={fakeViewMemory()} toolbarOrderPort={fakeToolbarOrder()} adventures={ADVENTURES} />);
+    return repo;
+  };
+
+  it('de entrada enseña la aventura de la escena abierta, y «+ Escena» la crea en ella', async () => {
+    const u = userEvent.setup();
+    const repo = mountByAdventure();
+    const createScene = vi.spyOn(repo, 'createScene');
+    expect(await screen.findByRole('button', { name: 'Elegir la aventura: Dos' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}` })).toBeNull();
+    await u.click(screen.getByRole('button', { name: '+ Escena' }));
+    await u.type(await screen.findByRole('textbox'), 'La carpa');
+    await u.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(createScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'La carpa', adventureId: 'a2' })));
+  });
+
+  it('borrar la escena abierta abre otra de la MISMA aventura: el carril no salta', async () => {
+    const u = userEvent.setup();
+    const repo = mountByAdventure();
+    await screen.findByRole('button', { name: 'Elegir la aventura: Dos' });
+    await u.click(screen.getByRole('button', { name: `Opciones de «${SCENE_CHAPEL.name}»` }));
+    await u.click(screen.getByRole('menuitem', { name: /Eliminar/ }));
+    await u.click(await screen.findByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(repo.scenes.map(s => s.id)).toEqual(['sc-1', 'sc-3']));
+    expect(screen.getByRole('button', { name: 'Elegir la aventura: Dos' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `Ver escena ${SCENE_TUNNELS.name}` })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}` })).toBeNull();
+  });
+});

@@ -219,6 +219,14 @@ describe('mapRules — permissions & visibility', () => {
     expect(sceneToOpen([], null, 'sc-1', 'sc-1')).toBe(null);              // sin escenas no hay nada que abrir
   });
 
+  it('sceneToOpen: la que la mesa PIDE abrir va por delante de la última que miró, pero no de la que ya mira', () => {
+    const l = [{ id: 'sc-1' }, { id: 'sc-2' }, { id: 'sc-3' }];
+    expect(sceneToOpen(l, null, 'sc-1', 'sc-3', 'sc-2')).toBe('sc-2');       // pinchada en AVENTURAS: gana a lo apuntado y a la activa
+    expect(sceneToOpen(l, 'sc-3', 'sc-1', null, 'sc-2')).toBe('sc-3');       // la lista se recarga: no le mueve de donde ya está
+    expect(sceneToOpen(l, null, 'sc-1', null, 'sc-borrada')).toBe('sc-1');   // un `?scene=` que ya no existe no rompe nada
+    expect(sceneToOpen(l, null, 'sc-1', null, null)).toBe('sc-1');           // sin petición, lo de siempre
+  });
+
   it('sceneVisibleTo: DM always; players when flagged or active', () => {
     expect(sceneVisibleTo(SCENE_WAREHOUSE, null, true)).toBe(true);
     expect(sceneVisibleTo(SCENE_WAREHOUSE, null, false)).toBe(false);

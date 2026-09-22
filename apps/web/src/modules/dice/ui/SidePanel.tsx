@@ -3,7 +3,9 @@ import { useTranslation } from '@rolvium/i18n';
 import type { GameSystem } from '@rolvium/core';
 import type { RollLogPort } from '../domain/ports/RollLogPort';
 import type { ChatPort } from '@/modules/chat/domain/ports/ChatPort';
+import type { JournalPort } from '@/modules/journal';
 import { SusurrosPanel } from '@/modules/chat/ui/SusurrosPanel';
+import { JournalPanel } from '@/modules/journal';
 import { RollLog } from './RollLog';
 import './dice.css';
 
@@ -28,14 +30,17 @@ interface Props {
   /** Se abrió una conversación en el directorio: `TablePage` saca TAMBIÉN su pastilla sobre la mesa. */
   onChatOpen?: (conversationId: string, title: string) => void;
   chat?: ChatPort;
+  /** Notas y Bitácora (H9). Se inyecta en los tests; en la mesa lo pone el contenedor del módulo. */
+  journal?: JournalPort;
 }
 
 /**
  * The table's side column (rolvium.pen Mesa/Side): tabs Registro · Susurros · Notas · Bitácora.
+ * Notas y Bitácora dejaron de ser «próximamente» el 2026-09-20: las pinta `JournalPanel` (H9).
  * The «Lanzador de dados» button is NOT here any more — the dice are the first tool of the scene toolbar, and two
  * ways to open the same thing is one too many.
  */
-export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log, myUserId, chatUnread = 0, pendingChatOpen, onPendingChatOpenConsumed, onChatRead, onChatOpen, chat }: Props): JSX.Element {
+export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log, myUserId, chatUnread = 0, pendingChatOpen, onPendingChatOpenConsumed, onChatRead, onChatOpen, chat, journal }: Props): JSX.Element {
   const { t } = useTranslation();
   const [tab, setTab] = useState<SidePanelTab>('log');
   // Un pedido externo de abrir una conversación en la COLUMNA (hoy nadie lo manda: las pastillas lo hacen mejor).
@@ -56,7 +61,7 @@ export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log,
             ? <RollLog campaignId={campaignId} system={system} {...(log ? { log } : {})} />
             : tab === 'chat'
               ? <SusurrosPanel campaignId={campaignId} myUserId={myUserId} system={system} {...(chat ? { chat } : {})} pendingOpen={pendingChatOpen ?? null} {...(onPendingChatOpenConsumed ? { onPendingOpenConsumed: onPendingChatOpenConsumed } : {})} {...(onChatRead ? { onRead: onChatRead } : {})} {...(onChatOpen ? { onOpenConversation: onChatOpen } : {})} />
-              : <div className="dc-soon" aria-live="polite"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>{t('dice.panel.soon')}</div>}
+              : <JournalPanel kind={tab === 'notes' ? 'notes' : 'logbook'} campaignId={campaignId} myUserId={myUserId} {...(journal ? { journal } : {})} />}
         </div>
       </section>
     </div>

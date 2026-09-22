@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { useDialog, Tooltip } from '@rolvium/ui';
-import type { Scene } from '../domain/entities/Scene';
+import type { Scene, SceneAdventure } from '../domain/entities/Scene';
+import { showsAdventurePicker } from '../domain/useCases/sceneAdventureRules';
 
 /** Hueco entre los tres puntos y el menú, y lo mínimo que se deja con el borde de la ventana. */
 const MENU_GAP = 4;
+/** La llave del desplegable de aventuras en el mapa de anclas: comparte el menú flotante con los tres puntos. */
+const ADVENTURE_MENU = '__adventure';
 
 interface Props {
   scenes: Scene[];
@@ -18,6 +21,11 @@ interface Props {
   onRemove: (id: string) => Promise<void>;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  /** Las aventuras de la campaña (sin archivadas). Con dos o más, arriba sale el desplegable. */
+  adventures?: readonly SceneAdventure[] | undefined;
+  /** La que se enseña; las escenas del carril son sólo las suyas. */
+  adventureId?: string | null | undefined;
+  onPickAdventure?: ((id: string) => void) | undefined;
 }
 
 /**
@@ -94,18 +102,64 @@ export function ScenesMenu(p: Props): JSX.Element {
   const remove = async (s: Scene) => { if (await dialog.confirm(t('maps.scenes.deleteConfirm', { name: s.name }), { title: t('maps.scenes.delete'), danger: true, confirmLabel: t('common.delete') })) await p.onRemove(s.id); cerrar(); };
   const thumb = (s: Scene) => ({ background: s.bgImageUrl ? `${s.bgColor} url(${s.bgImageUrl}) center/cover` : s.bgColor });
 
+  /**
+   * EL DESPLEGABLE DE AVENTURAS (orden suya, 2026-09-21; rolvium.pen § 5 · «PL/Escenas · rail · ELEGIR LA AVENTURA
+   * arriba del todo»): arriba del todo, sin el rótulo ESCENAS, «+ Escena» justo debajo y luego sólo las escenas de
+   * esa aventura. Con una sola aventura no sale, y el carril es el de siempre.
+   */
+  const byAdventure = showsAdventurePicker(p.adventures);
+  // Plegado no hay desplegable, pero las miniaturas siguen siendo sólo las de la aventura elegida.
+  const picker = byAdventure && !p.collapsed;
+  const advs = p.adventures ?? [];
+  const shownAdventure = advs.find(a => a.id === p.adventureId) ?? null;
+  const shown = byAdventure ? p.scenes.filter(s => s.adventureId === p.adventureId) : p.scenes;
+  const countOf = (id: string) => p.scenes.filter(s => s.adventureId === id).length;
+  const addButton = (
+    <Tooltip label={t('maps.scenes.add')} placement="right">
+      <button type="button" className="mp-rail-add" onClick={() => void create()} aria-label={t('maps.scenes.add')}>
+        {p.collapsed ? <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>add</span> : t('maps.scenes.add')}
+      </button>
+    </Tooltip>
+  );
+  const foldButton = (
+    <Tooltip label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} placement="right">
+      <button type="button" className="mp-rail-fold" aria-expanded={!p.collapsed} aria-label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} onClick={p.onToggleCollapsed}>
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{p.collapsed ? 'left_panel_open' : 'left_panel_close'}</span>
+      </button>
+    </Tooltip>
+  );
+
   return (
     <div className={`mp-rail ${p.collapsed ? 'collapsed' : ''}`} role="group" aria-label={t('maps.scenes.title')}>
-      <div className="mp-rail-head">
-        {!p.collapsed && <span className="tb-rotulo">{t('maps.scenes.title')}</span>}
-        <Tooltip label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} placement="right">
-          <button type="button" className="mp-rail-fold" aria-expanded={!p.collapsed} aria-label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} onClick={p.onToggleCollapsed}>
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{p.collapsed ? 'left_panel_open' : 'left_panel_close'}</span>
-          </button>
-        </Tooltip>
-      </div>
+      {picker
+        ? (
+          <>
+            <div className="mp-rail-top">
+              <button
+                type="button" className="mp-rail-adv" aria-haspopup="menu" aria-expanded={menuFor === ADVENTURE_MENU}
+                aria-label={`${t('maps.scenes.pickAdventure')}: ${shownAdventure?.title ?? ''}`} onClick={() => abrir(ADVENTURE_MENU)}
+                ref={el => { if (el) kebabs.current.set(ADVENTURE_MENU, el); else kebabs.current.delete(ADVENTURE_MENU); }}
+              >
+                <span className="mp-rail-adv-label">{t('maps.scenes.adventure')}</span>
+                <span className="mp-rail-adv-row">
+                  <span className="mp-rail-adv-n">{shownAdventure ? advs.indexOf(shownAdventure) + 1 : ''}</span>
+                  <span className="mp-rail-adv-title">{shownAdventure?.title ?? ''}</span>
+                  <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>keyboard_arrow_down</span>
+                </span>
+              </button>
+              {foldButton}
+            </div>
+            {addButton}
+          </>
+        )
+        : (
+          <div className="mp-rail-head">
+            {!p.collapsed && <span className="tb-rotulo">{t('maps.scenes.title')}</span>}
+            {foldButton}
+          </div>
+        )}
       <ul className="mp-rail-list">
-        {p.scenes.map(s => {
+        {shown.map(s => {
           const on = s.id === p.selectedId, active = s.id === p.activeSceneId;
           const row = (
             <button type="button" className={`mp-rail-item ${on ? 'on' : ''}`} aria-pressed={on} aria-label={t('maps.scenes.select', { name: s.name })}
@@ -139,11 +193,30 @@ export function ScenesMenu(p: Props): JSX.Element {
           );
         })}
       </ul>
-      <Tooltip label={t('maps.scenes.add')} placement="right">
-        <button type="button" className="mp-rail-add" onClick={() => void create()} aria-label={t('maps.scenes.add')}>
-          {p.collapsed ? <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>add</span> : t('maps.scenes.add')}
-        </button>
-      </Tooltip>
+      {!picker && addButton}
+      {picker && menuFor === ADVENTURE_MENU && (
+        <div className="mp-pop mp-scene-menu mp-adv-menu" role="menu" aria-label={t('maps.scenes.showScenesOf')} ref={menuRef}
+          style={menuAt ? { top: menuAt.top, left: menuAt.left } : undefined}>
+          <span className="mp-adv-menu-label" aria-hidden="true">{t('maps.scenes.showScenesOf')}</span>
+          {advs.map((a, i) => {
+            const n = countOf(a.id);
+            return (
+              <button key={a.id} type="button" role="menuitemradio" aria-checked={a.id === p.adventureId}
+                className={`mp-menu-item mp-adv-item${a.id === p.adventureId ? ' on' : ''}`}
+                onClick={() => { p.onPickAdventure?.(a.id); cerrar(); }}>
+                <span className="mp-adv-n" aria-hidden="true">{i + 1}</span>
+                <span className="mp-adv-text">
+                  <span className="mp-adv-title">{a.title}</span>
+                  <span className="mp-adv-sub">
+                    {t(`adventures.status.${a.status}`)} · {n === 1 ? t('adventures.sceneCountOne') : t('adventures.sceneCount', { n: String(n) })}
+                  </span>
+                </span>
+                {a.id === p.adventureId && <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>check</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

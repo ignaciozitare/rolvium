@@ -1,0 +1,80 @@
+/* ── El editor de texto enriquecido y su índice ───────────────────────────────
+   Primitivas neutras de mesa, como Sheet y los paneles flotantes: el aspecto entra
+   SÓLO por las variables --sys-* que pone el sistema de juego. Dentro de la mesa no hay
+   claro/oscuro; el papel, la tinta y el sangre los pone el sistema.
+   Dónde va y cuánto mide NO es de aquí: lo pone la clase de quien lo usa.
+   Diseño: rolvium.pen § 4 · «Notas y Bitácora · con ÍNDICE» y «Director · AVENTURAS». */
+
+.rv-rt{display:flex;flex-direction:column;gap:10px;min-width:0;color:var(--sys-ink);font-family:var(--sys-font-body);}
+
+/* La barra. Los botones no tienen filo: lo activo se marca con el sangre del sistema. */
+.rv-rt-bar{display:flex;align-items:center;flex-wrap:wrap;gap:2px;padding-bottom:6px;
+  border-bottom:1px solid color-mix(in srgb,var(--sys-line) 70%,transparent);}
+.rv-rt-tool{display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;flex-shrink:0;
+  border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.rv-rt-tool .material-symbols-outlined{font-size:var(--icon-sm);}
+.rv-rt-tool:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+.rv-rt-tool.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+
+/* La página: el papel del sistema. */
+.rv-rt-page{display:flex;flex-direction:column;gap:9px;padding:16px 22px;min-width:0;
+  background:var(--sys-paper-hi);border:1px solid var(--sys-line);}
+.rv-rt-block{min-width:0;}
+
+.rv-rt-text{outline:none;min-height:1.2em;line-height:var(--lh-normal);overflow-wrap:anywhere;}
+.rv-rt-text:focus-visible{outline:2px solid color-mix(in srgb,var(--sys-blood) 60%,transparent);outline-offset:3px;}
+/* El texto de ayuda de un bloque vacío. `:empty` no basta: el navegador deja un <br> al vaciar. */
+.rv-rt-text:empty::before{content:attr(data-placeholder);color:var(--sys-ink-dim);font-style:italic;}
+
+.rv-rt-h1{margin:6px 0 0;font-family:var(--sys-font-display);font-size:var(--fs-lg);font-weight:600;color:var(--sys-ink);}
+.rv-rt-h2{margin:4px 0 0;font-family:var(--sys-font-display);font-size:var(--fs-md);font-weight:600;color:var(--sys-ink);}
+.rv-rt-paragraph{margin:0;font-size:var(--fs-sm);color:var(--sys-ink);}
+
+/* La cita: lo que se lee en voz alta. Filo de sangre a la izquierda, como en el diseño. */
+.rv-rt-quotebox{margin:0;padding:8px 12px;border-left:3px solid var(--sys-blood);
+  background:color-mix(in srgb,var(--sys-blood) 7%,transparent);}
+.rv-rt-quotelabel{display:block;margin-bottom:4px;font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--sys-blood);}
+.rv-rt-quote{margin:0;font-size:var(--fs-sm);font-style:italic;color:var(--sys-ink);}
+
+.rv-rt-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px;font-size:var(--fs-sm);}
+.rv-rt-divider{margin:4px 0;border:none;border-top:1px solid var(--sys-line);}
+
+/* La tabla de PNJ o de encuentro: cabecera en tinta, como en un manual impreso. */
+.rv-rt-table{display:flex;flex-direction:column;border:1px solid var(--sys-line);}
+.rv-rt-thead{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--sys-ink);color:var(--sys-paper-hi);
+  font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;}
+.rv-rt-thead .material-symbols-outlined{font-size:var(--icon-xs);}
+.rv-rt-table table{width:100%;border-collapse:collapse;font-size:var(--fs-sm);}
+.rv-rt-table td{padding:5px 10px;border-top:1px solid color-mix(in srgb,var(--sys-line) 60%,transparent);vertical-align:top;}
+.rv-rt-addrow{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;margin:4px 6px 6px;padding:2px 6px;
+  border:none;background:transparent;color:var(--sys-blood);font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;}
+.rv-rt-addrow .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* El enlace a una escena: un chip que la abre en la mesa. */
+.rv-rt-scene{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--sys-blood);
+  background:transparent;color:var(--sys-blood);font-family:var(--sys-font-body);font-size:var(--fs-xs);cursor:pointer;}
+.rv-rt-scene:hover{background:color-mix(in srgb,var(--sys-blood) 12%,transparent);}
+.rv-rt-scene .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* ── El índice, AL LADO del texto ──────────────────────────────────────────── */
+.rv-rt-index{display:flex;flex-direction:column;gap:4px;padding:10px 12px;min-width:0;
+  background:var(--sys-paper);border-left:1px solid var(--sys-line);border-right:1px solid var(--sys-line);
+  color:var(--sys-ink);font-family:var(--sys-font-body);}
+.rv-rt-index-head{display:flex;align-items:center;gap:5px;margin-bottom:6px;}
+.rv-rt-index-head .material-symbols-outlined{font-size:var(--icon-xs);color:var(--sys-ink-soft);}
+.rv-rt-index-title{flex:1;font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.rv-rt-index-close{display:inline-flex;border:none;background:transparent;color:var(--sys-ink-dim);cursor:pointer;padding:0;}
+.rv-rt-index-close .material-symbols-outlined{font-size:var(--icon-xs);}
+.rv-rt-index-empty{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.rv-rt-index-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+.rv-rt-index-list ul{list-style:none;margin:0;padding:0 0 0 10px;display:flex;flex-direction:column;gap:1px;}
+.rv-rt-index-h1,.rv-rt-index-h2{display:block;width:100%;text-align:left;border:none;background:transparent;cursor:pointer;
+  padding:2px 0;color:var(--sys-ink);font-family:var(--sys-font-body);overflow-wrap:anywhere;}
+.rv-rt-index-h1{font-size:var(--fs-xs);font-weight:600;}
+/* El hilo que cuelga de su H1: es lo que hace ver de un vistazo qué vive dentro de qué. */
+.rv-rt-index-h2{font-size:var(--fs-2xs);color:var(--sys-ink-soft);border-left:1px solid var(--sys-line);padding-left:7px;}
+.rv-rt-index-h1:hover,.rv-rt-index-h2:hover{color:var(--sys-blood);}
+.rv-rt-index-h1.on,.rv-rt-index-h2.on{color:var(--sys-blood);}
+.rv-rt-index-h2.on{border-left-color:var(--sys-blood);}

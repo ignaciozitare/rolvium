@@ -11,3 +11,5 @@ export * from './brush';
 export * from './props';
 export * from './systemRegistry';
 export * from './sheetValidation';
+export * from './richDoc';
+export * from './richDocEdit';

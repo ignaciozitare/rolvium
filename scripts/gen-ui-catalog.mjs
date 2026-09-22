@@ -61,6 +61,8 @@ const META = {
   PanelNote:          { resolves: 'nota con el icono de información al pie de un panel flotante', usage: '<PanelNote>…</PanelNote>' },
   Slider:             { resolves: 'deslizador de la mesa, apilado (de serie) o en fila: lectura, guardar al soltar, muescas; tema solo vía --sys-*. OBLIGATORIO: nada de <input type="range"> a mano (npm run audit)', usage: '<Slider label value min max step valueText onChange onCommit layout>' },
   OptionGroup:        { resolves: 'elegir una de varias en un panel de mesa (chip u outline; 2 o 3 columnas o en fila); lo elegido siempre en rojo sangre', usage: '<OptionGroup ariaLabel options value onChange look columns caps>' },
+  RichTextEditor:     { resolves: 'EL editor de texto enriquecido, uno solo para Notas, Bitácora y Aventuras: títulos, negrita, cursiva, listas, cita y separador, y con `features` las tablas de PNJ/encuentro y el enlace a escena. El documento es JSON (RichDoc de @rolvium/core), nunca HTML; no trae botón de guardar; tema solo vía --sys-*', usage: '<RichTextEditor doc onChange labels readOnly features onPickScene onOpenScene>' },
+  DocIndexPanel:      { resolves: 'el ÍNDICE del documento, AL LADO del texto y no dentro: los H1 con sus H2 colgando, y un clic salta al título. No calcula nada — se le pasa buildDocIndex(doc), que se recalcula al abrirlo y por eso no se queda viejo', usage: '<DocIndexPanel entries onJump onClose labels currentId>' },
 };
 
 function exportedComponents(src) {

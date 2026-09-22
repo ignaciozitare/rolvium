@@ -100,6 +100,13 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 **Sólo el director**
 - **Escenas**: crear, renombrar, ordenar, borrar, **abrir** una para trabajarla y **activarla** para el grupo
   (son dos acciones distintas: puede preparar un piso mientras el grupo juega en otro).
+  - **Which scene opens** when the Escena tab mounts: the one he is already looking at → the one the table asks
+    him to open (clicked in AVENTURAS, or `?scene=` from an adventure's separate window) → the last one he
+    looked at, kept in his browser → the active one → the first. Asking to open never activates (2026-09-22).
+    `?scene=` is read once and then removed from the address, so reloading that window keeps him on the last
+    scene he looked at instead of sending him back to the linked one.
+  - **Choose which adventure's scenes the rail shows**, with two or more non-archived adventures; «+ Escena»
+    creates the scene in the chosen one (§ «Rail de escenas», 2026-09-21).
 - **Fondo**: color o foto, desde la biblioteca de la campaña o subiendo una.
 - **Construir**: muros, puertas y ventanas con edición de vértices; **salas** (formas cerradas que abren un
   hueco en el relleno de pared para que se vea el suelo) y rellenos de muro.
@@ -119,6 +126,7 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 |---|---|---|
 | La escena | A pantalla completa dentro de la pestaña «Escena» | `rolvium.pen` § 5 · LA ESCENA · mapas |
 | Rail de escenas | Lista plegable a la izquierda; abrir ≠ activar | § 5 |
+| Adventure drop-down of the rail | Two or more adventures: drop-down on top, «+ Escena» under it, only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` |
 | Barra de herramientas | Tres bloques, los dados primero, lo del director tras la raya dorada | § 5 |
 | Panel del constructor | Muros, puertas, ventanas, salas y rellenos | § 5 |
 | Panel del pincel | Sobre qué, qué hace, textura, color, tamaño, dureza, transparencia | § 5 |
@@ -304,6 +312,21 @@ la prueba del dueño sobre la rebanada 2 ya construida: son correcciones de uso,
   Abajo, «+ Escena». Se pliega a una tira estrecha para recuperar ancho de mapa.
 - Sustituye al desplegable de escenas de la cabecera: elegir escena pasa de dos clics a uno, y se ve de un vistazo
   cuál estás mirando y cuál ven los jugadores.
+- **ELEGIR LA AVENTURA, arriba del todo** (orden suya, 2026-09-21 — «*en la barra de escena pon arriba de todo un
+  desplegable que diga qué aventura me mostrará… el botón de nueva escena tiene que estar inmediatamente debajo de
+  esto y luego siguen las escenas*»; lámina § 5 · «PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo»,
+  aprobada el 2026-09-22):
+  - Sólo con **dos o más aventuras** sin archivar (toda campaña nace con su «Aventura 1»: «*sólo aparecerá el menú
+    de aventuras si hay aventuras creadas, si no serán sólo escenas*»). Entonces **desaparece el rótulo ESCENAS**,
+    el botón de plegar va a la derecha del desplegable, «+ Escena» va **justo debajo** y luego **sólo las escenas
+    de esa aventura** (plegado, las miniaturas también son sólo las suyas).
+  - La lista del desplegable: número del carril de Aventuras, título, estado y cuántas escenas tiene. Lo elegido
+    en sangre, con su marca.
+  - De entrada sale la aventura de la **escena abierta**; si no hay, la **en curso**; si no, la primera
+    (`domain/useCases/sceneAdventureRules.ts`). La escena creada con «+ Escena» nace en la aventura elegida.
+  - `maps` NO conoce el módulo de aventuras: la mesa (`TablePage` · `DmScene`) le pasa la lista hecha
+    (`SceneAdventure`), igual que los encuentros del Bestiario. Si no llega, el carril es el de siempre. El
+    jugador no tiene este carril.
 
 ### Una sola barra de herramientas, en tres bloques
 Deja de ser «herramientas del lienzo» y pasa a llevarlo todo, **rotulada por bloques** para que no se mezcle lo que

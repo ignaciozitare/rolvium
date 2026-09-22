@@ -27,3 +27,27 @@ describe('<UIKit> · las piezas de los paneles de la mesa', () => {
     expect(screen.getByRole('group', { name: 'Pincel' })).toBeInTheDocument();
   });
 });
+
+/**
+ * Y lo que se le añadió el 2026-09-20: EL editor de texto enriquecido con su índice al lado. El catálogo tiene
+ * que enseñarlo FUNCIONANDO, no una captura — si el ejemplo deja de montar, se entera aquí y no el dueño.
+ */
+describe('<UIKit> · el editor de texto enriquecido', () => {
+  it('el ejemplo trae la barra, el documento y el índice, y el índice se cierra y se vuelve a abrir', async () => {
+    const u = userEvent.setup();
+    renderWithProviders(<UIKit />);
+
+    const bar = screen.getByRole('toolbar', { name: 'Formato' });
+    expect(within(bar).getByRole('button', { name: 'Negrita' })).toBeInTheDocument();
+    // Las cosas que sólo tiene una aventura también se enseñan: es lo que pide `features`.
+    expect(within(bar).getByRole('button', { name: 'Tabla de PNJ' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'El almacén de los muelles' })).toBeInTheDocument();
+
+    const index = screen.getByRole('navigation', { name: 'Índice' });
+    expect(within(index).getByRole('button', { name: 'Llegada' })).toBeInTheDocument();
+    await u.click(within(index).getByRole('button', { name: 'Cerrar el índice' }));
+    expect(screen.queryByRole('navigation', { name: 'Índice' })).not.toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Índice' }));
+    expect(screen.getByRole('navigation', { name: 'Índice' })).toBeInTheDocument();
+  });
+});

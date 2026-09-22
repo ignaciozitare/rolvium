@@ -43,6 +43,13 @@ export interface Scene {
    * mazmorra y un descampado no piden lo mismo (dueño, 2026-08-22).
    */
   solidWalls: boolean;
+  /**
+   * DE QUÉ AVENTURA ES (H12). Toda escena cuelga de una y sólo una, de su misma campaña — la base no admite
+   * ninguna suelta. Al crearla no hace falta decirlo: si no se dice, cae en la aventura en curso
+   * (`supabase/migrations/20260920090000_maps_scenes_adventure_por_defecto.sql`). Mover una escena de aventura
+   * es cambiar esto, nunca duplicarla.
+   */
+  adventureId: string;
   sortOrder: number;
   visiblePlayers: boolean;
   /**
@@ -143,8 +150,14 @@ export interface Scene {
   createdAt: string;
   updatedAt: string;
 }
-export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'wallTextureRotation' | 'floorTextureRotation' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
+export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number; /** Si no se dice, la base la cuelga de la aventura en curso de la campaña. */ adventureId?: string }
+/**
+ * UNA AVENTURA, tal como la necesita el carril de escenas para elegir cuáles enseña (orden suya, 2026-09-21:
+ * «*en la barra de escena pon arriba de todo un desplegable que diga qué aventura me mostrará*»). `maps` no sabe
+ * de aventuras: se lo da hecho la mesa (`TablePage`), igual que los encuentros del Bestiario. Sin archivadas.
+ */
+export interface SceneAdventure { id: string; title: string; status: 'draft' | 'running' | 'done' }
+export type ScenePatch = Partial<Pick<Scene, 'adventureId' | 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'wallTextureRotation' | 'floorTextureRotation' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.

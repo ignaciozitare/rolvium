@@ -22,6 +22,7 @@ Import: `import { X } from '@rolvium/ui'`
 | `DateRangePicker` | selección de rango de fechas con presets | `<DateRangePicker value onChange>` |
 | `DialogProvider` | contexto para abrir modales imperativamente | `useDialog().confirm(...)` |
 | `Divider` | separador tonal (átomo) | `<Divider />` |
+| `DocIndexPanel` | el ÍNDICE del documento, AL LADO del texto y no dentro: los H1 con sus H2 colgando, y un clic salta al título. No calcula nada — se le pasa buildDocIndex(doc), que se recalcula al abrirlo y por eso no se queda viejo | `<DocIndexPanel entries onJump onClose labels currentId>` |
 | `DualPanelPicker` | transferencia entre dos paneles (disponible/seleccionado) | `<DualPanelPicker items value>` |
 | `EmptyState` | estado vacío/error centrado con icono, texto y acciones; `tone` accent/red/amber — ámbar es «se ha roto y no es culpa tuya» | `<EmptyState icon title description actions tone>` |
 | `ErrorBoundary` | la RED: un error AL PINTARSE se queda en su trozo en vez de llevarse la pantalla entera. No atrapa eventos ni promesas. En la app se usa vestida: apps/web/src/shared/ui/SafeRegion.tsx | `<ErrorBoundary label fallback={(reintentar, error) => …}>…</ErrorBoundary>` |
@@ -38,6 +39,7 @@ Import: `import { X } from '@rolvium/ui'`
 | `PanelNote` | nota con el icono de información al pie de un panel flotante | `<PanelNote>…</PanelNote>` |
 | `PanelSection` | bloque de un panel flotante con su rótulo en versalitas | `<PanelSection label className testId>…</PanelSection>` |
 | `PhaseDisc` | disco de fase (PL/Salud): fracción oscura 0→1 | `<PhaseDisc fraction={0.5} />` |
+| `RichTextEditor` | EL editor de texto enriquecido, uno solo para Notas, Bitácora y Aventuras: títulos, negrita, cursiva, listas, cita y separador, y con `features` las tablas de PNJ/encuentro y el enlace a escena. El documento es JSON (RichDoc de @rolvium/core), nunca HTML; no trae botón de guardar; tema solo vía --sys-* | `<RichTextEditor doc onChange labels readOnly features onPickScene onOpenScene>` |
 | `SectionTitle` | título de sección ALL-CAPS con línea | `<SectionTitle>Mis campañas</SectionTitle>` |
 | `Sheet` | ficha de personaje neutra dirigida por el sheetSchema del sistema (secciones, campos, derivadas, acciones, tooltips «Manual · p.XX»), tema solo vía --sys-* | `<Sheet schema data derived readOnly onChange onAction actions t refText labels>` |
 | `Slider` | deslizador de la mesa, apilado (de serie) o en fila: lectura, guardar al soltar, muescas; tema solo vía --sys-*. OBLIGATORIO: nada de <input type="range"> a mano (npm run audit) | `<Slider label value min max step valueText onChange onCommit layout>` |
@@ -50,4 +52,4 @@ Import: `import { X } from '@rolvium/ui'`
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 37 componentes exportados.
+> 39 componentes exportados.

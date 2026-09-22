@@ -330,7 +330,8 @@
       "scene": "Scene",
       "bestiary": "Bestiary",
       "improve": "Improve",
-      "create": "Create character"
+      "create": "Create character",
+      "adventures": "Adventures"
     },
     "comingNext": "This part of the table arrives in the next iteration.",
     "roller": "Dice roller",
@@ -804,7 +805,10 @@
       "menuFor": "Options for “{{name}}”",
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
-      "expand": "Expand scenes"
+      "expand": "Expand scenes",
+      "adventure": "Adventure",
+      "pickAdventure": "Choose the adventure",
+      "showScenesOf": "Show the scenes of"
     },
     "bg": {
       "button": "Map background",
@@ -1821,5 +1825,122 @@
       "others": "Other rolls",
       "othersHint": "Press and hold one to pick the difficulty, same as with the players."
     }
+  },
+  "journal": {
+    "loading": "Opening…",
+    "loadError": "This could not be opened.",
+    "retry": "Try again",
+    "index": "Index",
+    "indexEmpty": "No headings yet. Add an H1 and it will show up here.",
+    "indexClose": "Close the index",
+    "saving": "saving…",
+    "savedJustNow": "saved a moment ago",
+    "savedMinutes": "saved {{n}} min ago",
+    "savedHours": "saved {{n}} h ago",
+    "saveError": "could not be saved",
+    "conflict": "someone saved first",
+    "conflictHelp": "Someone else saved the logbook while you were writing. Your text is still here and theirs was not overwritten.",
+    "reload": "See what is there",
+    "notes": {
+      "hint": "Private: nobody else sees them, not even the GM. They save by themselves.",
+      "placeholder": "Your notes for this campaign…"
+    },
+    "logbook": {
+      "hint": "Shared: everyone can read and write it. It saves by itself.",
+      "placeholder": "What happened in the session…"
+    },
+    "editor": {
+      "toolbar": "Formatting",
+      "h1": "Heading",
+      "h2": "Subheading",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulleted": "Bulleted list",
+      "numbered": "Numbered list",
+      "quote": "Quote",
+      "divider": "Divider",
+      "quoteLabel": "To read out loud",
+      "textField": "Document text",
+      "removeBlock": "Remove block"
+    },
+    "tooBig": "too long: the document is over 200 KB"
+  },
+  "adventures": {
+    "title": "Adventures",
+    "one": "Adventure",
+    "rail": "Adventures of this campaign",
+    "new": "New adventure",
+    "newTitle": "Adventure {{n}}",
+    "scenesOf": "Scenes of this adventure",
+    "noScenes": "This adventure has no scenes yet.",
+    "sceneCount": "{{n}} scenes",
+    "loadError": "The adventures could not be opened.",
+    "notFound": "This adventure is gone.",
+    "placeholder": "Write the adventure…",
+    "titleField": "Adventure title",
+    "saving": "saving…",
+    "savedJustNow": "saved a moment ago",
+    "savedMinutes": "saved {{n}} min ago",
+    "savedHours": "saved {{n}} h ago",
+    "saveError": "could not be saved",
+    "conflict": "saved from somewhere else",
+    "conflictHelp": "This adventure was saved from another window while you were writing. Your text is still here.",
+    "openApart": "Open apart",
+    "backToTable": "Back to the table",
+    "pickScene": "Which scene do I link?",
+    "npcTable": "NPC table",
+    "encounterTable": "Encounter table",
+    "addRow": "Add row",
+    "linkScene": "Link a scene",
+    "openScene": "Open it at the table",
+    "col": {
+      "npc": "NPC",
+      "what": "What it is",
+      "wants": "What it wants",
+      "notes": "Notes",
+      "howMany": "How many",
+      "difficulty": "Difficulty"
+    },
+    "status": {
+      "draft": "Draft",
+      "running": "Running",
+      "done": "Done",
+      "archived": "Archived"
+    },
+    "sceneCountOne": "1 scene",
+    "archived": "Archived · {{n}}",
+    "noneActive": "No adventure left in the rail: they are all archived.",
+    "actionError": "That could not be done. The rail shows what is really there.",
+    "statusMenu": "Adventure status",
+    "newScene": "New scene in this adventure",
+    "menu": {
+      "label": "Adventure options",
+      "for": "Options for “{{title}}”",
+      "running": "Mark as running",
+      "runningHint": "It is the one that opens when you enter the tab, and where the scenes you create from the table go.",
+      "up": "Move up",
+      "down": "Move down",
+      "archive": "Archive",
+      "unarchive": "Take out of the archive",
+      "remove": "Delete adventure",
+      "lastOne": "It is the only one in the campaign: archive it, or create another one first."
+    },
+    "sceneMenu": {
+      "label": "Scene options",
+      "for": "Options for “{{name}}”",
+      "moveTo": "Move to another adventure",
+      "moveToLabel": "Move it to",
+      "noOther": "There is no other adventure to move it to."
+    },
+    "remove": {
+      "title": "Delete “{{title}}”",
+      "confirm": "It is deleted with everything written in it. It has no scenes.",
+      "withScenes": "It has {{n}} scenes, and the scenes are not deleted with it. Choose which adventure they go to before deleting it.",
+      "withSceneOne": "It has 1 scene, and the scene is not deleted with it. Choose which adventure it goes to before deleting it.",
+      "moveTo": "Move its scenes to",
+      "confirmMove": "Move and delete"
+    },
+    "foldRail": "Fold adventures",
+    "unfoldRail": "Unfold adventures"
   }
 }

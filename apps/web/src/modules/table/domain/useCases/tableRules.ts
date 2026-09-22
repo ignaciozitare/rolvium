@@ -3,7 +3,11 @@ import type { TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { TableTab } from '../entities/Table';
 
 /**
- * Tabs per role (player: Ficha·Escena·Crear; DM: El grupo·Escena·Bestiario·Crear).
+ * Tabs per role (player: Ficha·Escena·Crear; DM: El grupo·Escena·Bestiario·AVENTURAS·Crear).
+ *
+ * **AVENTURAS es del director y de nadie más** (orden suya, 2026-09-19: «*ponlo dentro me cago en todo!*»).
+ * Va junto a BESTIARIO, en el orden del `.pen`. El jugador no la tiene — y aunque la tuviera, la base no le da
+ * ni una aventura.
  *
  * «Mejorar» YA NO es una pestaña: es un botón dentro de la ficha, al lado de «Editar» y «Abrir ficha
  * aparte» (dueño, decidido hace varias sesiones y pendiente desde entonces). Mejorar es algo que le
@@ -19,7 +23,7 @@ import type { TableTab } from '../entities/Table';
  * botón que llevaba a ella sin haber elegido a nadie.
  */
 export function tabsFor(role: TableRole): TableTab[] {
-  return role === 'dm' ? ['group', 'scene', 'bestiary', 'create'] : ['sheet', 'scene', 'create'];
+  return role === 'dm' ? ['group', 'scene', 'bestiary', 'adventures', 'create'] : ['sheet', 'scene', 'create'];
 }
 
 /** Dónde aterriza cada uno al abrir la mesa. El director no tiene ficha propia, así que empieza en la escena. */

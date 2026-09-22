@@ -2,6 +2,277 @@
 
 ## 🎯 Current task
 
+> # 📍 ESTADO (2026-09-22, tarde) — NOTAS · BITÁCORA · AVENTURAS → PRODUCCIÓN (v0.15.0)
+> ## ✅ 5.º QA PASADO · ✅ las 4 migraciones YA ESTÁN EN PRODUCCIÓN · ⏳ merge a `main`
+>
+> **Orden suya del 22-09** («*haz lo que falta para producción: push, preview, las 4 migraciones por MCP y el
+> merge*»). El 4.º QA (sobre `b3a41c7`) bloqueó por 3 desvíos del spec; arreglados (`6f8bb74`, `5bb4cf9`),
+> revisados y el 5.º QA (sobre `5bb4cf9`) pasó: smoke 12 · regression 2.174 · functional 66 · api 305 · core 166 ·
+> ui 69 · plenilunio 141; builds y `tsc` limpios; `npm run audit` 0 hard; previews de Vercel READY.
+> - Red `SafeRegion label="table:side"` alrededor de `SidePanel` (9 redes, 6 clases).
+> - **Pinchar una escena en AVENTURAS se la ABRE al director y NO la activa** — decidido por mí con su regla de
+>   `maps` («abrir ≠ activar») y avisado; si quiere que también mueva a los jugadores, es un cambio pequeño.
+> - `?scene=` de la ventana aparte: la mesa lo lee una vez y lo quita de la dirección.
+>
+> **Migraciones en producción** (`scfspsiemikfcnqteonq`, por MCP, una a una, en orden, 22-09):
+> `journal_notas_y_bitacora` → `adventures_aventuras` → `maps_scenes_adventure_por_defecto` →
+> `maps_scenes_aventura_de_su_campana`. Comprobado después con `execute_sql`: 4 escenas, 0 sin aventura, las 4
+> en la aventura de SU campaña; 2 campañas → 2 «Aventura 1»; RLS en las 3 tablas; GRANT a `authenticated`;
+> triggers y claves en su sitio. Asesores: **0 ERROR**.
+> ⚠️ **Deuda nueva, pequeña, NO arreglada** (no se tocó producción más allá de lo que pidió): los asesores
+> suman 2 avisos nuevos por cada una de las dos funciones de trigger (`adventures_seed_for_campaign`,
+> `maps_scenes_default_adventure`): SECURITY DEFINER ejecutables por `anon` y `authenticated`. Sin riesgo real
+> (una función `RETURNS trigger` no se puede llamar por RPC), pero la costumbre del repo es
+> `REVOKE ALL ON FUNCTION … FROM anon, public` (ver `20260915150000_chat_susurros.sql`). Se cierra con una
+> migración de dos líneas en la próxima rama.
+> **Queda anotado, no bloquea**: si la Escena revienta y el director pulsa «reintentar», vuelve a abrir la
+> escena pedida desde AVENTURAS (no la última que miró); se arregla soltando `openScene` en el reintento.
+>
+> *(Lo de abajo es la historia del 4.º QA, ya resuelta.)*
+>
+> ## 🚫 4.º QA (modo block, sobre `b3a41c7` = v0.15.0) BLOQUEADO por 3 desvíos del spec. — RESUELTO en el 5.º
+>
+> **Verde**: pruebas (web 2.247 · api 305 · core 166 · ui 69 · plenilunio 141; smoke 12, functional 62),
+> `typecheck`, `build:web`, `build:api`, `npm run audit` 0 hard, cobertura de cada fichero tocado, i18n
+> 1.588/1.588, producción 200/200, previews de Vercel de `b3a41c7` en verde (web y api), asesores de producción
+> sin ningún ERROR (las 4 migraciones AÚN NO están allí; en local `supabase db lint` limpio y RLS en las 3 tablas).
+> La rama YA está subida (`origin` = `b3a41c7`); lo de «10 commits sin subir» de abajo es viejo.
+> **Lo que bloquea (hay que arreglarlo y pasar otro QA)**:
+> 1. `journal` § States & errors, «A broken part → the rail falls, not the table»: el carril lateral
+>    (`TablePage` `<aside>` → `SidePanel` → `JournalPanel`) NO tiene red; si el editor revienta, cae la página
+>    entera (sólo queda la red de `AppRouter`). Falta un `SafeRegion` ahí + su prueba.
+> 2. `adventures` «open it at the table» (pinchar la escena en el carril o el chip de escena del texto):
+>    MEDIDO con una prueba de usar y tirar — si el director ya había mirado otra escena, la pestaña Escena le
+>    abre LA RECORDADA (`sceneToOpen`: actual → recordada → activa), no la pinchada. Y además la ACTIVA para el
+>    grupo (`setActiveScene`), cuando `maps` dice «abrir ≠ activar». Lo de activar es una pregunta para él.
+> 3. En la ventana aparte, el chip de escena abre `/table/:id?scene=<id>` y NADIE lee `?scene=`: la mesa sale
+>    en otra escena. La prueba de `AdventurePage` sólo mira la URL.
+> **Arreglado por el QA (sin commitear)**: el diagrama de § Data model del spec de `journal` decía
+> `default '{}'`; la migración pone `'{"v":1,"blocks":[]}'`.
+>
+> *(Lo de abajo es la historia del 3.er QA.)*
+>
+> ## ✅ 3.er QA (modo block) PASADO, con un arreglo de documentación. ⛔ Aún NO mergeado.
+>
+> **Lo nuevo desde el 2.º QA, aprobado por él el 22-09 y construido**: el carril de Aventuras se pliega
+> (`e8c71df`); en la pestaña Escena, con 2 o más aventuras, el desplegable de aventura arriba del carril de
+> escenas (`84d852f`); y el arreglo del revisor al borrar la escena abierta (`e1c6971`). Review ✅.
+> **3.er QA**: confirma cerrados los 3 bloqueos del 2.º. Pruebas verdes (web 2.247, api 305, core 166, ui 69,
+> plenilunio 141), `typecheck`, `build:web` y `build:api` limpios, `npm run audit` 0 hard, producción 200/200,
+> asesores de Supabase de producción sin ningún CRITICAL. El QA añadió a los specs de `adventures` y `maps` la
+> acción y la lámina del desplegable en § What the user can do y § Screens (faltaban) — commiteado.
+> **Falta, en orden (necesita SU «adelante»: es producción)**: push de la rama (10 commits sin subir) → preview de Vercel en
+> verde → aplicar las 4 migraciones a producción por MCP (una a una, ANTES del merge) → merge.
+>
+> *(Lo de abajo es la historia del 2.º QA.)*
+>
+> **2.º QA (21-09, modo block)**: confirma cerrados los 8 del primero. Bloqueó por 3 cosas que ya estaban en el
+> spec del 19-08 y el 1.º QA no vio: (1) «50 aventuras por campaña» sin comprobar → **decidido por mí y
+> avisado**: queda en el spec como tamaño de diseño, no cerrojo (el spec los llamaba «orientativos»); (2) § Data
+> model sin la 4.ª migración → arreglado; (3) **«el carril, plegable como el de escenas de la mesa»** — no
+> dibujado ni hecho → preguntado: «*dibujalo*» → **DIBUJADO, esperando su «aprobado» y su Cmd+S**: marco nuevo
+> `Aventuras/Carril PLEGADO · el documento a lo ancho` (§ 4, índice 42, el último antes de § 5) + el botón de
+> plegar al lado del + de AVENTURAS en el marco de AVENTURAS. Igual que la mesa: columna de 34 px con sólo el
+> botón, rótulo «DESPLEGAR AVENTURAS», y NO recuerda el plegado (la mesa tampoco: `useState(false)`).
+> **Y ADEMÁS, orden suya del 21-09** («*en la barra de escena pon arriba de todo un desplegable que diga qué
+> aventura me mostrará… el botón de nueva escena inmediatamente debajo y luego siguen las escenas*»): el carril
+> de escenas de la pestaña ESCENA (módulo `maps`, `ScenesMenu`) elige la aventura. **DIBUJADO, esperando su
+> «aprobado»**: lámina `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` (§ 5, índice 87, la última antes
+> de § 6; en el lienzo al final de la fila de § 5). Decidido por mí y avisado: de entrada sale la aventura de la
+> escena abierta (si no hay, la EN CURSO); «+ ESCENA» crea en la elegida; las archivadas no salen.
+> Corrección suya (21-09): «*sólo aparecerá el menú de aventuras si hay aventuras creadas, si no serán sólo
+> escenas; cuando hay aventuras quita el nombre ESCENAS de arriba*» → leído como: desplegable sólo con **2 o más
+> aventuras no archivadas** (toda campaña nace con su «Aventura 1»); con una, el carril de siempre. Con
+> desplegable: sin el rótulo ESCENAS, el botón de plegar a su derecha. Avisado. ⚠️ Esto
+> CAMBIA una regla del spec de adventures («the table's scene rail knows nothing about adventures») — sus
+> palabras de hoy mandan: actualizar los specs de `adventures` y `maps`. `maps` no puede importar la infra de
+> `adventures`: el puerto se inyecta desde `TablePage`, como el del Bestiario. Además arreglado lo que pidió de
+> documentación (`ARCHITECTURE.md`, `specs/SPEC.md`) y un error de tipos en `core` (`14519fe`). Después: un QA
+> más, corto.
+>
+> ## 🎯 Lo que se está construyendo — orden suya, las TRES JUNTAS
+> «*sigue con notas y bitacora, que es sencillo… junto a esto haz lo de la vista de la campaña donde el
+> director en algo similar a one note pueda poner las aventuras*» → «*haz las tres juntas*».
+> - **Notas** (privadas de verdad, ni el director ni un admin las ven) y **Bitácora** (una por campaña, la
+>   escriben todos) — en el carril lateral de la mesa, donde hoy sale «próximamente».
+> - **Aventuras** — ⚠️ **PESTAÑA DE LA MESA, SÓLO DEL DIRECTOR**, junto a BESTIARIO. NO una pantalla de la
+>   campaña, NO una entrada del menú de arriba. Costó DOS intentos y mucho enfado (ver 🔑 abajo).
+> - Las tres: **texto enriquecido** (H1, H2, negrita, cursiva, listas, cita) y botón **ÍNDICE** que abre un
+>   **panel al lado** con los H1 y, colgando de cada uno, sus H2. **UN solo editor** en `packages/ui` para las
+>   tres. Aventuras añade tablas de PNJ/encuentro y el enlace a escena, y se abre en **ventana aparte**.
+>
+> ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
+> Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → QA 🚫 (20-09) →
+> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅ → QA 🚫 (2.º) → docs ✅ (`14519fe`)** → Design ✅
+> (`9fb58ba`, aprobado 22-09) → Dev ✅ (`e8c71df`, `84d852f`, `e1c6971`) → Review ✅ → **QA ✅ (3.º, 22-09)** →
+> ⏳ commit de los specs + push + preview → migraciones a producción → merge.
+> - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
+>   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
+>   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,
+>   nunca marcado en crudo. Con su ejemplo en el UI Kit y su ficha en el catálogo. 60 pruebas.
+> - ✅ **Notas y Bitácora** en el carril de la mesa (`dice/ui/SidePanel.tsx` ya no dice «próximamente»).
+>   Guardan solas con retardo, `Cmd+S` fuerza, y la Bitácora avisa en vez de pisar lo del otro. 21 pruebas.
+> - ✅ **AVENTURAS**: pestaña de la mesa junto a BESTIARIO, SÓLO del director (`tabsFor`), con carril de
+>   aventuras + escenas de la abierta, índice al lado y el documento; y la **ventana aparte** `/adventures/:id`
+>   con `tb-root-page` (la trampa del scroll de la ficha, con su prueba). 29 pruebas.
+> - ✅ **Specs**: el de `dice` (H6) reescrito a las nueve secciones en inglés — lo exigía el auditor al tocar el
+>   carril lateral. 0 hard en `npm run audit`; 2.180 pruebas verdes; `typecheck` y `build:web` limpios.
+> - ✅ **Specs**: `specs/modules/journal/SPEC.md` reescrito a las nueve secciones en inglés, con las láminas ya
+>   aprobadas. `specs/modules/adventures/SPEC.md` **reescrito a las nueve secciones en inglés el 20-09** (tocaba
+>   al construirlo): sus once puntos del 19-08 y del 19-09 siguen LITERALES en § Decisions, con sus frases en
+>   castellano; **el punto 11 manda sobre el 3 y el 10**. Comparado contra `main` para no perder nada.
+> - ✅ **Lo de dentro, construido (commits `a6d6984` y `e9f055f`)**:
+>   - `packages/core/src/richDoc.ts` — el vocabulario del documento que comparten las tres, con la forma EXACTA
+>     que fija el spec (`heading`+`level`, `paragraph`, `quote`, `list`, `divider`, `sceneRef`, `table` con el
+>     hueco `npcId` por fila) más un `id` por bloque, que es a donde salta el índice. `parseDoc` (única puerta
+>     de entrada de lo que viene de la base) y `buildDocIndex` (H2 colgando de su H1). 14 pruebas.
+>   - Módulos `journal` y `adventures` en `apps/web/src/modules/`, **cada uno con su `index.ts` desde el primer
+>     día**: entidades, puertos, adaptadores de Supabase y `container.ts`. 18 pruebas. Aviso de conflicto al
+>     guardar (`updated_at`) en vez de pisar lo del otro.
+>   - 🐞 **Cabo suelto de la migración del 19-09, cazado ejecutándolo**: `maps_scenes.adventure_id` NOT NULL
+>     ROMPÍA crear una escena desde el carril de la mesa. Arreglado en la base con el trigger
+>     `maps_scenes_default_adventure` (`20260920090000`), no en la pantalla. La escena ya lleva su
+>     `adventureId` encima (`Scene`, `CreateSceneInput`, `ScenePatch`), que es lo que permitirá agruparlas y
+>     moverlas de aventura.
+> - ✅ **Base de datos** (aplicada SÓLO en local, con `migration up --local`, nunca `db:reset`):
+>   `20260919120000_journal_notas_y_bitacora.sql` (`journal_notes`, `journal_logbook`) y
+>   `20260919120100_adventures_aventuras.sql` (`adventures_adventures` + `maps_scenes.adventure_id` NOT NULL +
+>   trigger `campaigns_seed_adventure` para que toda campaña nueva nazca con su «Aventura 1»). Sus 5 escenas,
+>   315 salas y 50 objetos intactos. **Comprobado ejecutándolo**: un jugador REAL de su campaña ve 0 aventuras
+>   (ni por id), un extraño 0 notas / 0 bitácoras. ⚠️ **En producción NO están**: van por MCP `apply_migration`,
+>   una a una y en orden, ANTES del merge a `main` — **son CUATRO**, en este orden exacto:
+>   `20260919120000_journal_notas_y_bitacora` → `20260919120100_adventures_aventuras` →
+>   `20260920090000_maps_scenes_adventure_por_defecto` → `20260920093000_maps_scenes_aventura_de_su_campana`
+>   (la última ata la escena a una aventura DE SU PROPIA campaña con una clave ajena compuesta).
+> - ✅ **Diseño aprobado** en `rolvium.pen` § 4 · LA MESA, los dos últimos marcos antes de § 5:
+>   `Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE` y `Mesa/Plenilunio · Director · AVENTURAS · sólo el
+>   director`. Los paneles viejos del 15-09 marcados «SUSTITUIDO 19-09». Además se devolvieron a su sección
+>   (5 y 6) **10 marcos que colgaban detrás de la § 13** desde el 11-09 al 14-09 — sólo orden de capas.
+> - ✅ **La ventana aparte de una aventura, dibujada y APROBADA** («*aprobado*», 2026-09-20): marco
+>   `Aventuras/Aventura en ventana aparte`, en la § 4 detrás del de AVENTURAS (índice 38). Es el mismo cuaderno
+>   SIN el carril —una aventura por ventana, como la ficha es un personaje— y sin el botón ABRIR APARTE.
+> - ✅ ~~El `.pen` de ese marco no estaba en disco~~ — comprobado el 21-09: guardado a las 00:53 del 20-09 y
+>   commiteado (`68acd2f`, `design(adventures): la ventana aparte…`).
+>
+> ## 🔍 La 2.ª vuelta del Review — APROBADA, con lo suyo (2026-09-20)
+> Cazó **dos pérdidas de datos de verdad** y las arregló: quitar un punto de en medio de una lista se llevaba
+> por delante el siguiente (React reaprovecha el nodo), y **un fallo al guardar tiraba el texto** (se vaciaba
+> lo pendiente ANTES de mandarlo, así que el `Cmd+S` y el guardado al cerrar se quedaban sin nada). También:
+> todos los títulos se anunciaban «Texto del documento» al navegar con lector de pantalla, y 3 violaciones
+> duras de la puerta de los módulos —`AdventurePage` entraba dentro de `characters/ui`—, cerradas con la
+> puerta nueva de `campaigns` y sacando `systemThemeStyle`/`useSystemFonts` a `shared/lib/systemTheme.ts`.
+>
+> Y **bloqueó por el spec de `dice`**: mi reescritura SÍ perdió cosas y la cabecera decía que no. Restaurado y
+> comprobado referencia a referencia (`401fed3`). Lo que faltaba: tres literales del manual, el ⚠ que corregía
+> «dados de defensa = Combate» (son Combate MENOS la penalización por heridas), el estado «indefenso», los dos
+> endpoints de `/attacks` con el autor de la tirada, el cascade de `dice_rolls`, la pantalla jugador→criatura
+> que sigue SIN DIBUJAR, y el bloque que ata el desplegable del jugador al código.
+> **Regla nueva, en memoria**: reordenar un spec a las nueve secciones NO es reescribirlo de memoria — se saca
+> `git show main:<spec>` a un fichero y al terminar se comparan a mano páginas del manual, ⚠, «no construido»
+> y citas. Ya van TRES specs a los que les ha pasado (bestiary, adventures, dice).
+>
+> De su lista de «no arreglado, tú decides» quedan hechos: pegar entra como texto (antes el HTML del
+> portapapeles pegaba las líneas y colaba el código de un `<script>` como prosa), ⌘B/⌘I, cada celda de tabla
+> con el rótulo de SU columna, «1 escena» en singular, la promesa colgada del enlace a escena, y la mesa
+> pudiendo inyectar el puerto de Notas y Bitácora. **Sin hacer a propósito**: `adventures` usa claves `journal.*`
+> para la barra y el índice (funciona y evita duplicar; renombrar una clave de journal toca las dos pantallas).
+>
+> **Efecto en cadena del arreglo del revisor**: darle la puerta a `campaigns` y sacar el vestido del sistema a
+> `shared/lib/systemTheme.ts` hizo que la rama TOQUE `campaigns` y `characters`, así que el chequeo `specs` se
+> puso duro con los dos. Reescritos también a las nueve secciones en inglés (`6987c22`), ya con el método
+> nuevo: sacar el viejo con `git show main:` y comparar identificadores al terminar. Van 5 specs cerrados en
+> esta rama (journal, adventures, dice, campaigns, characters); quedan 8 en aviso, todos de módulos que la rama
+> no toca.
+>
+> ## 🚫 POR QUÉ EL QA PARÓ EL MERGE (modo `block`, 2026-09-20) — y qué eligió él
+> Todo lo mecánico en verde (2.188 pruebas, 0 hard, builds, advisors, i18n, sondas 200/200). Lo que bloquea es
+> **una sola cosa, y es de producto**: el spec de `adventures` promete un director que **organiza**, y lo
+> construido es un director que **escribe**.
+>
+> **El callejón sin salida, medido**: `create()` inserta sólo `campaign_id` y `title` → toda aventura nueva nace
+> `draft`; **no hay control para marcar «en curso»**; y el trigger de la base elige
+> `ORDER BY (status='running') DESC, sort_order, created_at`. ⇒ **TODAS las escenas nuevas caen siempre en
+> «Aventura 1»** y no hay forma de moverlas. Se puede crear una segunda aventura y escribirla, pero no meterle
+> ni una escena — que es justo para lo que él la pidió.
+>
+> **Le ofrecí construirlo (A) o mergear y ajustar el spec (B). Eligió A** («*a, pero actualiza ws y vamos a chat
+> nuevo*», 2026-09-21).
+>
+> ### Lo que falta por construir (los 8 desvíos del QA, ya arreglados los dos últimos)
+> 1. **Marcar una aventura EN CURSO** — sin esto no funciona nada de lo demás. **Es lo primero.**
+> 2. **Mover una escena a otra aventura** (es cambiar `adventureId`, el puerto y la base ya lo aceptan).
+> 3. **Gestionar las escenas desde el carril**: crear · renombrar · reordenar (hoy sólo lista y abre).
+> 4. **Archivar** una aventura (`list({includeArchived})` ya existe; no hay quien ponga `archived`).
+> 5. **Borrar** una aventura — `remove()` está en el puerto y no lo llama nadie. Con escenas dentro la base lo
+>    RECHAZA (`ON DELETE RESTRICT`), así que hay que preguntar antes a dónde van: es el estado que el spec
+>    describe y hoy no se puede alcanzar.
+> 6. **Reordenar aventuras** (`sortOrder` no se toca nunca).
+> 7. ~~`Cmd+S` en una aventura~~ ✅ hecho (`cab8e50`).
+> 8. ~~El tope de 200 KB por documento~~ ✅ hecho (`cab8e50`): estaba escrito y probado en `core`, y no lo
+>    miraba nadie al guardar. Ahora avisa y no manda, sin borrar lo escrito.
+>
+> ## ⏭️ SIGUIENTE PASO CONCRETO
+> 0. ✅ **(21-09) DISEÑO APROBADO** («*aprobado*», guardado y commiteado en `a9de9f4`) **Y CONSTRUIDO**
+>    (`d4dece5`, revisor APROBADO; 2.231 pruebas web verdes, audit 0 hard, builds OK). Lo nuevo: menú de los tres
+>    puntos en `adventures/ui/RailMenu.tsx` (propio del módulo, como los de `maps`), reglas puras en
+>    `adventures/domain/useCases/adventureRules.ts`. 🐞 **Arreglado de paso, medido en su base local**: cualquier
+>    cambio de la fila mueve `updated_at`, y el texto se guardaba contra la marca vieja («se guardó desde otro
+>    sitio» tras renombrar) → ahora todo lo que se escribe va en fila y con una marca por aventura. Deuda anotada
+>    por el revisor, sin tocar: un menú compartido en `@rolvium/ui` (obligaría a pasar `maps`), y los menús no se
+>    recorren con flechas (sí con tabulador). Láminas, en § 4 detrás de la ventana aparte (índices 39-41): `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` · `Aventuras/Carril · MENÚ DE UNA ESCENA ·
+>    mover a otra aventura` · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas`. Y en el marco de
+>    AVENTURAS: tres puntos en cada fila, la aventura abierta en sangre (estaba en NEGRO en el `.pen`; el código
+>    ya la tenía en sangre), «ARCHIVADAS · 1» plegado y el estado de la cabecera como desplegable.
+>    **Decidido por mí y avisado** (que lo corrija si no): sólo UNA en curso —al marcar otra, la anterior pasa a
+>    TERMINADA—; reordenar con Subir/Bajar del menú, sin arrastrar; borrar una escena sigue en la mesa; la
+>    última aventura de la campaña no se puede borrar (sí archivar); al borrar con escenas, sale marcada la
+>    EN CURSO como destino.
+> 1. ~~**DISEÑO PRIMERO**~~ ✅ hecho: dibujar en `rolvium.pen` § 4, sobre el marco
+>    `Mesa/Plenilunio · Director · AVENTURAS`, los controles que faltan — el estado de la aventura (hoy es una
+>    insignia muerta en la cabecera), el menú de una aventura del carril (en curso · archivar · borrar) y el de
+>    una escena (renombrar · mover a otra aventura · reordenar). **Enseñárselo y que lo apruebe ANTES de tocar
+>    código**, y pedirle el Cmd+S del `.pen` (sin su guardado no hay disco).
+> 2. ~~Construirlo~~ ✅ hecho, con sus pruebas. El puerto `AdventuresPort` ya tiene `update` (status, sortOrder) y `remove`;
+>    `maps` ya acepta `ScenePatch.adventureId`. **No hace falta ninguna migración nueva.**
+> 3. **QA otra vez** (modo `block`; no volver a preguntárselo).
+> 4. **ANTES del merge, las CUATRO migraciones a producción por MCP `apply_migration`**, una a una y en este
+>    orden exacto: `20260919120000_journal_notas_y_bitacora` → `20260919120100_adventures_aventuras` →
+>    `20260920090000_maps_scenes_adventure_por_defecto` → `20260920093000_maps_scenes_aventura_de_su_campana`.
+>    **En producción NO está ninguna.** El QA las verificó contra la base de producción: prerrequisitos
+>    presentes, sin huecos, el `SET NOT NULL` es seguro (4 escenas, 0 sin campaña) y todo es re-ejecutable.
+>    Después, `get_advisors` para confirmar que siguen en 0 CRITICAL.
+> 5. Merge a `main` y comprobar los dos despliegues de producción con el SHA del merge.
+>
+> ## 🧾 Estado de la rama al cerrar
+> `feat/notas-bitacora-aventuras`, local en `d4dece5` (**sin publicar** lo del 21-09: `a9de9f4` y `d4dece5`),
+> **⚠️ SU LOCAL ESTÁ EN ELLA**. Publicada hasta `cab8e50`. Despliegues
+> de prueba de Vercel **READY** los dos (web y api) con `57691c1`; el `cab8e50` es posterior y no se comprobó
+> en preview — **volver a mirarlo antes del merge**. Local: las cuatro migraciones aplicadas con
+> `migration up --local` (nunca `db:reset`), sus datos intactos.
+>
+> ## 🔑 Lo que no debe perderse
+> - **Aventuras son de la MESA, del director.** Primero las puse como entrada del menú de arriba (siguiendo
+>   la letra del punto 3 del spec del 19-08); luego como pantalla al entrar en la campaña. Las dos «fuera».
+>   Él lo había dicho bien desde el principio. **Sus palabras de hoy mandan sobre una línea vieja del spec.**
+> - Una queja suya tras un error se CONFIRMA preguntando — pero en UNA pregunta corta; a la segunda estalló.
+> - Nada de diálogo de opciones: preguntas en texto normal (me lo salté cuatro veces el 18-09).
+> - Rama suelta aparte, ya incluida aquí: `fix/spec-bestiary-el-dano-no-se-aplica-solo` (restaura en el spec
+>   de bestiary el hueco «el daño no se aplica solo», que mi reescritura del 18-09 perdió).
+> - **La forma del documento la manda el spec, no mi gusto.** La primera versión de `richDoc.ts` se inventó sus
+>   propios nombres de bloque (`h1`, `p`, `ul`…) y se dejó fuera el hueco `npcId` que el spec pedía «desde el
+>   día uno» para el Bestiario. Corregido antes de commitear: se escribe lo que dice el spec, y si el spec ha de
+>   cambiar, se cambia el spec primero.
+> - **Medir antes de teorizar, otra vez**: lo de crear escenas no se «dedujo», se ejecutó contra su base local
+>   —y se deshizo con ROLLBACK, sin tocarle un dato— antes y después del arreglo.
+> - **Reescribir un spec suyo SIN DIFFEAR pierde cosas.** Van tres (bestiary 18-09, adventures y dice 20-09).
+>   Reordenar a las nueve secciones no es reescribir de memoria: `git show main:<spec> > /tmp/viejo.md`, mover el
+>   contenido, y al terminar comparar a mano páginas del manual, ⚠, «no construido» y citas. Y no escribir nunca
+>   «no se ha perdido nada» sin haberlo comprobado así — lo hice, y era mentira.
+> - **Lo que el spec promete, el código lo cumple o el spec cambia.** El QA bloqueó por esto y tenía razón: el
+>   tope de 200 KB llevaba días escrito y probado en `core` sin que lo llamara nadie.
+>
+> ---
+>
 > # 📍 ESTADO AL CERRAR (2026-09-19) — LA PUERTA DE CADA MÓDULO, PRIMERA TANDA — **EN PRODUCCIÓN**
 >
 > ## 🚀 v0.14.0 EN PRODUCCIÓN — merge `9ce851c`

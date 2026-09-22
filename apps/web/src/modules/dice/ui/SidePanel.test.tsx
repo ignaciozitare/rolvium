@@ -3,26 +3,38 @@ import { plenilunio } from '@rolvium/system-plenilunio';
 import { renderWithProviders, screen } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { fakeRollLog, fakeChatPort } from '../../../../tests/helpers/fakes';
+import { emptyDoc } from '@rolvium/core';
+import type { JournalPort } from '@/modules/journal';
 import { SidePanel } from './SidePanel';
 
+/** Notas y Bitácora abren de verdad desde el 2026-09-20; antes las dos decían «llega pronto». */
+const fakeJournal = (): JournalPort => ({
+  openNotes: vi.fn().mockResolvedValue({ id: 'n1', campaignId: 'c1', userId: 'me', doc: emptyDoc(), updatedAt: 't' }),
+  saveNotes: vi.fn().mockResolvedValue('t'),
+  openLogbook: vi.fn().mockResolvedValue({ id: 'l1', campaignId: 'c1', doc: emptyDoc(), updatedBy: null, updatedAt: 't' }),
+  saveLogbook: vi.fn().mockResolvedValue('t'),
+});
+
 describe('<SidePanel>', () => {
-  it('muestra el Registro por defecto, cambia a las pestañas «pronto», y NO duplica el botón del lanzador', async () => {
+  it('muestra el Registro por defecto, abre Notas y Bitácora DE VERDAD, y NO duplica el botón del lanzador', async () => {
     const u = userEvent.setup();
     const onToggle = vi.fn();
-    const { rerender } = renderWithProviders(<SidePanel campaignId="c1" system={plenilunio} rollerOpen={false} onToggleRoller={onToggle} log={fakeRollLog()} myUserId="me" chat={fakeChatPort()} />);
+    const { rerender } = renderWithProviders(<SidePanel campaignId="c1" system={plenilunio} rollerOpen={false} onToggleRoller={onToggle} log={fakeRollLog()} myUserId="me" chat={fakeChatPort()} journal={fakeJournal()} />);
     expect(screen.getByRole('tab', { name: 'Registro' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByText('Combate')).toBeInTheDocument();
-    for (const name of ['Notas', 'Bitácora']) {
+    // Ninguna de las dos dice ya «llega pronto»: cada una abre su cuaderno, y avisa de quién es lo que se escribe.
+    for (const [name, aviso] of [['Notas', /Privadas: nadie más las ve/], ['Bitácora', /Compartida: todos pueden leer/]] as const) {
       await u.click(screen.getByRole('tab', { name }));
       expect(screen.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getByText('Esta parte de la mesa llega pronto.')).toBeInTheDocument();
+      expect(await screen.findByText(aviso)).toBeInTheDocument();
+      expect(screen.queryByText('Esta parte de la mesa llega pronto.')).not.toBeInTheDocument();
     }
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     expect(await screen.findByText('Combate')).toBeInTheDocument();
     // el lanzador se abre desde la primera herramienta de la barra de la escena; aquí ya no hay botón
     expect(screen.queryByRole('button', { name: /Lanzador de dados/ })).not.toBeInTheDocument();
     expect(onToggle).not.toHaveBeenCalled();
-    rerender(<SidePanel campaignId="c1" system={plenilunio} rollerOpen onToggleRoller={onToggle} log={fakeRollLog()} myUserId="me" chat={fakeChatPort()} />);
+    rerender(<SidePanel campaignId="c1" system={plenilunio} rollerOpen onToggleRoller={onToggle} log={fakeRollLog()} myUserId="me" chat={fakeChatPort()} journal={fakeJournal()} />);
     expect(screen.queryByRole('button', { name: /Lanzador de dados/ })).not.toBeInTheDocument();
   });
 

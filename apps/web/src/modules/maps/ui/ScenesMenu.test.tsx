@@ -190,3 +190,61 @@ describe('<ScenesMenu> los tres puntos', () => {
     expect(kebab()).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+/**
+ * EL DESPLEGABLE DE AVENTURAS (orden suya, 2026-09-21; rolvium.pen § 5 · «PL/Escenas · rail · ELEGIR LA AVENTURA
+ * arriba del todo»): con dos o más aventuras, arriba del todo y sin el rótulo ESCENAS; «+ Escena» justo debajo; y
+ * sólo las escenas de la aventura elegida. Con una sola, el carril de siempre.
+ */
+describe('<ScenesMenu> — elegir la aventura', () => {
+  const ADVS = [
+    { id: 'adv-1', title: 'El almacén de los muelles', status: 'running' as const },
+    { id: 'adv-2', title: 'La feria de las sombras', status: 'draft' as const },
+  ];
+  const scenes = [SCENE_WAREHOUSE, { ...SCENE_CHAPEL, adventureId: 'adv-2' }, SCENE_TUNNELS];
+
+  it('con dos o más: el desplegable arriba del todo, sin ESCENAS, + Escena debajo y sólo sus escenas', () => {
+    mount({ scenes, adventures: ADVS, adventureId: 'adv-1' });
+    expect(screen.queryByText('Escenas')).toBeNull();
+    const picker = screen.getByRole('button', { name: 'Elegir la aventura: El almacén de los muelles' });
+    const add = screen.getByRole('button', { name: '+ Escena' });
+    const first = screen.getByRole('button', { name: 'Ver escena Almacén de Queens' });
+    // El orden en pantalla: desplegable → + Escena → escenas.
+    expect(picker.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(add.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Ver escena Túneles de servicio' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver escena Capilla sin techo' })).toBeNull();
+  });
+
+  it('abierto lista las aventuras con su estado y sus escenas, y elegir otra avisa', async () => {
+    const u = userEvent.setup();
+    const onPickAdventure = vi.fn();
+    mount({ scenes, adventures: ADVS, adventureId: 'adv-1', onPickAdventure });
+    await u.click(screen.getByRole('button', { name: 'Elegir la aventura: El almacén de los muelles' }));
+    const menu = screen.getByRole('menu', { name: 'Mostrar las escenas de' });
+    expect(menu).toHaveTextContent('En curso · 2 escenas');
+    expect(menu).toHaveTextContent('Borrador · 1 escena');
+    expect(screen.getByRole('menuitemradio', { name: /El almacén de los muelles/ })).toHaveAttribute('aria-checked', 'true');
+    await u.click(screen.getByRole('menuitemradio', { name: /La feria de las sombras/ }));
+    expect(onPickAdventure).toHaveBeenCalledWith('adv-2');
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('con una sola aventura, el carril de siempre: ESCENAS arriba y + Escena al pie', () => {
+    mount({ scenes, adventures: [ADVS[0]!], adventureId: null });
+    expect(screen.getByText('Escenas')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Elegir la aventura/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Ver escena Capilla sin techo' })).toBeInTheDocument();
+    const add = screen.getByRole('button', { name: '+ Escena' });
+    const last = screen.getByRole('button', { name: 'Ver escena Túneles de servicio' });
+    expect(last.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('plegado no enseña el desplegable: sólo el botón para abrirlo', () => {
+    mount({ scenes, adventures: ADVS, adventureId: 'adv-1', collapsed: true });
+    expect(screen.queryByRole('button', { name: /^Elegir la aventura/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Desplegar escenas' })).toBeInTheDocument();
+    // Y las miniaturas que quedan siguen siendo sólo las de la aventura elegida.
+    expect(screen.queryByRole('button', { name: 'Ver escena Capilla sin techo' })).toBeNull();
+  });
+});

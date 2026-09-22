@@ -49,8 +49,12 @@ better but still loses everything. The inner ones are what save the session.
 | The map (`SceneTab`) | the map falls | the toolbar, the panels and the rest of the table |
 | Each floating panel (brush · builder · lights · props) | that panel falls | the map and the other panels |
 | The layers panel | it falls | everything else |
+| The table's side rail (`TablePage`, around `SidePanel`) | Notas, Bitácora, chat or the roll log fall | the tab, the map and the whole table |
 
-**Eight instances, five kinds.** Removing one of them today breaks no test — see § Out of scope.
+**Nine instances, six kinds.** The side rail's was added on 2026-09-22 (4th QA of `journal`): its spec says
+«the rail falls, not the table», and nothing was catching it — a throw in the shared editor took the table down
+to the page-level net. It is the only one whose placement a test pins (`apps/web/tests/functional/table.test.tsx`);
+removing any of the other eight today breaks no test — see § Out of scope.
 
 ### The rules themselves
 
@@ -89,8 +93,9 @@ None. It touches no table, stores nothing and travels over no wire. No migration
   separate thing with its own cost and its own privacy call. If it is ever wanted, `onError` on
   `ErrorBoundary` is the hook already waiting for it.
 - ❌ Automatic retries, failure counters, or switching off a part «that fails a lot». Complexity with no case.
-- ⏳ **Known debt, not closed:** the *placement* of the eight seams is pinned by no test — remove a
-  `SafeRegion` from `AppRouter` and the suite stays green. The behaviour is covered; the wiring is not.
+- ⏳ **Known debt, not closed:** the *placement* of eight of the nine seams is pinned by no test — remove a
+  `SafeRegion` from `AppRouter` and the suite stays green. The behaviour is covered; the wiring is not. The
+  exception is the side rail's (2026-09-22), whose placement `apps/web/tests/functional/table.test.tsx` pins.
 
 ## Decisions
 
@@ -102,5 +107,5 @@ None. It touches no table, stores nothing and travels over no wire. No migration
   is where it was copied from, but his standing rule wins: in the table, the active thing is blood. The
   `.pen` was corrected to match the code, not the other way round.
 - **No reload button inside the table**: it would throw away the whole session over one broken part.
-- **No global boundary beyond these eight.** His call; a net around everything would hide exactly the kind of
+- **No global boundary beyond these nine.** His call; a net around everything would hide exactly the kind of
   bug this module exists to make visible.

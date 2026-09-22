@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -35,15 +35,17 @@ import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
+import { AdventuresTab, adventuresPort as defaultAdventures, type AdventuresPort } from '@/modules/adventures';
+import type { JournalPort } from '@/modules/journal';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
-import type { MapsPort, VisionPort, ToolbarOrderPort } from '@/modules/maps';
+import type { MapsPort, SceneAdventure, VisionPort, ToolbarOrderPort } from '@/modules/maps';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -68,6 +70,20 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   // La criatura que el Bestiario manda a colocar. Vive aquí y no en la escena porque el viaje cruza dos
   // pestañas: se elige en «Bestiario» y se coloca en «Escena».
   const [toPlace, setToPlace] = useState<CatalogItem | null>(null);
+  /**
+   * La escena que el director pidió ABRIR desde AVENTURAS —o el `?scene=` con el que la ventana aparte abre la
+   * mesa—. Se le da a la escena para que gane a la última que miró; y se suelta en cuanto se va a otra pestaña,
+   * para que al volver le devuelva a donde estaba y no a esta otra vez. Abrir NO activa (abrir ≠ activar).
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [openScene, setOpenScene] = useState<string | null>(() => searchParams.get('scene'));
+  useEffect(() => { if (chosenTab !== null && chosenTab !== 'scene') setOpenScene(null); }, [chosenTab]);
+  // El `?scene=` se lee UNA vez y se quita de la dirección: si se quedara, recargar esa ventana le devolvería a
+  // esa escena y no a la última que miró, que es justo lo que la memoria del navegador existe para evitar.
+  useEffect(() => {
+    if (!searchParams.has('scene')) return;
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('scene'); return next; }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // System fonts: load once per system (theme.fonts.url).
   useEffect(() => {
@@ -217,10 +233,17 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               * por qué saber cómo se leen los permisos. Es el permiso `manage_textures` del motor de roles,
               * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
               */}
-            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+            {tab === 'scene' && <Scene adventuresPort={adventures ?? defaultAdventures} campaignId={campaign.id} openSceneId={openScene} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
+            {/* AVENTURAS (H12): sólo la pinta el director — `tabsFor` no se la da a nadie más. Abrir una escena
+                desde el texto es lo mismo que pincharla en el carril: se le ABRE a él y se salta a la escena. NO se
+                activa —abrir ≠ activar, su regla de `maps`—: los jugadores se quedan donde estaban (4.º QA, 22-09). */}
+            {/* El puerto se inyecta como el del Bestiario: sin esto la pestaña iría contra Supabase en cuanto
+                un test la abriera, y no se podía probar. */}
+            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
+              onOpenScene={sceneId => { setOpenScene(sceneId); setTab('scene'); }} />}
             </SafeRegion>
           </main>
           <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>
@@ -228,9 +251,15 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               aria-label={sideOpen ? t('table.side.hide') : t('table.side.show')} onClick={() => setSideOpen(o => !o)}>
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
             </button>
-            {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog}
-              myUserId={user.id} chatUnread={chatUnread}
-              onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
+            {/*
+              * SU PROPIA RED (`specs/core/errors/SPEC.md`): si Notas, Bitácora o el chat revientan al pintarse, se
+              * cae el carril y no la mesa — lo pide el spec de `journal` («the rail falls, not the table»).
+              */}
+            {sideOpen && <SafeRegion label="table:side">
+              <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
+                myUserId={user.id} chatUnread={chatUnread}
+                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />
+            </SafeRegion>}
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}
@@ -267,7 +296,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   );
 }
 
-type SceneProps = ComponentProps<typeof SceneTab>;
+type SceneProps = ComponentProps<typeof SceneTab> & { adventuresPort: AdventuresPort };
 
 /**
  * La escena, con los encuentros PROPIOS del director metidos en su desplegable además de las 45 del manual.
@@ -277,16 +306,28 @@ type SceneProps = ComponentProps<typeof SceneTab>;
  *
  * Un jugador no pasa por aquí: la RLS no le devolvería nada, pero además así no se hace la consulta.
  */
-function Scene(props: SceneProps): JSX.Element {
-  return props.role === 'dm' ? <DmScene {...props} /> : <SceneTab {...props} />;
+function Scene({ adventuresPort, ...props }: SceneProps): JSX.Element {
+  return props.role === 'dm' ? <DmScene {...props} adventuresPort={adventuresPort} /> : <SceneTab {...props} />;
 }
 
-function DmScene(props: SceneProps): JSX.Element {
+function DmScene({ adventuresPort, ...props }: SceneProps): JSX.Element {
   const { entries } = useBestiary({ campaignId: props.campaignId, system: props.system });
+  /**
+   * LAS AVENTURAS, para el desplegable del carril de escenas (orden suya, 2026-09-21). Sin archivadas. Si no
+   * llegan, el carril es el de siempre: nada se rompe por no poder agruparlas.
+   */
+  const [adventures, setAdventures] = useState<SceneAdventure[] | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    adventuresPort.list(props.campaignId)
+      .then(rows => { if (alive) setAdventures(rows.flatMap(a => (a.status === 'archived' ? [] : [{ id: a.id, title: a.title, status: a.status }]))); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [adventuresPort, props.campaignId]);
   // Sólo las propias: las del manual ya las trae la escena del catálogo del sistema, y duplicarlas
   // las enseñaría dos veces en el desplegable.
   const extra = useMemo(() => entries.filter(e => e.origin !== 'manual').map(toCatalogItem), [entries]);
-  return <SceneTab {...props} extraEncounters={extra} />;
+  return <SceneTab {...props} extraEncounters={extra} adventures={adventures} />;
 }
 
 function Person({ name, avatarUrl, label, isDm = false, connected, me, size = 40 }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean; size?: number }): JSX.Element {

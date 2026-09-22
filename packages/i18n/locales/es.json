@@ -330,7 +330,8 @@
       "scene": "Escena",
       "bestiary": "Bestiario",
       "improve": "Mejorar",
-      "create": "Crear personaje"
+      "create": "Crear personaje",
+      "adventures": "Aventuras"
     },
     "comingNext": "Esta parte de la mesa llega en la siguiente iteración.",
     "roller": "Lanzador de dados",
@@ -804,7 +805,10 @@
       "menuFor": "Opciones de «{{name}}»",
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
-      "expand": "Desplegar escenas"
+      "expand": "Desplegar escenas",
+      "adventure": "Aventura",
+      "pickAdventure": "Elegir la aventura",
+      "showScenesOf": "Mostrar las escenas de"
     },
     "bg": {
       "button": "Fondo del mapa",
@@ -1821,5 +1825,122 @@
       "others": "Otras tiradas",
       "othersHint": "Mantén pulsada una para elegir dificultad, igual que con los jugadores."
     }
+  },
+  "journal": {
+    "loading": "Abriendo…",
+    "loadError": "No se ha podido abrir esto.",
+    "retry": "Reintentar",
+    "index": "Índice",
+    "indexEmpty": "Todavía no hay títulos. Pon un H1 y aparecerá aquí.",
+    "indexClose": "Cerrar el índice",
+    "saving": "guardando…",
+    "savedJustNow": "guardado hace un momento",
+    "savedMinutes": "guardado hace {{n}} min",
+    "savedHours": "guardado hace {{n}} h",
+    "saveError": "no se ha podido guardar",
+    "conflict": "alguien guardó antes",
+    "conflictHelp": "Otra persona guardó la bitácora mientras escribías. Tu texto sigue aquí y no se ha pisado el suyo.",
+    "reload": "Ver lo que hay",
+    "notes": {
+      "hint": "Privadas: nadie más las ve, tampoco el director. Se guardan solas.",
+      "placeholder": "Tus apuntes de esta campaña…"
+    },
+    "logbook": {
+      "hint": "Compartida: todos pueden leer y escribir. Se guarda sola.",
+      "placeholder": "Qué pasó en la partida…"
+    },
+    "editor": {
+      "toolbar": "Formato",
+      "h1": "Título",
+      "h2": "Subtítulo",
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "bulleted": "Lista",
+      "numbered": "Lista numerada",
+      "quote": "Cita",
+      "divider": "Separador",
+      "quoteLabel": "Para leer en voz alta",
+      "textField": "Texto del documento",
+      "removeBlock": "Quitar el bloque"
+    },
+    "tooBig": "no cabe: el documento pasa de 200 KB"
+  },
+  "adventures": {
+    "title": "Aventuras",
+    "one": "Aventura",
+    "rail": "Aventuras de la campaña",
+    "new": "Nueva aventura",
+    "newTitle": "Aventura {{n}}",
+    "scenesOf": "Escenas de esta aventura",
+    "noScenes": "Esta aventura todavía no tiene escenas.",
+    "sceneCount": "{{n}} escenas",
+    "loadError": "No se han podido abrir las aventuras.",
+    "notFound": "Esta aventura ya no está.",
+    "placeholder": "Escribe la aventura…",
+    "titleField": "Título de la aventura",
+    "saving": "guardando…",
+    "savedJustNow": "guardado hace un momento",
+    "savedMinutes": "guardado hace {{n}} min",
+    "savedHours": "guardado hace {{n}} h",
+    "saveError": "no se ha podido guardar",
+    "conflict": "se guardó desde otro sitio",
+    "conflictHelp": "Esta aventura se guardó desde otra ventana mientras escribías. Tu texto sigue aquí.",
+    "openApart": "Abrir aparte",
+    "backToTable": "Volver a la mesa",
+    "pickScene": "¿Qué escena enlazo?",
+    "npcTable": "Tabla de PNJ",
+    "encounterTable": "Tabla de encuentro",
+    "addRow": "Añadir fila",
+    "linkScene": "Enlazar escena",
+    "openScene": "Abrirla en la mesa",
+    "col": {
+      "npc": "PNJ",
+      "what": "Qué es",
+      "wants": "Qué quiere",
+      "notes": "Notas",
+      "howMany": "Cuántos",
+      "difficulty": "Dificultad"
+    },
+    "status": {
+      "draft": "Borrador",
+      "running": "En curso",
+      "done": "Terminada",
+      "archived": "Archivada"
+    },
+    "sceneCountOne": "1 escena",
+    "archived": "Archivadas · {{n}}",
+    "noneActive": "No queda ninguna aventura en el carril: están todas archivadas.",
+    "actionError": "No se ha podido hacer. El carril enseña lo que hay de verdad.",
+    "statusMenu": "Estado de la aventura",
+    "newScene": "Nueva escena en esta aventura",
+    "menu": {
+      "label": "Opciones de la aventura",
+      "for": "Opciones de «{{title}}»",
+      "running": "Marcar en curso",
+      "runningHint": "Es la que se abre al entrar en la pestaña, y adonde van las escenas que crees desde la mesa.",
+      "up": "Subir",
+      "down": "Bajar",
+      "archive": "Archivar",
+      "unarchive": "Sacar del archivo",
+      "remove": "Borrar aventura",
+      "lastOne": "Es la única de la campaña: archívala, o crea otra antes."
+    },
+    "sceneMenu": {
+      "label": "Opciones de la escena",
+      "for": "Opciones de «{{name}}»",
+      "moveTo": "Mover a otra aventura",
+      "moveToLabel": "Llevarla a",
+      "noOther": "No hay otra aventura a la que llevarla."
+    },
+    "remove": {
+      "title": "Borrar «{{title}}»",
+      "confirm": "Se borra con todo lo que tiene escrito. No tiene escenas.",
+      "withScenes": "Tiene {{n}} escenas, y las escenas no se borran con ella. Elige a qué aventura se van antes de borrarla.",
+      "withSceneOne": "Tiene 1 escena, y la escena no se borra con ella. Elige a qué aventura se va antes de borrarla.",
+      "moveTo": "Llevar sus escenas a",
+      "confirmMove": "Mover y borrar"
+    },
+    "foldRail": "Plegar aventuras",
+    "unfoldRail": "Desplegar aventuras"
   }
 }
