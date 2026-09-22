@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, fakeChatPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, fakeChatPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, initialTabFor, tabsFor, askTargetsFrom } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import type { AdventuresPort } from '@/modules/adventures';
@@ -194,6 +194,34 @@ describe('table: page', () => {
 
     await waitFor(() => expect(adventures.list).toHaveBeenCalledWith('c1', { includeArchived: true }));
     expect(await screen.findByRole('textbox', { name: 'Título de la aventura' })).toHaveValue('El almacén de los muelles');
+  });
+
+  /**
+   * EL DESPLEGABLE DE AVENTURAS en el carril de escenas (orden suya, 2026-09-21). La mesa le pasa las aventuras a
+   * la escena SÓLO al director; `maps` no sabe de aventuras.
+   */
+  it('en la Escena, con dos aventuras el director elige cuál ve, y la escena nueva nace en ella', async () => {
+    const u = userEvent.setup();
+    const adventures = fakeAdventuresRepo();
+    (adventures.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'a1', campaignId: 'c1', title: 'El almacén de los muelles', summary: null, doc: ADVENTURE_DOC, status: 'running', sortOrder: 0, updatedAt: '2026-09-20T10:00:00Z' },
+      { id: 'a2', campaignId: 'c1', title: 'La feria de las sombras', summary: null, doc: ADVENTURE_DOC, status: 'draft', sortOrder: 1, updatedAt: '2026-09-20T10:00:00Z' },
+    ]);
+    const maps = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }, { ...SCENE_CHAPEL, adventureId: 'a2' }] });
+    const createScene = vi.spyOn(maps, 'createScene');
+    mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps,
+      fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), adventures);
+    await u.click(await screen.findByRole('button', { name: 'Escena' }));
+
+    await u.click(await screen.findByRole('button', { name: 'Elegir la aventura: El almacén de los muelles' }));
+    expect(screen.queryByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}` })).toBeNull();
+    await u.click(screen.getByRole('menuitemradio', { name: /La feria de las sombras/ }));
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}` })).toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: '+ Escena' }));
+    await u.type(await screen.findByRole('textbox'), 'La carpa');
+    await u.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(createScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'La carpa', adventureId: 'a2' })));
   });
 
   it('el jugador no tiene la pestaña AVENTURAS', async () => {

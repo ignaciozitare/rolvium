@@ -8,13 +8,14 @@ import type { CharactersPort } from '@/modules/characters/domain/ports/Character
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
-import type { DoorSettings, ImageAsset, MapColor, NewSceneProp, Prop, PropPack, Scene, ScenePatch, SceneProp, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
+import type { DoorSettings, ImageAsset, MapColor, NewSceneProp, Prop, PropPack, Scene, SceneAdventure, ScenePatch, SceneProp, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import type { ViewMemoryPort } from '../domain/ports/ViewMemoryPort';
 import type { ToolbarOrderPort } from '../domain/ports/ToolbarOrderPort';
 import { resolvedToolbarOrder, type ToolbarBlock, type ToolbarOrder } from '../domain/useCases/toolbarRules';
 import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, sceneToOpen, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { railAdventureId, showsAdventurePicker } from '../domain/useCases/sceneAdventureRules';
 import { mapsRepo, toolbarOrder, viewMemory, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -55,6 +56,12 @@ import './maps.css';
 
 interface Props {
   campaignId: string;
+  /**
+   * Las aventuras de la campaña, sin archivadas — SÓLO para el director, que es quien tiene el carril. Con dos o
+   * más, el carril enseña las escenas de una sola, elegida arriba del todo (orden suya, 2026-09-21). `maps` no
+   * sabe de aventuras: se las da la mesa, igual que los encuentros del Bestiario.
+   */
+  adventures?: readonly SceneAdventure[] | undefined;
   role: TableRole;
   userId: string;
   system: GameSystem;
@@ -127,7 +134,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
+export function SceneTab({ campaignId, adventures, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -135,6 +142,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [scenes, setScenes] = useState<Scene[] | null>(null);
   const [playerScene, setPlayerScene] = useState<Scene | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** La aventura que el director eligió en el carril; mientras no elija, manda la de la escena abierta. */
+  const [pickedAdventure, setPickedAdventure] = useState<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   /** Mutations can be refused by RLS (e.g. someone else's token) or fail offline: surface it instead of swallowing. */
   const [failed, setFailed] = useState(false);
@@ -1227,10 +1236,16 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   // NOT `&& live`: the rail carries the only «+ Escena» there is since slice 3 took the scene header
   // away, so hiding it until a scene exists left the DM with no way to create the first one — the
   // «crea la primera escena» placeholder asked for exactly what it disabled (owner, 2026-08-19).
+  const railAdventure = showsAdventurePicker(adventures)
+    ? railAdventureId(adventures, scenes?.find(s => s.id === selectedId) ?? null, pickedAdventure)
+    : null;
   const scenesRail = isDm && scenes ? (
     <ScenesMenu scenes={scenes} selectedId={selectedId} activeSceneId={activeSceneId} onSelect={setSelectedId}
       collapsed={railFolded} onToggleCollapsed={() => setRailFolded(f => !f)}
-      onCreate={async name => { const sc = await repo.createScene({ campaignId, name, sortOrder: scenes.length }); setScenes(l => [...(l ?? []), sc]); setSelectedId(sc.id); }}
+      adventures={adventures} adventureId={railAdventure} onPickAdventure={setPickedAdventure}
+      // Con el desplegable, la escena nueva nace en la aventura que se está enseñando; sin él, la base la cuelga
+      // de la que esté en curso.
+      onCreate={async name => { const sc = await repo.createScene({ campaignId, name, sortOrder: scenes.length, ...(railAdventure ? { adventureId: railAdventure } : {}) }); setScenes(l => [...(l ?? []), sc]); setSelectedId(sc.id); }}
       onRename={(id, name) => patchScene(id, { name })}
       onActivate={id => repo.setActiveScene(campaignId, id)}
       onToggleVisible={(id, visiblePlayers) => patchScene(id, { visiblePlayers })}

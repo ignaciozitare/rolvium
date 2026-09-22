@@ -805,7 +805,10 @@
       "menuFor": "Options for “{{name}}”",
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
-      "expand": "Expand scenes"
+      "expand": "Expand scenes",
+      "adventure": "Adventure",
+      "pickAdventure": "Choose the adventure",
+      "showScenesOf": "Show the scenes of"
     },
     "bg": {
       "button": "Map background",

@@ -151,6 +151,12 @@ export interface Scene {
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number; /** Si no se dice, la base la cuelga de la aventura en curso de la campaña. */ adventureId?: string }
+/**
+ * UNA AVENTURA, tal como la necesita el carril de escenas para elegir cuáles enseña (orden suya, 2026-09-21:
+ * «*en la barra de escena pon arriba de todo un desplegable que diga qué aventura me mostrará*»). `maps` no sabe
+ * de aventuras: se lo da hecho la mesa (`TablePage`), igual que los encuentros del Bestiario. Sin archivadas.
+ */
+export interface SceneAdventure { id: string; title: string; status: 'draft' | 'running' | 'done' }
 export type ScenePatch = Partial<Pick<Scene, 'adventureId' | 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'wallTextureRotation' | 'floorTextureRotation' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────

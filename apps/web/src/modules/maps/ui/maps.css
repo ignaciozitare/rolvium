@@ -224,6 +224,27 @@
 /* Collapsed the rail is just the button to bring it back — the map takes the rest. */
 .mp-rail.collapsed{width:34px;padding:4px;gap:0;background:color-mix(in srgb,var(--sys-paper-hi) 88%,transparent);}
 .mp-rail.collapsed .mp-rail-list,.mp-rail.collapsed .mp-rail-add{display:none;}
+/* EL DESPLEGABLE DE AVENTURAS, arriba del todo (rolvium.pen § 5 · «PL/Escenas · rail · ELEGIR LA AVENTURA arriba
+   del todo»). Sólo con dos o más aventuras; entonces no hay rótulo ESCENAS y «+ Escena» va justo debajo. */
+.mp-rail-top{display:flex;align-items:flex-start;gap:5px;}
+.mp-rail-top .mp-rail-fold{margin-top:3px;}
+.mp-rail-adv{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:5px 6px;border:1px solid var(--sys-line);
+  background:var(--sys-paper);cursor:pointer;text-align:left;font-family:inherit;color:var(--sys-ink);}
+.mp-rail-adv-label{font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-dim);}
+.mp-rail-adv-row{display:flex;align-items:center;gap:6px;min-width:0;}
+.mp-rail-adv-n{font-size:var(--fs-sm);font-weight:700;color:var(--sys-ink-dim);}
+.mp-rail-adv-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-sm);font-weight:700;}
+.mp-rail-adv .material-symbols-outlined{color:var(--sys-ink-dim);}
+.mp-adv-menu{min-width:232px;padding:4px;}
+.mp-adv-menu-label{padding:5px 7px 3px;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-dim);}
+.mp-adv-item{padding:5px 7px;}
+/* Lo elegido en sangre, nunca en negro (regla suya del 04-09). */
+.mp-adv-item.on{background:var(--sys-paper);color:var(--sys-blood);}
+.mp-adv-n{font-size:var(--fs-md);font-weight:700;color:var(--sys-ink-dim);}
+.mp-adv-item.on .mp-adv-n{color:var(--sys-blood);}
+.mp-adv-text{flex:1;display:flex;flex-direction:column;min-width:0;}
+.mp-adv-title{font-weight:700;}
+.mp-adv-sub{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
 /* «Solo director» rides the map instead of a bar under it (bottom-left, out of the controls' way). */
 .mp-dmtag{position:absolute;left:8px;bottom:8px;display:flex;align-items:center;gap:8px;max-width:calc(100% - 120px);
   padding:4px 8px;background:color-mix(in srgb,var(--sys-ink) 78%,transparent);color:var(--sys-paper-lo);

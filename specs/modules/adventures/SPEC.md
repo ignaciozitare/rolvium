@@ -112,8 +112,17 @@ trap, same test to pin it.
 - A scene belongs **always and only** to one adventure, of the same campaign. Moving a scene between adventures
   is changing its `adventure_id`, never duplicating it.
 - **Creating a scene never has to name an adventure**: if none is given, the database drops it into the
-  campaign's running adventure (or the first of the rail). The table's scene rail knows nothing about
-  adventures, and that is fine.
+  campaign's running adventure (or the first of the rail).
+- **The table's scene rail chooses the adventure** (his order, 2026-09-21: «*en la barra de escena pon arriba de
+  todo un desplegable que diga qué aventura me mostrará y que me muestre el conjunto de escenas relacionadas a la
+  aventura. El botón de nueva escena tiene que estar inmediatamente debajo de esto y luego siguen las escenas*»).
+  With TWO or more non-archived adventures a drop-down sits at the very top of the Escena tab's rail (no
+  «ESCENAS» label then), «+ Escena» right under it, and only that adventure's scenes; a scene created there is
+  born in it. With ONE («*sólo aparecerá el menú de aventuras si hay aventuras creadas, si no serán sólo
+  escenas*» — every campaign is born with «Aventura 1»), the rail is the usual one. It shows first the adventure
+  of the open scene, else the running one. `maps` still does not know the adventures module: `TablePage` hands
+  the GM's scene a plain list (`SceneAdventure`), like the Bestiary's encounters. Rules and plate: see
+  `specs/modules/maps/SPEC.md` § «Rail de escenas».
 - Deleting an adventure **does not delete its scenes**: it asks first where they go, or it is archived.
 - The document is **single-author at a time** in v1: no concurrent editing, no CRDT. It saves with a delay, and
   a save that would overwrite someone else's is refused and reported (comparing `updated_at`).

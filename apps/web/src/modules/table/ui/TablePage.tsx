@@ -35,12 +35,12 @@ import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
-import { AdventuresTab, type AdventuresPort } from '@/modules/adventures';
+import { AdventuresTab, adventuresPort as defaultAdventures, type AdventuresPort } from '@/modules/adventures';
 import type { JournalPort } from '@/modules/journal';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
-import type { MapsPort, VisionPort, ToolbarOrderPort } from '@/modules/maps';
+import type { MapsPort, SceneAdventure, VisionPort, ToolbarOrderPort } from '@/modules/maps';
 import { mapsRepo as defaultMaps } from '@/modules/maps';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
@@ -220,7 +220,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               * por qué saber cómo se leen los permisos. Es el permiso `manage_textures` del motor de roles,
               * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
               */}
-            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+            {tab === 'scene' && <Scene adventuresPort={adventures ?? defaultAdventures} campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
@@ -276,7 +276,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   );
 }
 
-type SceneProps = ComponentProps<typeof SceneTab>;
+type SceneProps = ComponentProps<typeof SceneTab> & { adventuresPort: AdventuresPort };
 
 /**
  * La escena, con los encuentros PROPIOS del director metidos en su desplegable además de las 45 del manual.
@@ -286,16 +286,28 @@ type SceneProps = ComponentProps<typeof SceneTab>;
  *
  * Un jugador no pasa por aquí: la RLS no le devolvería nada, pero además así no se hace la consulta.
  */
-function Scene(props: SceneProps): JSX.Element {
-  return props.role === 'dm' ? <DmScene {...props} /> : <SceneTab {...props} />;
+function Scene({ adventuresPort, ...props }: SceneProps): JSX.Element {
+  return props.role === 'dm' ? <DmScene {...props} adventuresPort={adventuresPort} /> : <SceneTab {...props} />;
 }
 
-function DmScene(props: SceneProps): JSX.Element {
+function DmScene({ adventuresPort, ...props }: SceneProps): JSX.Element {
   const { entries } = useBestiary({ campaignId: props.campaignId, system: props.system });
+  /**
+   * LAS AVENTURAS, para el desplegable del carril de escenas (orden suya, 2026-09-21). Sin archivadas. Si no
+   * llegan, el carril es el de siempre: nada se rompe por no poder agruparlas.
+   */
+  const [adventures, setAdventures] = useState<SceneAdventure[] | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    adventuresPort.list(props.campaignId)
+      .then(rows => { if (alive) setAdventures(rows.flatMap(a => (a.status === 'archived' ? [] : [{ id: a.id, title: a.title, status: a.status }]))); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [adventuresPort, props.campaignId]);
   // Sólo las propias: las del manual ya las trae la escena del catálogo del sistema, y duplicarlas
   // las enseñaría dos veces en el desplegable.
   const extra = useMemo(() => entries.filter(e => e.origin !== 'manual').map(toCatalogItem), [entries]);
-  return <SceneTab {...props} extraEncounters={extra} />;
+  return <SceneTab {...props} extraEncounters={extra} adventures={adventures} />;
 }
 
 function Person({ name, avatarUrl, label, isDm = false, connected, me, size = 40 }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean; size?: number }): JSX.Element {

@@ -805,7 +805,10 @@
       "menuFor": "Opciones de «{{name}}»",
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
-      "expand": "Desplegar escenas"
+      "expand": "Desplegar escenas",
+      "adventure": "Aventura",
+      "pickAdventure": "Elegir la aventura",
+      "showScenesOf": "Mostrar las escenas de"
     },
     "bg": {
       "button": "Fondo del mapa",
