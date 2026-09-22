@@ -55,6 +55,10 @@ cannot, not even by asking for one by its id — see § Permissions.
   adventure they go to** — they are never deleted with it.
 - **Open the adventure in a separate window**, the same pattern as a character sheet, to read it while the map
   stays on the other screen.
+- **Fold the rail** of adventures into a narrow column, and unfold it again (not remembered).
+- **Choose, at the table's Escena tab, which adventure's scenes the scene rail shows** — only when the campaign
+  has two or more non-archived adventures; «+ Escena» there creates the scene in the chosen one. The rail lives
+  in `maps` (see § Rules & limits and `specs/modules/maps/SPEC.md` § «Rail de escenas»).
 - Watch it **save by itself** — no Save button; the header says «guardando…» / «guardado» with the time, and
   `Cmd+S` forces a save.
 
@@ -74,6 +78,7 @@ cannot, not even by asking for one by its id — see § Permissions.
 | Menu of a scene | Rename · up · down · move to another adventure, with the list of adventures beside it | § 4 · `Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura` |
 | Archived + delete | «ARCHIVADAS» unfolded with «Sacar del archivo», and the dialog that asks where the scenes go | § 4 · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas` |
 | Folded rail | The rail folded into a column with only the button to open it («Desplegar aventuras»); the index and the document take the width | § 4 · `Aventuras/Carril PLEGADO · el documento a lo ancho` |
+| Adventure drop-down of the Escena tab's scene rail (built in `maps`) | With two or more non-archived adventures: the drop-down at the very top (no «ESCENAS» label), «+ Escena» right under it, then only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` |
 
 Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20; the rail controls on
 2026-09-21 («*aprobado*»).

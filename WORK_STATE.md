@@ -2,9 +2,20 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-21, tarde) — NOTAS · BITÁCORA · AVENTURAS
-> ## ⛔ NO MERGEADO. La mitad que faltaba: diseñada, aprobada, construida y revisada. **2.º QA: BLOQUEADO** por
-> ## tres cosas VIEJAS del spec (los 8 fallos del 1.º, cerrados) → dos arregladas; **UNA PREGUNTA A ÉL pendiente**
+> # 📍 ESTADO (2026-09-22) — NOTAS · BITÁCORA · AVENTURAS
+> ## ✅ 3.er QA (modo block) PASADO, con un arreglo de documentación. ⛔ Aún NO mergeado.
+>
+> **Lo nuevo desde el 2.º QA, aprobado por él el 22-09 y construido**: el carril de Aventuras se pliega
+> (`e8c71df`); en la pestaña Escena, con 2 o más aventuras, el desplegable de aventura arriba del carril de
+> escenas (`84d852f`); y el arreglo del revisor al borrar la escena abierta (`e1c6971`). Review ✅.
+> **3.er QA**: confirma cerrados los 3 bloqueos del 2.º. Pruebas verdes (web 2.247, api 305, core 166, ui 69,
+> plenilunio 141), `typecheck`, `build:web` y `build:api` limpios, `npm run audit` 0 hard, producción 200/200,
+> asesores de Supabase de producción sin ningún CRITICAL. El QA añadió a los specs de `adventures` y `maps` la
+> acción y la lámina del desplegable en § What the user can do y § Screens (faltaban) — commiteado.
+> **Falta, en orden (necesita SU «adelante»: es producción)**: push de la rama (10 commits sin subir) → preview de Vercel en
+> verde → aplicar las 4 migraciones a producción por MCP (una a una, ANTES del merge) → merge.
+>
+> *(Lo de abajo es la historia del 2.º QA.)*
 >
 > **2.º QA (21-09, modo block)**: confirma cerrados los 8 del primero. Bloqueó por 3 cosas que ya estaban en el
 > spec del 19-08 y el 1.º QA no vio: (1) «50 aventuras por campaña» sin comprobar → **decidido por mí y
@@ -43,8 +54,9 @@
 >
 > ## 📍 Punto exacto — rama `feat/notas-bitacora-aventuras` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA, sin mergear)
 > Flujo: Spec ✅ → DBA ✅ → Design ✅ → Scaffold ✅ → Dev ✅ (escribir) → Review ✅ ×2 → QA 🚫 (20-09) →
-> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅ → QA 🚫 (2.º) → docs ✅ (`14519fe`)** → ⏳ su respuesta
-> sobre el carril plegable → (diseño + construir, o tacharlo) → QA 3.º → migraciones → merge.
+> **Design ✅ (`a9de9f4`) → Dev ✅ (`d4dece5`) → Review ✅ → QA 🚫 (2.º) → docs ✅ (`14519fe`)** → Design ✅
+> (`9fb58ba`, aprobado 22-09) → Dev ✅ (`e8c71df`, `84d852f`, `e1c6971`) → Review ✅ → **QA ✅ (3.º, 22-09)** →
+> ⏳ commit de los specs + push + preview → migraciones a producción → merge.
 > - ✅ **El editor compartido** (`packages/ui/src/components/richtext/`): `RichTextEditor` + `DocIndexPanel`, sin
 >   dependencias nuevas. El contenido editable NO lo pinta React a propósito (si lo repintara a cada tecla, el
 >   cursor saltaría al principio): el puente con el DOM son dos funciones puras en `spans.ts` que CREAN nodos,

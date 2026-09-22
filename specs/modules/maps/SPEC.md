@@ -100,6 +100,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 **Sólo el director**
 - **Escenas**: crear, renombrar, ordenar, borrar, **abrir** una para trabajarla y **activarla** para el grupo
   (son dos acciones distintas: puede preparar un piso mientras el grupo juega en otro).
+  - **Choose which adventure's scenes the rail shows**, with two or more non-archived adventures; «+ Escena»
+    creates the scene in the chosen one (§ «Rail de escenas», 2026-09-21).
 - **Fondo**: color o foto, desde la biblioteca de la campaña o subiendo una.
 - **Construir**: muros, puertas y ventanas con edición de vértices; **salas** (formas cerradas que abren un
   hueco en el relleno de pared para que se vea el suelo) y rellenos de muro.
@@ -119,6 +121,7 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 |---|---|---|
 | La escena | A pantalla completa dentro de la pestaña «Escena» | `rolvium.pen` § 5 · LA ESCENA · mapas |
 | Rail de escenas | Lista plegable a la izquierda; abrir ≠ activar | § 5 |
+| Adventure drop-down of the rail | Two or more adventures: drop-down on top, «+ Escena» under it, only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` |
 | Barra de herramientas | Tres bloques, los dados primero, lo del director tras la raya dorada | § 5 |
 | Panel del constructor | Muros, puertas, ventanas, salas y rellenos | § 5 |
 | Panel del pincel | Sobre qué, qué hace, textura, color, tamaño, dureza, transparencia | § 5 |
