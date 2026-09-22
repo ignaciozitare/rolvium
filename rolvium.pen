@@ -5211,7 +5211,7 @@
       "type": "frame",
       "id": "g2VLO",
       "x": 0,
-      "y": 1370,
+      "y": 1320,
       "name": "── 2 · CAMPAÑAS ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -5239,7 +5239,7 @@
       "type": "frame",
       "id": "G8Zgrq",
       "x": 0,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Home · dark",
       "theme": {
         "mode": "dark"
@@ -5987,7 +5987,7 @@
       "type": "frame",
       "id": "RCIRk",
       "x": 1600,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Home · light",
       "theme": {
         "mode": "light"
@@ -6735,7 +6735,7 @@
       "type": "frame",
       "id": "qai31",
       "x": 3200,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Crear · Sistema · dark",
       "theme": {
         "mode": "dark"
@@ -8525,7 +8525,7 @@
       "type": "frame",
       "id": "iOQE7",
       "x": 4800,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Crear · Sistema · light",
       "theme": {
         "mode": "light"
@@ -10315,7 +10315,7 @@
       "type": "frame",
       "id": "fzQy4",
       "x": 6400,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Crear · Invitar · dark",
       "theme": {
         "mode": "dark"
@@ -11862,7 +11862,7 @@
       "type": "frame",
       "id": "iEmzN",
       "x": 8000,
-      "y": 1520,
+      "y": 1470,
       "name": "Campañas/Crear · Invitar · light",
       "theme": {
         "mode": "light"
@@ -13409,7 +13409,7 @@
       "type": "frame",
       "id": "pvwS8",
       "x": 0,
-      "y": 2890,
+      "y": 2790,
       "name": "── 3 · CREAR PERSONAJE ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -13437,7 +13437,7 @@
       "type": "frame",
       "id": "fyIR5",
       "x": 0,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 1 Concepto",
       "theme": {
         "mode": "dark"
@@ -14904,7 +14904,7 @@
       "type": "frame",
       "id": "GjeeD",
       "x": 1600,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 2 Características",
       "theme": {
         "mode": "dark"
@@ -16999,7 +16999,7 @@
       "type": "frame",
       "id": "vE82H",
       "x": 3200,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 3 Especialidades",
       "theme": {
         "mode": "dark"
@@ -19263,7 +19263,7 @@
       "type": "frame",
       "id": "u4eNh",
       "x": 4800,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 4 Destino",
       "theme": {
         "mode": "dark"
@@ -21146,7 +21146,7 @@
       "type": "frame",
       "id": "kB8pn",
       "x": 6400,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 5 Dones",
       "theme": {
         "mode": "dark"
@@ -24659,7 +24659,7 @@
       "type": "frame",
       "id": "z5q8XR",
       "x": 8000,
-      "y": 3040,
+      "y": 2940,
       "name": "Mesa/Plenilunio · Crear personaje · 6 Resumen",
       "theme": {
         "mode": "dark"
@@ -26827,7 +26827,7 @@
       "type": "frame",
       "id": "x2x0aB",
       "x": 0,
-      "y": 4529,
+      "y": 4379,
       "name": "── 4 · LA MESA ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -26855,7 +26855,7 @@
       "type": "frame",
       "id": "zt5B6",
       "x": 0,
-      "y": 4679,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Jugador",
       "theme": {
         "mode": "dark"
@@ -31881,7 +31881,7 @@
       "type": "frame",
       "id": "K2eo0",
       "x": 1600,
-      "y": 4679,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Jugador · barra light",
       "theme": {
         "mode": "light"
@@ -36147,7 +36147,7 @@
       "type": "frame",
       "id": "kulJy",
       "x": 3200,
-      "y": 4679,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Director · El grupo",
       "theme": {
         "mode": "dark"
@@ -38440,8 +38440,8 @@
     {
       "type": "frame",
       "id": "XwDVn",
-      "x": 4721,
-      "y": 4239,
+      "x": 4800,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Panel lateral · SUSURROS (H8), Notas, Bitácora  ←  NUEVO 15-09",
       "theme": {
         "mode": "dark"
@@ -41569,8 +41569,8 @@
     {
       "type": "frame",
       "id": "ORP75",
-      "x": 5798,
-      "y": 5112,
+      "x": 7324,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Mejorar · habilitada",
       "theme": {
         "mode": "dark"
@@ -43755,8 +43755,8 @@
     {
       "type": "frame",
       "id": "lMRPP",
-      "x": 7488,
-      "y": 4679,
+      "x": 8924,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Mejorar · bloqueada",
       "theme": {
         "mode": "dark"
@@ -45942,8 +45942,8 @@
     {
       "type": "frame",
       "id": "qLGcY",
-      "x": 9088,
-      "y": 4679,
+      "x": 10524,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Director · Bestiario y PNJ",
       "theme": {
         "mode": "dark"
@@ -48857,8 +48857,8 @@
     {
       "type": "frame",
       "id": "kD9lH",
-      "x": 10688,
-      "y": 4679,
+      "x": 12124,
+      "y": 4529,
       "name": "Mesa/Plenilunio · Director · Ficha del encuentro",
       "width": 820,
       "fill": "$pl-fondo",
@@ -50329,8 +50329,8 @@
     {
       "type": "frame",
       "id": "v3vfV",
-      "x": 11668,
-      "y": 4679,
+      "x": 0,
+      "y": 6428,
       "name": "Mesa/Tiradas · rediseño — quién ve qué",
       "clip": true,
       "width": 2967,
@@ -54138,8 +54138,8 @@
     {
       "type": "frame",
       "id": "W3oqw",
-      "x": 14795,
-      "y": 4679,
+      "x": 3127,
+      "y": 6428,
       "name": "Mesa/Tiradas · avisos del panel del director (2026-08-22)",
       "fill": "$pl-fondo",
       "gap": 48,
@@ -54991,8 +54991,8 @@
     {
       "type": "frame",
       "id": "bQCEo",
-      "x": 16331,
-      "y": 4679,
+      "x": 4663,
+      "y": 6428,
       "name": "Mesa/Plenilunio · Notas y Bitácora · con ÍNDICE  ←  NUEVO 19-09",
       "theme": {
         "mode": "dark"
@@ -56571,10 +56571,46 @@
     },
     {
       "type": "frame",
+      "id": "T2eEKz",
+      "x": 6011,
+      "y": 6304,
+      "name": "▶ REVISAR · AVENTURAS",
+      "fill": "#FF2BD6",
+      "layout": "vertical",
+      "gap": 4,
+      "padding": [
+        10,
+        18
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "dgt0T",
+          "name": "T",
+          "fill": "#1A0014",
+          "content": "▶ REVISAR · AVENTURAS",
+          "fontFamily": "Inter",
+          "fontSize": 30,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "qJ5Cd",
+          "name": "Qué mirar",
+          "fill": "#1A0014",
+          "content": "1 · la pestaña AVENTURAS va antes de ESCENA      2 · el carril en árbol: las escenas cuelgan debajo de su aventura",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "600"
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "c77Ah",
-      "x": 17679,
-      "y": 4679,
-      "name": "Mesa/Plenilunio · Director · AVENTURAS · sólo el director  ←  NUEVO 19-09 (H12)",
+      "x": 6011,
+      "y": 6428,
+      "name": "▶ REVISAR · Mesa/Plenilunio · Director · AVENTURAS · sólo el director  ←  NUEVO 19-09 (H12) · 22-09: ESCENAS EN ÁRBOL BAJO SU AVENTURA, AVENTURAS ANTES DE ESCENA",
       "theme": {
         "mode": "dark"
       },
@@ -56633,6 +56669,20 @@
                   }
                 },
                 {
+                  "id": "sLCmf",
+                  "type": "ref",
+                  "ref": "Q1Ra4E",
+                  "name": "Tab/AVENTURAS",
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "descendants": {
+                    "K8OxW": {
+                      "content": "AVENTURAS",
+                      "fill": "$pl-papel-alto"
+                    }
+                  }
+                },
+                {
                   "id": "Un6P3",
                   "type": "ref",
                   "ref": "Q1Ra4E",
@@ -56657,20 +56707,6 @@
                     "K8OxW": {
                       "content": "BESTIARIO",
                       "fill": "$pl-tinta-suave"
-                    }
-                  }
-                },
-                {
-                  "id": "sLCmf",
-                  "type": "ref",
-                  "ref": "Q1Ra4E",
-                  "name": "Tab/AVENTURAS",
-                  "fill": "$pl-tinta",
-                  "stroke": "$pl-tinta",
-                  "descendants": {
-                    "K8OxW": {
-                      "content": "AVENTURAS",
-                      "fill": "$pl-papel-alto"
                     }
                   }
                 },
@@ -57288,6 +57324,16 @@
                                       "alignItems": "center",
                                       "children": [
                                         {
+                                          "type": "icon",
+                                          "id": "jLbhK",
+                                          "name": "Desplegada",
+                                          "width": 13,
+                                          "height": 13,
+                                          "icon": "keyboard_arrow_down",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-papel-alto"
+                                        },
+                                        {
                                           "type": "text",
                                           "id": "x7K7Z",
                                           "name": "T",
@@ -57345,6 +57391,214 @@
                                     },
                                     {
                                       "type": "frame",
+                                      "id": "ZjJLp",
+                                      "name": "Escenas de la aventura abierta · colgando de ella",
+                                      "width": "fill_container",
+                                      "stroke": "$pl-linea",
+                                      "strokeWidth": {
+                                        "left": 1
+                                      },
+                                      "strokeAlignment": "inner",
+                                      "layout": "vertical",
+                                      "gap": 1,
+                                      "padding": [
+                                        2,
+                                        0,
+                                        6,
+                                        12
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "dKjIF",
+                                          "name": "Escena/El portón",
+                                          "width": "fill_container",
+                                          "gap": 7,
+                                          "padding": [
+                                            5,
+                                            8
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "icon",
+                                              "id": "ZwAFw",
+                                              "name": "I",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "map",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-suave"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "ppq2C",
+                                              "name": "T",
+                                              "fill": "$pl-tinta",
+                                              "textGrowth": "fixed-width",
+                                              "width": "fill_container",
+                                              "content": "El portón",
+                                              "lineHeight": 1.2,
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "n6emk",
+                                              "name": "T",
+                                              "fill": "$pl-sangre",
+                                              "content": "ACTIVA",
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 8,
+                                              "fontWeight": "700",
+                                              "letterSpacing": 1
+                                            },
+                                            {
+                                              "type": "icon",
+                                              "id": "Sz7qN",
+                                              "name": "Tres puntos",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "more_vert",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-tenue"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "J70kr",
+                                          "name": "Escena/El almacén",
+                                          "width": "fill_container",
+                                          "gap": 7,
+                                          "padding": [
+                                            5,
+                                            8
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "icon",
+                                              "id": "JDFAE",
+                                              "name": "I",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "map",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-suave"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "W4uVWa",
+                                              "name": "T",
+                                              "fill": "$pl-tinta",
+                                              "textGrowth": "fixed-width",
+                                              "width": "fill_container",
+                                              "content": "El almacén",
+                                              "lineHeight": 1.2,
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
+                                            },
+                                            {
+                                              "type": "icon",
+                                              "id": "G7YXM",
+                                              "name": "Tres puntos",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "more_vert",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-tenue"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "fTpHi",
+                                          "name": "Escena/El sótano",
+                                          "width": "fill_container",
+                                          "gap": 7,
+                                          "padding": [
+                                            5,
+                                            8
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "icon",
+                                              "id": "pQvgg",
+                                              "name": "I",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "map",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-suave"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "k71rR",
+                                              "name": "T",
+                                              "fill": "$pl-tinta",
+                                              "textGrowth": "fixed-width",
+                                              "width": "fill_container",
+                                              "content": "El sótano",
+                                              "lineHeight": 1.2,
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
+                                            },
+                                            {
+                                              "type": "icon",
+                                              "id": "c6gynw",
+                                              "name": "Tres puntos",
+                                              "width": 14,
+                                              "height": 14,
+                                              "icon": "more_vert",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-tinta-tenue"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "f7OxF4",
+                                          "name": "+ ESCENA · nace en esta aventura",
+                                          "width": "fill_container",
+                                          "gap": 6,
+                                          "padding": [
+                                            5,
+                                            8
+                                          ],
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "icon",
+                                              "id": "OzRNO",
+                                              "name": "I",
+                                              "width": 13,
+                                              "height": 13,
+                                              "icon": "add",
+                                              "library": "Material Symbols Outlined",
+                                              "fill": "$pl-sangre"
+                                            },
+                                            {
+                                              "type": "text",
+                                              "id": "hkgeC",
+                                              "name": "T",
+                                              "fill": "$pl-sangre",
+                                              "content": "ESCENA",
+                                              "fontFamily": "$font-plenilunio",
+                                              "fontSize": 9,
+                                              "fontWeight": "700",
+                                              "letterSpacing": 1.2
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
                                       "id": "A8RX2m",
                                       "name": "Aventura/La feria de las sombras",
                                       "width": "fill_container",
@@ -57356,6 +57610,16 @@
                                       ],
                                       "alignItems": "center",
                                       "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "rER7u",
+                                          "name": "Plegada",
+                                          "width": 13,
+                                          "height": 13,
+                                          "icon": "chevron_right",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
+                                        },
                                         {
                                           "type": "text",
                                           "id": "Bjz6f",
@@ -57425,6 +57689,16 @@
                                       ],
                                       "alignItems": "center",
                                       "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "K72WQ",
+                                          "name": "Plegada",
+                                          "width": 13,
+                                          "height": 13,
+                                          "icon": "chevron_right",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-tenue"
+                                        },
                                         {
                                           "type": "text",
                                           "id": "zXdJR",
@@ -57515,205 +57789,6 @@
                                           "fontSize": 8.5,
                                           "fontWeight": "700",
                                           "letterSpacing": 1.2
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "o0fQe7",
-                                  "name": "Bloque ESCENAS DE ESTA AVENTURA",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 3,
-                                  "children": [
-                                    {
-                                      "type": "frame",
-                                      "id": "VnMnf",
-                                      "name": "Cabecera",
-                                      "width": "fill_container",
-                                      "padding": [
-                                        0,
-                                        0,
-                                        5,
-                                        0
-                                      ],
-                                      "justifyContent": "space_between",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "S2jfJo",
-                                          "name": "Rótulo",
-                                          "fill": "$pl-tinta-suave",
-                                          "content": "ESCENAS DE ESTA AVENTURA",
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 9,
-                                          "fontWeight": "700",
-                                          "letterSpacing": 1.5
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "d4nhE",
-                                          "name": "Crear",
-                                          "width": 15,
-                                          "height": 15,
-                                          "icon": "add",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-sangre"
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "dKjIF",
-                                      "name": "Escena/El portón",
-                                      "width": "fill_container",
-                                      "gap": 7,
-                                      "padding": [
-                                        5,
-                                        8
-                                      ],
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "ZwAFw",
-                                          "name": "I",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "map",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-suave"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "ppq2C",
-                                          "name": "T",
-                                          "fill": "$pl-tinta",
-                                          "textGrowth": "fixed-width",
-                                          "width": "fill_container",
-                                          "content": "El portón",
-                                          "lineHeight": 1.2,
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 12,
-                                          "fontWeight": "normal"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "n6emk",
-                                          "name": "T",
-                                          "fill": "$pl-sangre",
-                                          "content": "ACTIVA",
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 8,
-                                          "fontWeight": "700",
-                                          "letterSpacing": 1
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "Sz7qN",
-                                          "name": "Tres puntos",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "more_vert",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-tenue"
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "J70kr",
-                                      "name": "Escena/El almacén",
-                                      "width": "fill_container",
-                                      "gap": 7,
-                                      "padding": [
-                                        5,
-                                        8
-                                      ],
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "JDFAE",
-                                          "name": "I",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "map",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-suave"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "W4uVWa",
-                                          "name": "T",
-                                          "fill": "$pl-tinta",
-                                          "textGrowth": "fixed-width",
-                                          "width": "fill_container",
-                                          "content": "El almacén",
-                                          "lineHeight": 1.2,
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 12,
-                                          "fontWeight": "normal"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "G7YXM",
-                                          "name": "Tres puntos",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "more_vert",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-tenue"
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "fTpHi",
-                                      "name": "Escena/El sótano",
-                                      "width": "fill_container",
-                                      "gap": 7,
-                                      "padding": [
-                                        5,
-                                        8
-                                      ],
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "icon",
-                                          "id": "pQvgg",
-                                          "name": "I",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "map",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-suave"
-                                        },
-                                        {
-                                          "type": "text",
-                                          "id": "k71rR",
-                                          "name": "T",
-                                          "fill": "$pl-tinta",
-                                          "textGrowth": "fixed-width",
-                                          "width": "fill_container",
-                                          "content": "El sótano",
-                                          "lineHeight": 1.2,
-                                          "fontFamily": "$font-plenilunio",
-                                          "fontSize": 12,
-                                          "fontWeight": "normal"
-                                        },
-                                        {
-                                          "type": "icon",
-                                          "id": "c6gynw",
-                                          "name": "Tres puntos",
-                                          "width": 14,
-                                          "height": 14,
-                                          "icon": "more_vert",
-                                          "library": "Material Symbols Outlined",
-                                          "fill": "$pl-tinta-tenue"
                                         }
                                       ]
                                     }
@@ -59566,14 +59641,94 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "fAC6m",
+          "layoutPosition": "absolute",
+          "x": 494,
+          "y": 15,
+          "name": "REVISAR · aro 1",
+          "width": 699,
+          "height": 39,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "k7PSPs",
+          "layoutPosition": "absolute",
+          "x": 476,
+          "y": -3,
+          "name": "REVISAR · número 1",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "uYTwj",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "1",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "g0unT",
+          "layoutPosition": "absolute",
+          "x": 28,
+          "y": 221,
+          "name": "REVISAR · aro 2",
+          "width": 212,
+          "height": 290,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "R3js7h",
+          "layoutPosition": "absolute",
+          "x": 10,
+          "y": 203,
+          "name": "REVISAR · número 2",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "eylst",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "2",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
         }
       ]
     },
     {
       "type": "frame",
       "id": "YYuOy",
-      "x": 19279,
-      "y": 4679,
+      "x": 7611,
+      "y": 6428,
       "name": "Aventuras/Aventura en ventana aparte  ←  NUEVO 19-09 (H12 · botón ABRIR APARTE)",
       "theme": {
         "mode": "dark"
@@ -60781,12 +60936,12 @@
     {
       "type": "frame",
       "id": "vah1D",
-      "x": 20439,
-      "y": 4679,
+      "x": 8771,
+      "y": 6428,
       "name": "Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO  ←  NUEVO 21-09",
       "clip": true,
       "width": 900,
-      "height": 470,
+      "height": 504,
       "fill": "$pl-papel",
       "layout": "none",
       "children": [
@@ -61735,6 +61890,20 @@
           "children": [
             {
               "type": "text",
+              "id": "Y1iao",
+              "name": "Línea · 22-09",
+              "fill": "$pl-sangre",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "22-09: el carril ahora es un ÁRBOL — las escenas cuelgan debajo de su aventura, y sólo la abierta se despliega (ver «Mesa/Plenilunio · Director · AVENTURAS»). Lo que enseña esta lámina (los menús) no cambia.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
               "id": "K0mRV",
               "name": "Línea",
               "fill": "$pl-tinta-suave",
@@ -61796,12 +61965,12 @@
     {
       "type": "frame",
       "id": "oYPdX",
-      "x": 21499,
-      "y": 4679,
+      "x": 9831,
+      "y": 6428,
       "name": "Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura  ←  NUEVO 21-09",
       "clip": true,
       "width": 760,
-      "height": 560,
+      "height": 594,
       "fill": "$pl-papel",
       "layout": "none",
       "children": [
@@ -62669,6 +62838,20 @@
           "children": [
             {
               "type": "text",
+              "id": "jOZJv",
+              "name": "Línea · 22-09",
+              "fill": "$pl-sangre",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "22-09: el carril ahora es un ÁRBOL — las escenas cuelgan debajo de su aventura, y sólo la abierta se despliega (ver «Mesa/Plenilunio · Director · AVENTURAS»). Lo que enseña esta lámina (los menús) no cambia.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
               "id": "IYydq",
               "name": "Línea",
               "fill": "$pl-tinta-suave",
@@ -62716,12 +62899,12 @@
     {
       "type": "frame",
       "id": "qRsLF",
-      "x": 22419,
-      "y": 4679,
+      "x": 10751,
+      "y": 6428,
       "name": "Aventuras/ARCHIVADAS y BORRAR una aventura con escenas  ←  NUEVO 21-09",
       "clip": true,
       "width": 900,
-      "height": 560,
+      "height": 594,
       "fill": "$pl-papel",
       "layout": "none",
       "children": [
@@ -63692,6 +63875,20 @@
           "children": [
             {
               "type": "text",
+              "id": "D47Lg",
+              "name": "Línea · 22-09",
+              "fill": "$pl-sangre",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "22-09: el carril ahora es un ÁRBOL — las escenas cuelgan debajo de su aventura, y sólo la abierta se despliega (ver «Mesa/Plenilunio · Director · AVENTURAS»). Lo que enseña esta lámina (los menús) no cambia.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
               "id": "yQ3tp",
               "name": "Línea",
               "fill": "$pl-tinta-suave",
@@ -63739,8 +63936,8 @@
     {
       "type": "frame",
       "id": "nPmdV",
-      "x": 23479,
-      "y": 4679,
+      "x": 11811,
+      "y": 6428,
       "name": "Aventuras/Carril PLEGADO · el documento a lo ancho  ←  NUEVO 21-09",
       "theme": {
         "mode": "dark"
@@ -66281,6 +66478,20 @@
           "children": [
             {
               "type": "text",
+              "id": "YQI63",
+              "name": "Línea · 22-09",
+              "fill": "$pl-sangre",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "22-09: el carril ahora es un ÁRBOL — las escenas cuelgan debajo de su aventura, y sólo la abierta se despliega (ver «Mesa/Plenilunio · Director · AVENTURAS»). Lo que enseña esta lámina (los menús) no cambia.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
               "id": "iOQcV",
               "name": "Línea",
               "fill": "$pl-tinta-suave",
@@ -66313,9 +66524,1664 @@
     },
     {
       "type": "frame",
+      "id": "dqzOX",
+      "x": 13411,
+      "y": 6304,
+      "name": "▶ REVISAR · NUEVO · FILAS DEL BESTIARIO",
+      "fill": "#FF2BD6",
+      "layout": "vertical",
+      "gap": 4,
+      "padding": [
+        10,
+        18
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "jEXVO",
+          "name": "T",
+          "fill": "#1A0014",
+          "content": "▶ REVISAR · NUEVO · FILAS DEL BESTIARIO",
+          "fontFamily": "Inter",
+          "fontSize": 30,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "X6l5az",
+          "name": "Qué mirar",
+          "fill": "#1A0014",
+          "content": "1 · el libro abre tu Bestiario      2 · la lista con su buscador      3 · la fila enlazada y lo que ofrece al pincharla",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "600"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "D7WO2",
+      "x": 13411,
+      "y": 6428,
+      "name": "▶ REVISAR · Aventuras/Fila del BESTIARIO · elegir a alguien y lo que ofrece  ←  NUEVO 22-09",
+      "clip": true,
+      "width": 1180,
+      "height": 570,
+      "fill": "$pl-papel",
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "OyRSo",
+          "x": 24,
+          "y": 24,
+          "name": "Rótulo",
+          "fill": "$pl-tinta-suave",
+          "content": "DESDE UNA FILA · ELEGIR DEL BESTIARIO",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 9,
+          "fontWeight": "700",
+          "letterSpacing": 1.5
+        },
+        {
+          "type": "text",
+          "id": "U1OZIB",
+          "x": 620,
+          "y": 24,
+          "name": "Rótulo",
+          "fill": "$pl-tinta-suave",
+          "content": "UNA FILA ENLAZADA · AL PINCHARLA",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 9,
+          "fontWeight": "700",
+          "letterSpacing": 1.5
+        },
+        {
+          "type": "frame",
+          "id": "ufg9q",
+          "x": 24,
+          "y": 46,
+          "name": "Página · eligiendo",
+          "width": 536,
+          "fill": "$pl-papel-alto",
+          "stroke": "$pl-linea",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
+          "layout": "vertical",
+          "gap": 9,
+          "padding": [
+            16,
+            22
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "FA9F9",
+              "name": "H2",
+              "fill": "$pl-tinta",
+              "content": "Quién hay dentro",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 14,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "k2dqWb",
+              "name": "Tabla · ENCUENTRO",
+              "width": "fill_container",
+              "stroke": "$pl-linea",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PMuQK",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "fill": "$pl-tinta",
+                  "gap": 6,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "sfhJW",
+                      "name": "I",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "swords",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EL1TG",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "ENCUENTRO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ivDNA",
+                  "name": "Columnas",
+                  "width": "fill_container",
+                  "fill": "$pl-papel",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f1Gxx",
+                      "name": "C0",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 170,
+                      "content": "PNJ",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "wU9AB",
+                      "name": "C1",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "N.º",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "rNA5P",
+                      "name": "C2",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "DIFICULTAD",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "DCqRA",
+                      "name": "C3",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "NOTAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "j2MWyU",
+                  "name": "Fila/Mutante del sótano",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "D49kd",
+                      "name": "C0",
+                      "width": 170,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "y9ekAB",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Mutante del sótano",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RQWzX",
+                          "name": "Botón · del Bestiario",
+                          "padding": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "IBnuc",
+                              "name": "I",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-tenue"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "xmbe4",
+                      "name": "C1",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "e3tWF",
+                      "name": "C2",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aZKqW",
+                      "name": "C3",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Sólo suben si oyen ruido arriba.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "oJavQ",
+                  "name": "Fila/vacía",
+                  "width": "fill_container",
+                  "fill": "$pl-papel",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jyHeP",
+                      "name": "C0",
+                      "width": 170,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aKpXh",
+                          "name": "T",
+                          "fill": "$pl-tinta-tenue",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "PNJ",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "DXqTO",
+                          "name": "Botón · del Bestiario (abierto)",
+                          "fill": "$pl-sangre",
+                          "padding": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "C1651S",
+                              "name": "I",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel-alto"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "TJnDb",
+                      "name": "C1",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "N.º",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    },
+                    {
+                      "type": "text",
+                      "id": "dlxre",
+                      "name": "C2",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "Dificultad",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    },
+                    {
+                      "type": "text",
+                      "id": "P14xP",
+                      "name": "C3",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Notas",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "KbxHL",
+              "name": "Pista",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Se escribe a mano como siempre, o se elige del Bestiario con el botón del libro.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "l7etIl",
+          "x": 620,
+          "y": 46,
+          "name": "Página · enlazada",
+          "width": 536,
+          "fill": "$pl-papel-alto",
+          "stroke": "$pl-linea",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
+          "layout": "vertical",
+          "gap": 9,
+          "padding": [
+            16,
+            22
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "E2wgq",
+              "name": "H2",
+              "fill": "$pl-tinta",
+              "content": "Quién hay dentro",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 14,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "U0jxU",
+              "name": "Tabla · ENCUENTRO",
+              "width": "fill_container",
+              "stroke": "$pl-linea",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "L72mh",
+                  "name": "Cabecera",
+                  "width": "fill_container",
+                  "fill": "$pl-tinta",
+                  "gap": 6,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "gtSAW",
+                      "name": "I",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "swords",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Z5oHh",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "ENCUENTRO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Y4mV2",
+                  "name": "Columnas",
+                  "width": "fill_container",
+                  "fill": "$pl-papel",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NAAnZ",
+                      "name": "C0",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 170,
+                      "content": "PNJ",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "LQ1jv",
+                      "name": "C1",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "N.º",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "LFCI2",
+                      "name": "C2",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "DIFICULTAD",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "d1srH",
+                      "name": "C3",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "NOTAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x3HjA",
+                  "name": "Fila/Ogro",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "cNvWP",
+                      "name": "C0",
+                      "width": 170,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Jxf8i",
+                          "name": "Foto · OG",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#6e2418",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "L938X",
+                              "name": "T",
+                              "fill": "#f2f0eacc",
+                              "content": "OG",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 7.56,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "HSatk",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Ogro",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "cF8PG",
+                          "name": "Enlazada",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "link",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-tenue"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "unQj1",
+                          "name": "Botón · del Bestiario",
+                          "padding": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "As1MQ",
+                              "name": "I",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-tenue"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Hb6QO",
+                      "name": "C1",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ySpvv",
+                      "name": "C2",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ftOgl",
+                      "name": "C3",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Guarda la puerta del sótano.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EHdAr",
+                  "name": "Fila/Padre Vidal",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "X5FSa",
+                      "name": "C0",
+                      "width": 170,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lctHn",
+                          "name": "Foto · PV",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#4a4a3e",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "euN7s",
+                              "name": "T",
+                              "fill": "#f2f0eacc",
+                              "content": "PV",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 7.56,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "J5Pvm",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Padre Vidal",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "kQtLC",
+                          "name": "Enlazada",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "link",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-tenue"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fH2hn",
+                          "name": "Botón · del Bestiario",
+                          "padding": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "c407y5",
+                              "name": "I",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-tenue"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "W74io",
+                      "name": "C1",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "1",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "d74Kg",
+                      "name": "C2",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "—",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "C7Ft9",
+                      "name": "C3",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Sabe dónde está la llave.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kbRZN",
+                  "name": "Fila/Mutante del sótano",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "VOPNi",
+                      "name": "C0",
+                      "width": 170,
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ii2bZ",
+                          "name": "T",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Mutante del sótano",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oFNVU",
+                          "name": "Botón · del Bestiario",
+                          "padding": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "v3R9i",
+                              "name": "I",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-tenue"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "qo718",
+                      "name": "C1",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 44,
+                      "content": "2",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LeVV6",
+                      "name": "C2",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 80,
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SGavZ",
+                      "name": "C3",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Escrita a mano: sin enlace.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "zFq7u",
+              "name": "Pista",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "La foto y el enlace salen de su ficha del Bestiario. El resto de la fila lo sigues escribiendo tú.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s0J7M",
+          "x": 176,
+          "y": 196,
+          "name": "Lista del Bestiario · FLOTA ENCIMA",
+          "width": 280,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "gap": 2,
+          "padding": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "zJVIW",
+              "name": "Rótulo",
+              "fill": "$pl-tinta-suave",
+              "content": "ELEGIR DEL BESTIARIO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 8.5,
+              "fontWeight": "700",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "frame",
+              "id": "gbpE9",
+              "name": "Buscar",
+              "width": "fill_container",
+              "fill": "$pl-papel",
+              "stroke": "$pl-linea",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "gap": 6,
+              "padding": [
+                5,
+                8
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "yLkzh",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "search",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "jjObf",
+                  "name": "V",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "buscar en tu Bestiario…",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xiQl7",
+              "name": "Opción/Ogro",
+              "width": "fill_container",
+              "fill": "$pl-papel",
+              "gap": 8,
+              "padding": [
+                5,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Tshwy",
+                  "name": "Foto",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#6e2418",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iGJyh",
+                      "name": "T",
+                      "fill": "#f2f0eacc",
+                      "content": "OG",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "XQNEk",
+                  "name": "N",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Ogro",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "NjtIS",
+                  "name": "Chip",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    2,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xOw5S",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "MANUAL",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eFTT9",
+              "name": "Opción/Hambriento",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                5,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "b1Qdk",
+                  "name": "Foto",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#4a3b2a",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "w5otRM",
+                      "name": "T",
+                      "fill": "#f2f0eacc",
+                      "content": "HA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "syWkR",
+                  "name": "N",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Hambriento",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "nj84j",
+                  "name": "Chip",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    2,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qdwc4",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "MANUAL",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "U5f4V",
+              "name": "Opción/Padre Vidal",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                5,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "DvnUF",
+                  "name": "Foto",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#4a4a3e",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HI36L",
+                      "name": "T",
+                      "fill": "#f2f0eacc",
+                      "content": "PV",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "N4AD9r",
+                  "name": "N",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Padre Vidal",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "A2JqJa",
+                  "name": "Chip",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-tinta-suave",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    2,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TUA8n",
+                      "name": "T",
+                      "fill": "$pl-tinta",
+                      "content": "PNJ · FICHA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oALmp",
+              "name": "Opción/Azelías",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                5,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zmc0Z",
+                  "name": "Foto",
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#5c4a6e",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "M7VXZi",
+                      "name": "T",
+                      "fill": "#f2f0eacc",
+                      "content": "AZ",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "x1H6K",
+                  "name": "N",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Azelías",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "b8mMQ",
+                  "name": "Chip",
+                  "stroke": "$pl-linea",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    2,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "QGrgo",
+                      "name": "T",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "PROPIO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "c6PFNl",
+              "name": "Pie",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Lo del manual y lo tuyo: lo mismo que la pestaña BESTIARIO.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "A5PXvP",
+          "x": 800,
+          "y": 168,
+          "name": "Menú de la fila enlazada · FLOTA ENCIMA",
+          "width": 220,
+          "fill": "$pl-papel-alto",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "padding": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "IJxJ3",
+              "name": "MI/Ver su ficha",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "XJ9Nl",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "description",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "frame",
+                  "id": "OIjc7",
+                  "name": "Texto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 1,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JmWt5",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "Ver su ficha",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jWHxE",
+                      "name": "Pista",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "La misma que en BESTIARIO.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "X37YIE",
+              "name": "MI/Tirar por él",
+              "width": "fill_container",
+              "gap": 7,
+              "padding": [
+                6,
+                7
+              ],
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nqEhl",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "casino",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "frame",
+                  "id": "S2b9M",
+                  "name": "Texto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 1,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "d3m1NQ",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "Tirar por él",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "H31Hp",
+                      "name": "Pista",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "El mismo «Tirar por una criatura».",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "TyTXm",
+          "x": 24,
+          "y": 470,
+          "name": "Nota",
+          "width": 1132,
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "jZdnp",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "En una fila de PNJ o de ENCUENTRO, el libro al lado del nombre abre tu Bestiario —lo del manual y lo tuyo— con su buscador. Elegir rellena el nombre y pone su foto; N.º, dificultad y notas los sigues escribiendo tú.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "E4yLA",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "La fila queda ENLAZADA (el eslabón): al pincharla, ver su ficha o tirar por él, lo mismo que en la pestaña BESTIARIO. Colocarlo en la escena NO está aquí: elegiste «b», no «c».",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "rN449",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Escribir a mano sigue valiendo, como hasta hoy. Y si algún día lo borras del Bestiario, la fila se queda con el nombre escrito y pierde el enlace y la foto: el documento nunca se rompe.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "c7sdo",
+              "name": "Línea",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Igual en la tabla de PNJ (nombre · qué es · qué quiere · notas) y en la ventana aparte de una aventura.",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "iPQET",
+          "layoutPosition": "absolute",
+          "x": 203,
+          "y": 168,
+          "name": "REVISAR · aro 1",
+          "width": 27,
+          "height": 27,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "lTSLu",
+          "layoutPosition": "absolute",
+          "x": 185,
+          "y": 150,
+          "name": "REVISAR · número 1",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "hlR5B",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "1",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "l5bJBv",
+          "layoutPosition": "absolute",
+          "x": 170,
+          "y": 190,
+          "name": "REVISAR · aro 2",
+          "width": 292,
+          "height": 216,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "xszOa",
+          "layoutPosition": "absolute",
+          "x": 152,
+          "y": 172,
+          "name": "REVISAR · número 2",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "cRrt9",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "2",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "O3XhOD",
+          "layoutPosition": "absolute",
+          "x": 638,
+          "y": 131,
+          "name": "REVISAR · aro 3",
+          "width": 500,
+          "height": 39,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "WM5Ax",
+          "layoutPosition": "absolute",
+          "x": 620,
+          "y": 113,
+          "name": "REVISAR · número 3",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Y9hKc",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "3",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "i2ghB",
+          "layoutPosition": "absolute",
+          "x": 794,
+          "y": 162,
+          "name": "REVISAR · aro 3",
+          "width": 232,
+          "height": 92,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "qKTk1",
+          "layoutPosition": "absolute",
+          "x": 776,
+          "y": 144,
+          "name": "REVISAR · número 3",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "QIIVY",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "3",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "KS5RJ",
       "x": 0,
-      "y": 6788,
+      "y": 8053,
       "name": "── 5 · LA ESCENA · mapas  ←  LO NUEVO: EL CONSTRUCTOR DE HABITACIONES, AL FINAL DE LA FILA ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -66343,7 +68209,7 @@
       "type": "frame",
       "id": "k5Ig5",
       "x": 0,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · sonda de prueba",
       "theme": {
         "mode": "dark"
@@ -69486,7 +71352,7 @@
       "type": "frame",
       "id": "Ny7dg",
       "x": 1600,
-      "y": 6938,
+      "y": 8203,
       "name": "PL/Ver como jugador · icono, 3 candidatos",
       "clip": true,
       "width": 560,
@@ -69802,7 +71668,7 @@
       "type": "frame",
       "id": "ORZJD",
       "x": 2320,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director",
       "theme": {
         "mode": "dark"
@@ -74492,7 +76358,7 @@
       "type": "frame",
       "id": "uXK3T",
       "x": 4047,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · niebla y pincel",
       "theme": {
         "mode": "dark"
@@ -78297,7 +80163,7 @@
       "type": "frame",
       "id": "h3Q3NN",
       "x": 5647,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · herramienta Muro",
       "theme": {
         "mode": "dark"
@@ -82038,7 +83904,7 @@
       "type": "frame",
       "id": "sFipl",
       "x": 7247,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · seleccionar y editar",
       "theme": {
         "mode": "dark"
@@ -86300,7 +88166,7 @@
       "type": "frame",
       "id": "qP47r",
       "x": 8847,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · capas y pincel de transparencia",
       "theme": {
         "mode": "dark"
@@ -90609,7 +92475,7 @@
       "type": "frame",
       "id": "b9LRve",
       "x": 10447,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Director · luces de ambiente",
       "theme": {
         "mode": "dark"
@@ -95198,7 +97064,7 @@
       "type": "frame",
       "id": "yZDqm",
       "x": 12047,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Jugador",
       "theme": {
         "mode": "dark"
@@ -97880,7 +99746,7 @@
       "type": "frame",
       "id": "vz19f",
       "x": 13647,
-      "y": 6938,
+      "y": 8203,
       "name": "Mesa/Plenilunio · Escena · Jugador · noche",
       "theme": {
         "mode": "dark"
@@ -100573,8 +102439,8 @@
     {
       "type": "frame",
       "id": "uBAwb",
-      "x": 15247,
-      "y": 6938,
+      "x": 0,
+      "y": 9593,
       "name": "Mesa/Plenilunio · Escena · Director · penumbra (§7.4 BLOQUEADA) · la lente por personaje SE BORRÓ, ver «sonda de prueba»",
       "theme": {
         "mode": "dark"
@@ -103618,8 +105484,8 @@
     {
       "type": "frame",
       "id": "GW8iO",
-      "x": 16847,
-      "y": 6938,
+      "x": 1600,
+      "y": 9593,
       "name": "PL/Icono Builder (barra) · generado, pendiente de su ok",
       "clip": true,
       "width": 240,
@@ -104035,8 +105901,8 @@
     {
       "type": "frame",
       "id": "xp8CX",
-      "x": 17167,
-      "y": 6938,
+      "x": 2000,
+      "y": 9593,
       "name": "PL/Builder · panel  ←  NUEVO 02-09 (v2)",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -105247,8 +107113,8 @@
     {
       "type": "frame",
       "id": "ePNCc",
-      "x": 17607,
-      "y": 6938,
+      "x": 2460,
+      "y": 9593,
       "name": "PL/Builder · panel ← v3 (modo + preajustes)",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -108039,8 +109905,8 @@
     {
       "type": "frame",
       "id": "zpsjH",
-      "x": 17967,
-      "y": 6938,
+      "x": 2920,
+      "y": 9593,
       "name": "PL/Builder · panel ← v3 · modo SOBRE UNA FOTO",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -108691,8 +110557,8 @@
     {
       "type": "frame",
       "id": "M5z1UB",
-      "x": 17967,
-      "y": 7288,
+      "x": 3380,
+      "y": 9593,
       "name": "PL/Builder · GRUPO cogido · en el mapa",
       "clip": true,
       "width": 704,
@@ -109211,8 +111077,8 @@
     {
       "type": "frame",
       "id": "CvkXT",
-      "x": 18327,
-      "y": 6938,
+      "x": 4244,
+      "y": 9593,
       "name": "PL/Builder · panel · GRUPO cogido",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -109955,8 +111821,8 @@
     {
       "type": "frame",
       "id": "tS9zl",
-      "x": 18667,
-      "y": 6938,
+      "x": 4704,
+      "y": 9593,
       "name": "PL/Builder · panel · VARIOS MUROS cogidos",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -110699,8 +112565,8 @@
     {
       "type": "frame",
       "id": "b4RHYS",
-      "x": 19027,
-      "y": 6938,
+      "x": 5164,
+      "y": 9593,
       "name": "PL/Barra · LAS SEIS DE DIBUJAR EN UN ICONO  ←  NUEVO 03-09",
       "width": 300,
       "height": 700,
@@ -111359,8 +113225,8 @@
     {
       "type": "frame",
       "id": "R5Out",
-      "x": 19407,
-      "y": 6938,
+      "x": 5624,
+      "y": 9593,
       "name": "PL/Catálogo de texturas",
       "width": 460,
       "fill": "#f2f0eaee",
@@ -112245,8 +114111,8 @@
     {
       "type": "frame",
       "id": "jz1GU",
-      "x": 19887,
-      "y": 6938,
+      "x": 6244,
+      "y": 9593,
       "name": "PL/Textura · menú de los tres puntos",
       "width": 196,
       "fill": "$pl-papel-alto",
@@ -112415,8 +114281,8 @@
     {
       "type": "frame",
       "id": "k3kiE",
-      "x": 20200,
-      "y": 6938,
+      "x": 6600,
+      "y": 9593,
       "name": "PL/Builder · barra  ·  DESCARTADO 02-09 (primer intento, no se parecía a su referencia)",
       "clip": true,
       "width": 600,
@@ -112627,8 +114493,8 @@
     {
       "type": "frame",
       "id": "nUBs1",
-      "x": 20200,
-      "y": 7060,
+      "x": 7360,
+      "y": 9593,
       "name": "PL/Texturas de la escena  ·  DESCARTADO 02-09",
       "clip": true,
       "width": 600,
@@ -112834,8 +114700,8 @@
     {
       "type": "frame",
       "id": "P1E65",
-      "x": 20200,
-      "y": 7220,
+      "x": 8120,
+      "y": 9593,
       "name": "PL/Textura por habitación  ·  DESCARTADO 02-09",
       "clip": true,
       "width": 600,
@@ -113125,8 +114991,8 @@
     {
       "type": "frame",
       "id": "Po3BK",
-      "x": 20200,
-      "y": 7340,
+      "x": 8880,
+      "y": 9593,
       "name": "PL/Lámina  ·  DESCARTADA 02-09",
       "clip": true,
       "width": 900,
@@ -113946,8 +115812,8 @@
     {
       "type": "frame",
       "id": "bGroR",
-      "x": 21220,
-      "y": 6938,
+      "x": 9940,
+      "y": 9593,
       "name": "PL/Controles del lienzo  ←  NUEVO 03-09: ENSEÑAR LOS MUROS A LOS JUGADORES",
       "width": 760,
       "height": 941,
@@ -116477,8 +118343,8 @@
     {
       "type": "frame",
       "id": "wexID",
-      "x": 22100,
-      "y": 6938,
+      "x": 10860,
+      "y": 9593,
       "name": "PL/Puerta · el dibujo  ←  NUEVO 07-09",
       "layout": "vertical",
       "gap": 16,
@@ -117270,8 +119136,8 @@
     {
       "type": "frame",
       "id": "ZdWPT",
-      "x": 22100,
-      "y": 7578,
+      "x": 11980,
+      "y": 9593,
       "name": "PL/Builder · panel · PUERTA ELEGIDA  ←  CORREGIDO 07-09",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -118395,8 +120261,8 @@
     {
       "type": "frame",
       "id": "WNJRg",
-      "x": 22100,
-      "y": 8297,
+      "x": 12440,
+      "y": 9593,
       "name": "PL/Puerta · CUÁL DE ESTAS  ←  07-09",
       "layout": "vertical",
       "gap": 16,
@@ -118777,8 +120643,8 @@
     {
       "type": "frame",
       "id": "rOJxx",
-      "x": 23120,
-      "y": 7578,
+      "x": 13500,
+      "y": 9593,
       "name": "PL/Builder · panel · TAMAÑO DE LAS FICHAS  ←  NUEVO 07-09",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -121684,8 +123550,8 @@
     {
       "type": "frame",
       "id": "F7xHlb",
-      "x": 23540,
-      "y": 7578,
+      "x": 13960,
+      "y": 9593,
       "name": "PL/Tamaño de las fichas · QUÉ PASA EN UN PASILLO  ←  NUEVO 07-09",
       "layout": "vertical",
       "gap": 16,
@@ -121961,8 +123827,8 @@
     {
       "type": "frame",
       "id": "Dra0L",
-      "x": 24400,
-      "y": 6938,
+      "x": 14832,
+      "y": 9593,
       "name": "PL/Pincel · barra  ←  NUEVO 09-09 (rebanada 9)",
       "width": 1100,
       "fill": "#cbc9c080",
@@ -122746,8 +124612,8 @@
     {
       "type": "frame",
       "id": "YwHzR",
-      "x": 25560,
-      "y": 6938,
+      "x": 0,
+      "y": 10983,
       "name": "PL/Pincel · panel · CON TEXTURA  ←  NUEVO 10-09 (rebanada 10)",
       "width": 220,
       "fill": "#f2f0eaee",
@@ -123474,8 +125340,8 @@
     {
       "type": "frame",
       "id": "M9zw2t",
-      "x": 25820,
-      "y": 6938,
+      "x": 380,
+      "y": 10983,
       "name": "PL/Pincel · panel · CON COLOR  ←  NUEVO 10-09 (rebanada 10)",
       "width": 220,
       "fill": "#f2f0eaee",
@@ -124528,8 +126394,8 @@
     {
       "type": "frame",
       "id": "TlJot",
-      "x": 26140,
-      "y": 6938,
+      "x": 760,
+      "y": 10983,
       "name": "PL/Pincel · panel · PINTAR ENCIMA  ←  REESCRITO 10-09 (rebanada 10)",
       "width": 220,
       "fill": "#f2f0eaee",
@@ -126154,8 +128020,8 @@
     {
       "type": "frame",
       "id": "oi358",
-      "x": 26460,
-      "y": 6938,
+      "x": 1140,
+      "y": 10983,
       "name": "PL/Builder · panel · «A MANO» CON ANCHO  ←  NUEVO 10-09 (rebanada 10)",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -126774,8 +128640,8 @@
     {
       "type": "frame",
       "id": "fljtF",
-      "x": 26820,
-      "y": 6938,
+      "x": 1600,
+      "y": 10983,
       "name": "PL/Escenas · rail · MENÚ DE LOS TRES PUNTOS  ←  NUEVO 11-09",
       "clip": true,
       "width": 560,
@@ -127218,8 +129084,8 @@
     {
       "type": "frame",
       "id": "R7gay",
-      "x": 27440,
-      "y": 6938,
+      "x": 2320,
+      "y": 10983,
       "name": "PL/Builder · panel · «A PULSO» CON BORDE ROTO  ←  NUEVO 11-09 (§ 10B.4)",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -127990,8 +129856,8 @@
     {
       "type": "frame",
       "id": "NhYOy",
-      "x": 27900,
-      "y": 6938,
+      "x": 2780,
+      "y": 10983,
       "name": "PL/Barra de herramientas · ORDENAR ARRASTRANDO · sólo el admin  ←  NUEVO 12-09 (§ 🧲)",
       "fill": "#00000000",
       "gap": 12,
@@ -128661,8 +130527,8 @@
     {
       "type": "frame",
       "id": "I6TcDm",
-      "x": 28354,
-      "y": 6938,
+      "x": 3234,
+      "y": 10983,
       "name": "PL/Builder · panel · LAS TEXTURAS SE GIRAN  ←  NUEVO 12-09 (rebanada 8 · punto 5)",
       "width": 300,
       "fill": "#f2f0eaee",
@@ -131599,8 +133465,8 @@
     {
       "type": "frame",
       "id": "mRnmh",
-      "x": 28814,
-      "y": 6938,
+      "x": 3694,
+      "y": 10983,
       "name": "PL/Catálogo de texturas · EL MISMO CATÁLOGO QUE LAS PIEZAS (mismo componente)  ←  NUEVO 13-09 (§ 6.8 · puntos 1, 3, 4 y 8)",
       "clip": true,
       "width": 1440,
@@ -134286,8 +136152,8 @@
     {
       "type": "frame",
       "id": "h91k8w",
-      "x": 30414,
-      "y": 6938,
+      "x": 5294,
+      "y": 10983,
       "name": "PL/Fondo del mapa · panel  ←  NUEVO 14-09 (§ EL FONDO DEL MAPA)",
       "width": 340,
       "fill": "#f2f0eaee",
@@ -134973,8 +136839,8 @@
     {
       "type": "frame",
       "id": "zpkOx",
-      "x": 30914,
-      "y": 6938,
+      "x": 5794,
+      "y": 10983,
       "name": "PL/Catálogo de fondos · TUS FONDOS ARRIBA, LAS TEXTURAS DE SISTEMA DEBAJO  ←  NUEVO 14-09 (§ EL FONDO DEL MAPA)",
       "clip": true,
       "width": 1440,
@@ -137634,13 +139500,49 @@
     },
     {
       "type": "frame",
+      "id": "zs11e",
+      "x": 7394,
+      "y": 10859,
+      "name": "▶ REVISAR · ESCENA",
+      "fill": "#FF2BD6",
+      "layout": "vertical",
+      "gap": 4,
+      "padding": [
+        10,
+        18
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "Z1rnzh",
+          "name": "T",
+          "fill": "#1A0014",
+          "content": "▶ REVISAR · ESCENA",
+          "fontFamily": "Inter",
+          "fontSize": 30,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "c3Ek6",
+          "name": "Qué mirar",
+          "fill": "#1A0014",
+          "content": "1 · el desplegable de aventura ya no dice «AVENTURA»",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "600"
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "E39b4U",
-      "x": 32414,
-      "y": 6938,
-      "name": "PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo  ←  NUEVO 21-09",
+      "x": 7394,
+      "y": 10983,
+      "name": "▶ REVISAR · PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo  ←  22-09: SIN EL RÓTULO «AVENTURA» DENTRO DEL BOTÓN",
       "clip": true,
       "width": 760,
-      "height": 430,
+      "height": 460,
       "fill": "$pl-fondo",
       "layout": "none",
       "children": [
@@ -137676,21 +139578,10 @@
                   "layout": "vertical",
                   "gap": 2,
                   "padding": [
-                    5,
+                    9,
                     6
                   ],
                   "children": [
-                    {
-                      "type": "text",
-                      "id": "SQNT2",
-                      "name": "Rótulo",
-                      "fill": "$pl-tinta-tenue",
-                      "content": "AVENTURA",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 7.5,
-                      "fontWeight": "normal",
-                      "letterSpacing": 1.4
-                    },
                     {
                       "type": "frame",
                       "id": "AdUqe",
@@ -137960,21 +139851,10 @@
                   "layout": "vertical",
                   "gap": 2,
                   "padding": [
-                    5,
+                    9,
                     6
                   ],
                   "children": [
-                    {
-                      "type": "text",
-                      "id": "QOOLV",
-                      "name": "Rótulo",
-                      "fill": "$pl-tinta-tenue",
-                      "content": "AVENTURA",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 7.5,
-                      "fontWeight": "normal",
-                      "letterSpacing": 1.4
-                    },
                     {
                       "type": "frame",
                       "id": "x7291X",
@@ -138510,6 +140390,20 @@
               "fontSize": 11,
               "fontWeight": "normal",
               "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "Ns3Wv",
+              "name": "Línea · 22-09",
+              "fill": "$pl-sangre",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "22-09: el botón ya no dice «AVENTURA» encima del nombre («ocupa mucho espacio y queda feo»): sólo el número, el nombre y la flecha. Lo que es lo dice la lista al abrirse («MOSTRAR LAS ESCENAS DE»).",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
             }
           ]
         },
@@ -138763,6 +140657,86 @@
           "fontSize": 8,
           "fontWeight": "700",
           "letterSpacing": 1.4
+        },
+        {
+          "type": "frame",
+          "id": "U0vjW9",
+          "layoutPosition": "absolute",
+          "x": 25,
+          "y": 25,
+          "name": "REVISAR · aro 1",
+          "width": 155,
+          "height": 40,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "NzX7q",
+          "layoutPosition": "absolute",
+          "x": 7,
+          "y": 7,
+          "name": "REVISAR · número 1",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "YT3QH",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "1",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "H6DiMN",
+          "layoutPosition": "absolute",
+          "x": 265,
+          "y": 25,
+          "name": "REVISAR · aro 1",
+          "width": 155,
+          "height": 40,
+          "fill": "#FF2BD614",
+          "stroke": "#FF2BD6",
+          "strokeWidth": 4,
+          "strokeAlignment": "outer"
+        },
+        {
+          "type": "frame",
+          "id": "qwIRV",
+          "layoutPosition": "absolute",
+          "x": 247,
+          "y": 7,
+          "name": "REVISAR · número 1",
+          "width": 34,
+          "height": 34,
+          "fill": "#FF2BD6",
+          "cornerRadius": 17,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "SxvPk",
+              "name": "N",
+              "fill": "#1A0014",
+              "content": "1",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
+            }
+          ]
         }
       ]
     },
@@ -138770,7 +140744,7 @@
       "type": "frame",
       "id": "pj0rV",
       "x": 0,
-      "y": 8538,
+      "y": 12303,
       "name": "── 6 · LA ESCENA · piezas (dibujado, SIN construir) ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -138798,7 +140772,7 @@
       "type": "frame",
       "id": "w7sTC0",
       "x": 0,
-      "y": 8688,
+      "y": 12453,
       "name": "PL/Galería · Catálogo a pantalla completa",
       "clip": true,
       "width": 1440,
@@ -143162,7 +145136,7 @@
       "type": "frame",
       "id": "SNlGp",
       "x": 1600,
-      "y": 8688,
+      "y": 12453,
       "name": "PL/Barra de herramientas · con Piezas",
       "width": 300,
       "height": 771,
@@ -143707,7 +145681,7 @@
       "type": "frame",
       "id": "lWBaU",
       "x": 2060,
-      "y": 8688,
+      "y": 12453,
       "name": "PL/Panel de pieza · mientras plantas  ←  AJUSTADO 11-09 al Pincel y al Builder",
       "width": 220,
       "fill": "#f2f0eaee",
@@ -145159,8 +147133,8 @@
     {
       "type": "frame",
       "id": "iwLak",
-      "x": 2320,
-      "y": 8688,
+      "x": 2440,
+      "y": 12453,
       "name": "PL/Menú de una pieza · botón derecho  ←  13-09 (§ 6.6) · SELECCIONAR ARRIBA DEL TODO (§ 6.8 · punto 6)",
       "width": 196,
       "fill": "#f2f0eaee",
@@ -145802,8 +147776,8 @@
     {
       "type": "frame",
       "id": "DCs6S",
-      "x": 3628,
-      "y": 8688,
+      "x": 2796,
+      "y": 12453,
       "name": "PL/Subir piezas en lote",
       "clip": true,
       "width": 540,
@@ -146412,8 +148386,8 @@
     {
       "type": "frame",
       "id": "f2N67t",
-      "x": 4328,
-      "y": 8688,
+      "x": 3496,
+      "y": 12453,
       "name": "PL/Barra pincel · CON DUREZA",
       "width": 1044,
       "fill": "#cbc9c080",
@@ -146825,8 +148799,8 @@
     {
       "type": "frame",
       "id": "r9mUM",
-      "x": 5532,
-      "y": 8688,
+      "x": 4700,
+      "y": 12453,
       "name": "PL/Galería · Catálogo · TRES PUNTOS A LA VISTA + SELECCIÓN MÚLTIPLE + ARRASTRAR AL PAQUETE  ←  NUEVO 13-09 (§ 6.8 · puntos 3 y 4)",
       "clip": true,
       "width": 1440,
@@ -151743,8 +153717,8 @@
     {
       "type": "frame",
       "id": "AYZZS",
-      "x": 7132,
-      "y": 8688,
+      "x": 6300,
+      "y": 12453,
       "name": "PL/Subir texturas en lote · LA MISMA VENTANA QUE LAS PIEZAS  ←  NUEVO 13-09 (§ 6.8 · punto 1)",
       "clip": true,
       "width": 540,
@@ -152316,8 +154290,8 @@
     {
       "type": "frame",
       "id": "JHdTe",
-      "x": 7832,
-      "y": 8688,
+      "x": 7000,
+      "y": 12453,
       "name": "PL/Panel de pieza · LA PIEZA COGIDA + DE SU FAMILIA · se queda abierto en Seleccionar  ←  NUEVO 13-09 (§ 6.8 · puntos 7, 8 y 9)",
       "width": 220,
       "fill": "#f2f0eaee",
@@ -154092,7 +156066,7 @@
       "type": "frame",
       "id": "ISfTA",
       "x": 0,
-      "y": 10058,
+      "y": 13777,
       "name": "── 7 · BESTIARIO ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -154120,7 +156094,7 @@
       "type": "frame",
       "id": "g0L0jJ",
       "x": 0,
-      "y": 10208,
+      "y": 13927,
       "name": "Bestiario/Catálogo · pantalla completa",
       "width": 1440,
       "fill": "$pl-fondo",
@@ -156622,7 +158596,7 @@
       "type": "frame",
       "id": "muyDX",
       "x": 1600,
-      "y": 10208,
+      "y": 13927,
       "name": "Bestiario/Foto del monstruo · modal",
       "width": 1440,
       "height": 900,
@@ -156784,7 +158758,7 @@
       "type": "frame",
       "id": "vzBJo",
       "x": 3200,
-      "y": 10208,
+      "y": 13927,
       "name": "Bestiario/Tirar por una criatura · popover sobre la ficha",
       "context": "Lo que abre «TIRAR» en una ficha del catalogo del Bestiario. Es un POPOVER que sale ENCIMA DE SU PROPIA FICHA del catalogo — no una pantalla. El catalogo se sigue viendo alrededor, que es lo que dice de que criatura se esta tirando. Arranca en la esquina de la ficha y crece hacia abajo lo que haga falta. Construido en apps/web/src/modules/bestiary/ui/CreatureRollPopover.tsx; el fondo de este frame representa la ficha de debajo, no la mesa. NO es el panel del director completo (pedir tirada a los jugadores, encuentros de la escena, ATACAR): eso sigue siendo H6, en Panel/Director.\n\nTanda 3 del bestiario (2026-08-21). El ejemplo es BAAL (p.126), que es el unico bloque del libro que trae de todo. Entran cuatro cosas:\n1. ¿CON QUE ATACA? — los ATAQUES que imprime la caja, con su ataque y su daño ya calculados (Espada oriental 9, daño 10). Elegir uno cambia los dados que se tiran: son los del ataque, no los de la caracteristica. «A MANO» es el bloque sin arma. La Deflagracion es un ataque APARTE y sale en la misma fila.\n2. ES DE NOCHE — casilla en la propia tirada, no dato de la escena (decision del dueno, 2026-08-21). Cambia que capacidades se ofrecen.\n3. CAPACIDADES QUE PODRIAN APLICAR — solo las que encajan con la caracteristica y la hora, y las marca el director como la especialidad. Suman EXITOS AUTOMATICOS, que no son dados: por eso van en oro y aparte del contador.\n4. Los METROS de la Deflagracion, en el frame de al lado, que es el estado en el que esta elegida.\n\nSolo hay version oscura: dentro de una campana manda el tema del sistema (papel de Plenilunio), no el claro/oscuro de la app.",
       "width": 460,
@@ -157763,7 +159737,7 @@
       "type": "frame",
       "id": "zCTzX",
       "x": 3820,
-      "y": 10208,
+      "y": 13927,
       "name": "Bestiario/Tirar por una criatura · Deflagración",
       "context": "El MISMO popover de al lado, en el estado en el que el director elige la DEFLAGRACION de Baal (p.126, capacidad p.108).\n\nQue cambia respecto al otro frame:\n- No hay caracteristica marcada: una deflagracion no se tira con ninguna, los dados salen de su puntuacion.\n- Aparece ¿A CUANTOS METROS ESTA? — el director teclea la distancia y el motor saca los dados: la puntuacion menos un dado por metro. Fuera del radio (1 m por punto) no hay ataque. Cuando existan los ataques sobre el mapa la distancia saldra de ahi.\n- La dificultad queda en FACIL·1, que es lo que manda el libro para la deflagracion.\n- No sale la especialidad ni las capacidades: no aplican a este ataque. La casilla de noche se queda porque describe la escena, no la tirada.\n- El daño se cuenta aparte: cada exito 1 punto, cada triunfo tantos como la puntuacion.",
       "width": 460,
@@ -158727,7 +160701,7 @@
       "type": "frame",
       "id": "LnEXI",
       "x": 0,
-      "y": 11578,
+      "y": 15247,
       "name": "── 8 · MIS PERSONAJES ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -158755,7 +160729,7 @@
       "type": "frame",
       "id": "ZhUSp",
       "x": 0,
-      "y": 11728,
+      "y": 15397,
       "name": "Personajes/Mis personajes · dark",
       "theme": {
         "mode": "dark"
@@ -159853,7 +161827,7 @@
       "type": "frame",
       "id": "B4Wasr",
       "x": 1600,
-      "y": 11728,
+      "y": 15397,
       "name": "Personajes/Mis personajes · light",
       "theme": {
         "mode": "light"
@@ -160951,7 +162925,7 @@
       "type": "frame",
       "id": "PiVhB",
       "x": 3200,
-      "y": 11728,
+      "y": 15397,
       "name": "Personajes/Ficha en ventana aparte",
       "theme": {
         "mode": "dark"
@@ -164847,7 +166821,7 @@
       "type": "frame",
       "id": "Ata3f",
       "x": 0,
-      "y": 13709,
+      "y": 17328,
       "name": "── 9 · SISTEMAS ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -164875,7 +166849,7 @@
       "type": "frame",
       "id": "mTux7",
       "x": 0,
-      "y": 13859,
+      "y": 17478,
       "name": "Sistemas/Catálogo · dark",
       "theme": {
         "mode": "dark"
@@ -165741,7 +167715,7 @@
       "type": "frame",
       "id": "J6LAv",
       "x": 1600,
-      "y": 13859,
+      "y": 17478,
       "name": "Sistemas/Catálogo · light",
       "theme": {
         "mode": "light"
@@ -166607,7 +168581,7 @@
       "type": "frame",
       "id": "W0np9Z",
       "x": 0,
-      "y": 15229,
+      "y": 18798,
       "name": "── 10 · MI CUENTA ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -166635,7 +168609,7 @@
       "type": "frame",
       "id": "SOUyO",
       "x": 0,
-      "y": 15379,
+      "y": 18948,
       "name": "Cuenta/Perfil · dark",
       "theme": {
         "mode": "dark"
@@ -167756,7 +169730,7 @@
       "type": "frame",
       "id": "MUQjG",
       "x": 1600,
-      "y": 15379,
+      "y": 18948,
       "name": "Cuenta/Perfil · light",
       "theme": {
         "mode": "light"
@@ -168877,7 +170851,7 @@
       "type": "frame",
       "id": "C6pLY",
       "x": 0,
-      "y": 16979,
+      "y": 20498,
       "name": "── 11 · ESTADOS VACÍOS Y ERRORES ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -168905,7 +170879,7 @@
       "type": "frame",
       "id": "g2JV3U",
       "x": 0,
-      "y": 17129,
+      "y": 20648,
       "name": "Estados/Vacíos y errores",
       "theme": {
         "mode": "dark"
@@ -169866,7 +171840,7 @@
       "type": "frame",
       "id": "dPxdy",
       "x": 0,
-      "y": 18502,
+      "y": 21971,
       "name": "── 12 · PIEZAS SUELTAS DE DISEÑO (componentes) ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -169894,7 +171868,7 @@
       "type": "frame",
       "id": "V6Da2",
       "x": 0,
-      "y": 18652,
+      "y": 22121,
       "name": "Components",
       "theme": {
         "mode": "dark"
@@ -171177,7 +173151,7 @@
       "type": "frame",
       "id": "z84erH",
       "x": 1680,
-      "y": 18652,
+      "y": 22121,
       "name": "Plenilunio Components",
       "fill": [
         "$pl-fondo",
@@ -176076,8 +178050,8 @@
     {
       "type": "frame",
       "id": "fnZL8",
-      "x": 3564,
-      "y": 18652,
+      "x": 2504,
+      "y": 22121,
       "name": "PL/Fondo · a qué capa",
       "reusable": true,
       "width": 280,
@@ -176317,7 +178291,7 @@
       "type": "frame",
       "id": "Z6vkn",
       "x": 0,
-      "y": 21023,
+      "y": 24442,
       "name": "── 13 · NOTAS ──",
       "fill": "#0d0d0acc",
       "stroke": "$pl-oro",
@@ -176345,7 +178319,7 @@
       "type": "note",
       "id": "bXIop",
       "x": 0,
-      "y": 21173,
+      "y": 24592,
       "name": "Regla de tipografia — texto pequeno",
       "width": 460,
       "height": 260,
@@ -176353,9 +178327,37 @@
     },
     {
       "type": "frame",
+      "id": "cyfxU",
+      "x": 0,
+      "y": 25606,
+      "name": "── 14 · ADMIN ──",
+      "fill": "#0d0d0acc",
+      "stroke": "$pl-oro",
+      "strokeWidth": 1,
+      "strokeAlignment": "inner",
+      "padding": [
+        10,
+        22
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "vbUVM",
+          "name": "T",
+          "fill": "#efede7",
+          "content": "14 · ADMIN",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 46,
+          "fontWeight": "normal",
+          "letterSpacing": 4
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "zhQmK",
       "x": 0,
-      "y": 21887,
+      "y": 25756,
       "name": "Admin/Ajustes · dark",
       "theme": {
         "mode": "dark"
@@ -176963,7 +178965,7 @@
       "type": "frame",
       "id": "V1pQc",
       "x": 1600,
-      "y": 21887,
+      "y": 25756,
       "name": "Admin/Ajustes · light",
       "theme": {
         "mode": "light"
