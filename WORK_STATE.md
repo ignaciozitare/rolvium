@@ -3,36 +3,64 @@
 ## 🎯 Current task
 
 > # 📍 ESTADO (2026-09-22, noche) — AVENTURAS 2.ª VUELTA + LA BIBLIOTECA DE FOTOS
-> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ EN ESTA RAMA). Spec ✅ · DBA ✅ · Scaffold ✅ · ⏳ Design
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Spec ✅ · DBA ✅ · Scaffold ✅ · Diseño ronda A ✅
+> ## ⏳ HANDOFF A CHAT NUEVO: el de hoy llegó a 5 MB. Lo construido va commiteado y verde.
 >
-> **Lo que pidió al ver v0.15.0** (sus frases literales en `specs/modules/adventures/SPEC.md` § Decisions y en
-> `specs/modules/photos/SPEC.md` § Decisions). **Orden acordado** («*vale*»), todo en esta rama, sin mergear a medias:
-> 1. Lo rápido: quitar «ADVENTURE» del desplegable de la Escena (`maps`, `ScenesMenu`); AVENTURAS justo ANTES de
->    ESCENA (`tabsFor` en `table/domain/useCases/tableRules.ts`); el carril de AVENTURAS en ÁRBOL — cada aventura
->    una fila y sus escenas DEBAJO de ella, sólo la abierta desplegada.
-> 2. Filas de PNJ/encuentro elegidas del Bestiario: nombre + foto, enlazadas por `npcId` (string: uuid propio o id
->    del catálogo del manual); al pincharla, ver su ficha o tirar por ella (él eligió «b», NO colocarla en la escena).
-> 3. La BIBLIOTECA DE FOTOS (módulo nuevo `photos`, H13): pestaña del carril lateral SÓLO del director; subir,
->    buscar, renombrar, borrar avisando de dónde se usa; fotos en el documento de una aventura (bloque `image`).
-> 4. Fotos en la escena: una fila de `maps_scene_props` con `photo_id` (mismos gestos que un objeto). El jugador
->    sólo recibe el FICHERO mientras la foto toca el área de juego (la fila sí le llega, sin nombre ni enlace).
-> 5. Fotos en el chat: `chat_messages.kind='photo'`, sólo las manda el director.
-> Compresión: nivel propio «Fotos» en Ajustes; ⚠️ **enseñarle el antes/después con una foto real ANTES de construir**.
+> **Frase para el chat nuevo**: «Rolvium: sigue con `feat/aventuras-segunda-vuelta` — toca el punto 2 (elegir del
+> Bestiario en las filas de PNJ/encuentro). Lee el bloque de arriba de WORK_STATE.md.»
 >
-> **Hecho** (commits `57d0624` specs · `5dac19b` migraciones · `33992ca` esqueleto de `photos`):
-> - Specs: `photos` nuevo (nueve secciones), `adventures`, `table` (orden de pestañas) y el índice.
-> - 3 migraciones SÓLO EN LOCAL (`migration up --local`, nunca `db:reset`): `20260922120000_photos_biblioteca`,
->   `20260922120100_photos_en_escena_y_chat`, `20260922120200_adventures_funciones_de_trigger_cerradas` (la deuda de
->   los REVOKE). Probadas con el director y un jugador real en una transacción deshecha; `db lint` limpio.
-> - Esqueleto `apps/web/src/modules/photos` (entidades, `PhotosPort`, `SupabasePhotosRepo`, `container`, `index.ts`),
->   24 pruebas. Sin pantallas: esperan a las láminas aprobadas.
+> ### Lo que pidió al ver v0.15.0 (sus frases, literales, en los specs)
+> `specs/modules/adventures/SPEC.md` § Decisions «His, 2026-09-22» y `specs/modules/photos/SPEC.md` § Decisions.
+> **Orden acordado** («*vale*»), todo en esta rama y sin mergear a medias:
+> 1. ✅ **HECHO** (`74b062c`): carril en ÁRBOL (las escenas cuelgan de su aventura, sólo la abierta desplegada, su
+>    «+ ESCENA» dentro) · AVENTURAS justo antes de ESCENA · el desplegable de la Escena sin la palabra «AVENTURA».
+> 2. ⏳ **LO SIGUIENTE**: filas de PNJ/encuentro **elegidas del Bestiario**. Él eligió «**b**»: la fila se rellena
+>    con nombre + foto y queda enlazada (`npcId`, que ya existe en el documento); al pincharla, **ver su ficha** o
+>    **tirar por él** (la misma ficha y el mismo «Tirar por una criatura» del Bestiario). **NO** colocar en la escena.
+> 3. ⏳ La BIBLIOTECA DE FOTOS (módulo `photos`, H13): pestaña del carril lateral sólo del director.
+> 4. ⏳ Fotos en la escena (fila de `maps_scene_props` con `photo_id`).
+> 5. ⏳ Fotos en el chat (`chat_messages.kind='photo'`).
 >
-> **⏳ Siguiente paso**: DIBUJAR en `rolvium.pen` la ronda A (puntos 1 y 2) y enseñársela con capturas para su
-> «aprobado» y su Cmd+S; luego construirla. Después, la ronda B (fotos: biblioteca, bloque en la aventura, en la
-> escena, en el chat, Ajustes) con el antes/después de compresión. Pendiente de nombrar por él: la etiqueta de la
-> pestaña de la biblioteca.
-> **Cuando toque**: `bestiary` y `chat` no tienen `index.ts` — importar de ellos desde fuera exige crear su puerta;
-> el spec de `chat` y el de `core/images` no tienen las nueve secciones y el auditor los hará DUROS al tocarlos.
+> ### Cómo construir el punto 2 (ya estudiado, sin escribir código todavía)
+> - El editor compartido (`packages/ui/src/components/richtext/RichTextEditor.tsx`) ya tiene el patrón bueno:
+>   `onPickScene` / `onOpenScene`. Se añaden igual: `onPickNpc()` (lo resuelve quien manda y devuelve
+>   `{npcId, name}` o `null`), `onOpenNpc(id)`, `onRollNpc(id)` y un `npcLook(id)` para pintar foto/iniciales,
+>   más sus `labels`. La primera celda de cada fila: foto + nombre + eslabón + el botón del libro.
+> - En `packages/core/src/richDoc.ts` falta un `setRowNpc(doc, blockId, fila, npcId|null)` con su prueba;
+>   `npcId` ya está en cada fila desde el 19-08.
+> - El menú de la fila enlazada (Ver su ficha · Tirar por él) va DENTRO del editor, pequeño y flotante.
+> - 🚪 **`bestiary` no tiene `index.ts`**: hay que crearle la puerta antes de importarlo desde `adventures`
+>   (`bestiaryRepo`, `BestiaryPort`, `BestiaryEntry`, `useBestiary`, `EntryCard`, `CreatureRollPopover`).
+> - `AdventuresTab` necesita `system` y el puerto de tiradas desde `TablePage` (como el Bestiario) para poder
+>   tirar; `AdventurePage` (ventana aparte) ya resuelve el sistema solo (`systemRegistry.load`).
+> - Diseño aprobado hoy: lámina «Aventuras/Fila del BESTIARIO · elegir a alguien y lo que ofrece», la última de
+>   la § 4 · LA MESA. Icono del Bestiario: `menu_book` (elegido por mí; él puede cambiarlo).
+>
+> ### Hecho hoy, commiteado
+> - `57d0624` specs: `photos` nuevo (nueve secciones), `adventures`, `table` y el índice.
+> - `5dac19b` **3 migraciones SÓLO EN LOCAL** (`migration up --local`, nunca `db:reset`):
+>   `20260922120000_photos_biblioteca` · `20260922120100_photos_en_escena_y_chat` ·
+>   `20260922120200_adventures_funciones_de_trigger_cerradas` (la deuda de los REVOKE). Probadas con el director y
+>   un jugador real dentro de una transacción deshecha; `supabase db lint --local --level error` limpio.
+>   ⚠️ **En producción NO están**: van por MCP antes del merge, como siempre.
+> - `33992ca` esqueleto de `apps/web/src/modules/photos` (entidades, `PhotosPort`, `SupabasePhotosRepo`,
+>   `container`, `index.ts`) — 24 pruebas. Sin pantallas.
+> - `8095643` `.pen`: **ordenado** (14 secciones una debajo de otra, láminas en filas sin pisarse, sección nueva
+>   «14 · ADMIN») y la ronda A dibujada y **aprobada por él**.
+> - `74b062c` el punto 1 construido. Pruebas verdes (1.508 de maps/table/functional), `typecheck` y `audit` 0 hard.
+>
+> ### ⚠️ Dos cosas del `.pen` que hay que saber
+> - **Las marcas magenta de «REVISAR» ya están borradas en su editor, pero NO en disco**: se van con su próximo
+>   Cmd+S. Si no guarda, el commit `8095643` las conserva y no pasa nada.
+> - **Un `git checkout`/merge que toque `rolvium.pen` deja su editor con la versión VIEJA y al cerrar la pisa**
+>   (pasó hoy dos veces; se recuperó con `git checkout -- rolvium.pen`). Antes de dibujar: comparar
+>   `git hash-object rolvium.pen` con `git rev-parse HEAD:rolvium.pen`.
+>
+> ### Pendiente cuando toque
+> - `chat` y `core/images` no tienen las nueve secciones: el auditor los hará DUROS al tocarlos (puntos 3-5).
+> - Antes de construir las fotos: **enseñarle el antes/después de compresión con una foto real**, como con las
+>   texturas, y que él bautice la pestaña de la biblioteca.
+> - Deuda anotada del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
 >
 > *(Lo de abajo es el estado anterior, ya en producción.)*
 >
