@@ -116,3 +116,9 @@
 .av-remove-foot{display:flex;justify-content:flex-end;gap:8px;}
 .av-notice{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-blood);}
 .av-btn.quiet{border-color:var(--sys-line);color:var(--sys-ink-soft);}
+
+/* El carril PLEGADO (rolvium.pen § 4 · «Aventuras/Carril PLEGADO»): una columna con sólo el botón para abrirlo. */
+.av-rail-fold{display:inline-flex;border:none;background:transparent;padding:0;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+.av-rail-fold:hover{color:var(--sys-ink);}
+.av-rail-fold .material-symbols-outlined{font-size:var(--icon-sm);}
+.av-rail.folded{width:34px;align-items:center;padding:8px 0;background:var(--sys-paper-hi);}

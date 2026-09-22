@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Modal, OptionGroup, useDialog } from '@rolvium/ui';
+import { Modal, OptionGroup, Tooltip, useDialog } from '@rolvium/ui';
 import type { MapsPort, Scene } from '@/modules/maps';
 import { mapsRepo as defaultMaps } from '@/modules/maps';
 import { adventuresPort as defaultAdventures } from '../container';
@@ -56,6 +56,12 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [menu, setMenu] = useState<OpenMenu | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  /**
+   * PLEGADO, como el carril de escenas de la mesa (spec del 19-08; dibujado y aprobado el 2026-09-22): se queda
+   * en una columna con sólo el botón para volver a abrirlo, y el documento se lleva el ancho. Como el de la mesa,
+   * no se recuerda: al volver a entrar sale abierto.
+   */
+  const [railFolded, setRailFolded] = useState(false);
   const [removing, setRemoving] = useState<{ adventure: Adventure; target: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const kebabs = useRef(new Map<string, HTMLButtonElement>());
@@ -284,14 +290,31 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
     );
   };
 
+  const fold = (folded: boolean) => { setMenu(null); setRailFolded(folded); };
+
   return (
     <div className="av-tab">
+      {railFolded && (
+        <nav className="av-rail folded" aria-label={t('adventures.rail')}>
+          <Tooltip label={t('adventures.unfoldRail')} placement="right">
+            <button type="button" className="av-rail-fold" aria-expanded={false} aria-label={t('adventures.unfoldRail')} onClick={() => fold(false)}>
+              <span className="material-symbols-outlined" aria-hidden="true">left_panel_open</span>
+            </button>
+          </Tooltip>
+        </nav>
+      )}
+      {!railFolded && (
       <nav className="av-rail" aria-label={t('adventures.rail')}>
         <div className="av-rail-head">
           <span className="av-rail-label">{t('adventures.title')}</span>
           <button type="button" className="av-rail-add" onClick={() => { void create(); }} aria-label={t('adventures.new')}>
             <span className="material-symbols-outlined" aria-hidden="true">add</span>
           </button>
+          <Tooltip label={t('adventures.foldRail')}>
+            <button type="button" className="av-rail-fold" aria-expanded aria-label={t('adventures.foldRail')} onClick={() => fold(true)}>
+              <span className="material-symbols-outlined" aria-hidden="true">left_panel_close</span>
+            </button>
+          </Tooltip>
         </div>
         {notice && <p className="av-notice" role="alert">{notice}</p>}
         <ul className="av-rail-list">
@@ -338,6 +361,7 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
           ))}
         </ul>
       </nav>
+      )}
 
       {menu && menuAdventure && (
         <RailMenu key={`a-${menu.id}`} anchor={menu.anchor} label={t('adventures.menu.label')} placement="right" rows={adventureRows(menuAdventure)} onClose={closeMenu} />

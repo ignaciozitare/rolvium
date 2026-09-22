@@ -99,6 +99,32 @@ describe('AdventuresTab — el carril', () => {
   });
 });
 
+describe('AdventuresTab — el carril plegable', () => {
+  it('plegado se queda en el botón para abrirlo, el documento sigue, y se despliega como estaba', async () => {
+    const user = userEvent.setup();
+    paint(fakeAdventures([adv(), adv({ id: 'a2', title: 'La feria', status: 'draft', sortOrder: 1 })]), fakeMaps([]));
+    await screen.findByRole('heading', { level: 1 });
+    await user.click(screen.getByRole('button', { name: 'Plegar aventuras' }));
+    expect(screen.queryByRole('button', { name: /La feria/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nueva aventura' })).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    const unfold = screen.getByRole('button', { name: 'Desplegar aventuras' });
+    expect(unfold).toHaveAttribute('aria-expanded', 'false');
+    await user.click(unfold);
+    expect(screen.getByRole('button', { name: /La feria.*Borrador/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Plegar aventuras' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('plegar cierra el menú de los tres puntos que estuviera abierto', async () => {
+    const user = userEvent.setup();
+    paint(fakeAdventures([adv()]), fakeMaps([]));
+    await user.click(await screen.findByRole('button', { name: 'Opciones de «El almacén de los muelles»' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Plegar aventuras' }));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
+
 describe('AdventuresTab — el documento', () => {
   it('pinta el cuaderno de la aventura abierta, con su título y su estado', async () => {
     paint(fakeAdventures([adv()]), fakeMaps([]));

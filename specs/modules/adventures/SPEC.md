@@ -73,12 +73,15 @@ cannot, not even by asking for one by its id — see § Permissions.
 | Menu of an adventure + the state | The three dots of an adventure (mark running · up · down · archive · delete) and the state drop-down of the header | § 4 · `Aventuras/Carril · MENÚ DE UNA AVENTURA y el ESTADO` |
 | Menu of a scene | Rename · up · down · move to another adventure, with the list of adventures beside it | § 4 · `Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura` |
 | Archived + delete | «ARCHIVADAS» unfolded with «Sacar del archivo», and the dialog that asks where the scenes go | § 4 · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas` |
+| Folded rail | The rail folded into a column with only the button to open it («Desplegar aventuras»); the index and the document take the width | § 4 · `Aventuras/Carril PLEGADO · el documento a lo ancho` |
 
 Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20; the rail controls on
 2026-09-21 («*aprobado*»).
 
 **The rail**, left side: the adventures of the campaign, and under them the scenes of the open one. The «+» of
-each block creates. Collapsible, like the table's scene rail.
+each block creates. **Foldable, like the table's scene rail**: the button beside the «+» of AVENTURAS folds it
+into a 34 px column with only the button to open it again, and the document takes the width. Like the table's
+rail, it does not remember: entering the tab again shows it open (drawn and approved on 2026-09-22).
 
 **The document header**: the editable title, the **state** (a drop-down in the tab; read-only in the separate
 window, which cannot see the other adventures), the save indicator and the **open-in-a-separate-window** button.

@@ -1936,6 +1936,8 @@
       "withSceneOne": "Tiene 1 escena, y la escena no se borra con ella. Elige a qué aventura se va antes de borrarla.",
       "moveTo": "Llevar sus escenas a",
       "confirmMove": "Mover y borrar"
-    }
+    },
+    "foldRail": "Plegar aventuras",
+    "unfoldRail": "Desplegar aventuras"
   }
 }

@@ -1936,6 +1936,8 @@
       "withSceneOne": "It has 1 scene, and the scene is not deleted with it. Choose which adventure it goes to before deleting it.",
       "moveTo": "Move its scenes to",
       "confirmMove": "Move and delete"
-    }
+    },
+    "foldRail": "Fold adventures",
+    "unfoldRail": "Unfold adventures"
   }
 }
