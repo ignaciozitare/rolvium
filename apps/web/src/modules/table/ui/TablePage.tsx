@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -41,7 +41,6 @@ import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
 import type { MapsPort, SceneAdventure, VisionPort, ToolbarOrderPort } from '@/modules/maps';
-import { mapsRepo as defaultMaps } from '@/modules/maps';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
 
@@ -71,6 +70,14 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   // La criatura que el Bestiario manda a colocar. Vive aquí y no en la escena porque el viaje cruza dos
   // pestañas: se elige en «Bestiario» y se coloca en «Escena».
   const [toPlace, setToPlace] = useState<CatalogItem | null>(null);
+  /**
+   * La escena que el director pidió ABRIR desde AVENTURAS —o el `?scene=` con el que la ventana aparte abre la
+   * mesa—. Se le da a la escena para que gane a la última que miró; y se suelta en cuanto se va a otra pestaña,
+   * para que al volver le devuelva a donde estaba y no a esta otra vez. Abrir NO activa (abrir ≠ activar).
+   */
+  const [searchParams] = useSearchParams();
+  const [openScene, setOpenScene] = useState<string | null>(() => searchParams.get('scene'));
+  useEffect(() => { if (chosenTab !== null && chosenTab !== 'scene') setOpenScene(null); }, [chosenTab]);
 
   // System fonts: load once per system (theme.fonts.url).
   useEffect(() => {
@@ -220,16 +227,17 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               * por qué saber cómo se leen los permisos. Es el permiso `manage_textures` del motor de roles,
               * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
               */}
-            {tab === 'scene' && <Scene adventuresPort={adventures ?? defaultAdventures} campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+            {tab === 'scene' && <Scene adventuresPort={adventures ?? defaultAdventures} campaignId={campaign.id} openSceneId={openScene} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
             {/* AVENTURAS (H12): sólo la pinta el director — `tabsFor` no se la da a nadie más. Abrir una escena
-                desde el texto es lo mismo que pincharla en el carril: se marca activa y se salta a la escena. */}
+                desde el texto es lo mismo que pincharla en el carril: se le ABRE a él y se salta a la escena. NO se
+                activa —abrir ≠ activar, su regla de `maps`—: los jugadores se quedan donde estaban (4.º QA, 22-09). */}
             {/* El puerto se inyecta como el del Bestiario: sin esto la pestaña iría contra Supabase en cuanto
                 un test la abriera, y no se podía probar. */}
             {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
-              onOpenScene={sceneId => { void (maps ?? defaultMaps).setActiveScene(campaign.id, sceneId).catch(() => {}); setTab('scene'); }} />}
+              onOpenScene={sceneId => { setOpenScene(sceneId); setTab('scene'); }} />}
             </SafeRegion>
           </main>
           <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>
@@ -237,9 +245,15 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               aria-label={sideOpen ? t('table.side.hide') : t('table.side.show')} onClick={() => setSideOpen(o => !o)}>
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
             </button>
-            {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
-              myUserId={user.id} chatUnread={chatUnread}
-              onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
+            {/*
+              * SU PROPIA RED (`specs/core/errors/SPEC.md`): si Notas, Bitácora o el chat revientan al pintarse, se
+              * cae el carril y no la mesa — lo pide el spec de `journal` («the rail falls, not the table»).
+              */}
+            {sideOpen && <SafeRegion label="table:side">
+              <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
+                myUserId={user.id} chatUnread={chatUnread}
+                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />
+            </SafeRegion>}
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}

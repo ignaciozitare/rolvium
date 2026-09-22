@@ -34,7 +34,9 @@ cannot, not even by asking for one by its id — see § Permissions.
   - *PNJ*: name · what it is · what it wants · notes.
   - *Encounter*: PNJ · how many · difficulty · notes.
 - **Press «Índice»** and get a navigation panel beside the text: every **H1** with its **H2s** nested under it.
-- **Link a scene** from the text: a chip that opens it at the table.
+- **Link a scene** from the text: a chip that opens it at the table — **for the GM only**: opening is not
+  activating, the players stay where they are. From the separate window, the chip opens the table in a new
+  window already on that scene (`/table/:campaignId?scene=:sceneId`).
 - **Manage the scenes of the adventure**, from the three dots of each scene in the rail:
   - **create** one with the «+» of «ESCENAS DE ESTA AVENTURA» — it asks for the name, exactly like «+ ESCENA» at
     the table, and it is born in THIS adventure;
@@ -42,7 +44,7 @@ cannot, not even by asking for one by its id — see § Permissions.
   - **move it up / down** inside the adventure;
   - **move it to another adventure** — a list beside the menu with the other adventures of the rail. The scene
     goes whole, with everything inside it; it is never copied;
-  - **open it at the table** — clicking the scene itself, as before.
+  - **open it at the table** — clicking the scene itself, as before. It opens for him and is **not** activated.
   Deleting a scene is NOT here: it stays where it always was, in the table's scene rail.
 - **Mark an adventure as running**, from its three dots or from the header of the document. Only one is running:
   it is the one the tab opens, and where the scenes created from the table go.
@@ -363,6 +365,16 @@ before his approval, to be corrected if he disagrees:
 - **Taking one out of the archive** brings it back at the end of the rail, as a draft.
 - In the `.pen` the open adventure was painted in **black**; the code already had it in blood. Fixed in the
   master (his rule of 2026-09-04: no black chrome at the table).
+
+### Mine, 2026-09-22, from the 4th QA (flagged, not asked)
+
+- **Opening a scene from AVENTURAS opens it for the GM; it does NOT activate it.** The code activated it and
+  jumped to the Escena tab, where his browser's last-viewed scene won: the QA measured the GM landing on the
+  OLD scene while the players were switched to the clicked one. Decided by his own rule in `maps` —«abrir ≠
+  activar», «*puede preparar un piso mientras el grupo juega en otro*»—: activating stays a separate, explicit
+  action in the scene rail. The scene the table asks to open wins over the last one viewed (`sceneToOpen`).
+- **The separate window's chip opens the table on that scene** through `?scene=`, which the table now reads.
+  Before, nothing read it and the table opened wherever the rule above landed.
 
 ### Debt this uncovers
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '../helpers/render';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
@@ -13,6 +13,35 @@ import type { AdventuresPort } from '@/modules/adventures';
 import { heading, paragraph, type RichDoc } from '@rolvium/core';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
+
+/**
+ * EL CARRIL LATERAL, ROTO A PROPÓSITO (4.º QA, 2026-09-22). Se deja pasar el de verdad salvo en la prueba que lo
+ * enciende: así se ve que un editor que revienta al pintarse tumba el carril y NO la mesa.
+ */
+const sideRail = vi.hoisted(() => ({ breaks: false }));
+vi.mock('@/modules/dice/ui/SidePanel', async importOriginal => {
+  const real = await importOriginal<typeof import('@/modules/dice/ui/SidePanel')>();
+  const { createElement } = await import('react');
+  return {
+    ...real,
+    SidePanel: (p: Parameters<typeof real.SidePanel>[0]) => {
+      if (sideRail.breaks) throw new Error('el editor de Notas revienta al pintarse');
+      return createElement(real.SidePanel, p);
+    },
+  };
+});
+/**
+ * La última escena que miró el director, como la apunta su navegador (`LocalViewMemory`). Aquí jsdom no trae
+ * `localStorage` (origen opaco): se le pone uno de memoria SÓLO en las pruebas que lo piden, como en `useTheme`,
+ * para no cambiarles el suelo a las demás.
+ */
+const REMEMBERED = 'rolvium_maps_scene_c1';
+function withBrowserMemory(): Map<string, string> {
+  const mem = new Map<string, string>();
+  vi.stubGlobal('localStorage', { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); }, removeItem: (k: string) => { mem.delete(k); }, clear: () => mem.clear() });
+  return mem;
+}
+afterEach(() => { sideRail.breaks = false; vi.unstubAllGlobals(); });
 
 function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: TableSnapshot } {
   const snap: TableSnapshot = {
@@ -68,10 +97,10 @@ const fakeAdventuresRepo = (): AdventuresPort => ({
   create: vi.fn(), update: vi.fn(), saveDoc: vi.fn(), remove: vi.fn(),
 } as unknown as AdventuresPort);
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo()) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo(), path = '/table/c1') {
   renderWithProviders(
     <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
-    { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
+    { providers: { routerProps: { initialEntries: [path] } } },
   );
   return { rolls, rollLog, maps, vision, bestiary, attacks, chat, adventures };
 }
@@ -230,19 +259,71 @@ describe('table: page', () => {
     expect(screen.queryByRole('button', { name: 'Aventuras' })).toBeNull();
   });
 
-  it('abrir una escena desde una aventura la marca activa Y lleva a la escena', async () => {
+  /**
+   * 🐞 4.º QA (2026-09-22): pinchar una escena en AVENTURAS le dejaba al director en la ÚLTIMA que miró —la de su
+   * navegador gana a la activa— mientras a los jugadores se les cambiaba a la pinchada. Ahora se le ABRE a él,
+   * y NO se activa: abrir ≠ activar, su regla de `maps`.
+   */
+  it('abrir una escena desde una aventura se la abre al director, aunque mirase otra, y NO la activa', async () => {
     const u = userEvent.setup();
-    // La escena tiene que colgar de ESTA aventura: el carril sólo enseña las suyas.
-    const maps = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }] });
+    withBrowserMemory().set(REMEMBERED, SCENE_WAREHOUSE.id);
+    // Las dos cuelgan de ESTA aventura: el carril sólo enseña las suyas.
+    const maps = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }, { ...SCENE_CHAPEL, adventureId: 'a1' }] });
     mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps);
     await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
     await screen.findByRole('textbox', { name: 'Título de la aventura' });
 
-    // Por su nombre EXACTO: sus tres puntos se llaman «Opciones de «Almacén de Queens»».
-    await u.click(await screen.findByRole('button', { name: SCENE_WAREHOUSE.name }));
-    await waitFor(() => expect(maps.activated).toContain(SCENE_WAREHOUSE.id));
-    // Y se sale del cuaderno: se coloca en la escena, no se queda leyendo.
-    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Título de la aventura' })).toBeNull());
+    // Por su nombre EXACTO: sus tres puntos se llaman «Opciones de «Capilla sin techo»».
+    await u.click(await screen.findByRole('button', { name: SCENE_CHAPEL.name }));
+    // Se sale del cuaderno y cae en LA PINCHADA, no en la que tenía apuntada.
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}`, pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}`, pressed: false })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Título de la aventura' })).toBeNull();
+    // Y a los jugadores no se les mueve.
+    expect(maps.activated).not.toContain(SCENE_CHAPEL.id);
+  });
+
+  it('al irse a otra pestaña y volver, la Escena le devuelve a donde estaba, no a la pinchada otra vez', async () => {
+    const u = userEvent.setup();
+    withBrowserMemory();
+    const maps = fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, adventureId: 'a1' }, { ...SCENE_CHAPEL, adventureId: 'a1' }] });
+    mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps);
+    await u.click(await screen.findByRole('button', { name: 'Aventuras' }));
+    await u.click(await screen.findByRole('button', { name: SCENE_CHAPEL.name }));
+    // Ya en la Escena, se cambia él a la otra…
+    await u.click(await screen.findByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}` }));
+    await u.click(screen.getByRole('button', { name: 'El grupo' }));
+    await u.click(screen.getByRole('button', { name: 'Escena' }));
+    // …y al volver sigue en la suya.
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}`, pressed: true })).toBeInTheDocument();
+  });
+
+  it('la ventana aparte abre la mesa con `?scene=`: el director cae en esa escena, sin activarla', async () => {
+    withBrowserMemory().set(REMEMBERED, SCENE_WAREHOUSE.id);
+    const maps = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL] });
+    mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps,
+      fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), `/table/c1?scene=${SCENE_CHAPEL.id}`);
+    expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}`, pressed: true })).toBeInTheDocument();
+    expect(maps.activated).not.toContain(SCENE_CHAPEL.id);
+  });
+
+  /** El spec de `journal`, § States & errors: «the rail falls, not the table». */
+  it('si el carril lateral revienta al pintarse, se cae el carril y la mesa sigue en pie', async () => {
+    const u = userEvent.setup();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    sideRail.breaks = true;
+    mount(GM, fakeTableRepo('dm'));
+    const aviso = await screen.findByTestId('safe-region-fallback');
+    // El aviso sale DENTRO del carril…
+    expect(aviso.closest('aside')).not.toBeNull();
+    // …y la mesa sigue: sus pestañas se ven y se usan.
+    await u.click(screen.getByRole('button', { name: 'El grupo' }));
+    expect(await screen.findByRole('article', { name: 'Karen «K»' })).toBeInTheDocument();
+    // Y reintentar, con el problema ya resuelto, vuelve a montar el carril.
+    sideRail.breaks = false;
+    await u.click(within(aviso).getByRole('button', { name: /reintentar|try again/i }));
+    await waitFor(() => expect(screen.queryByTestId('safe-region-fallback')).toBeNull());
+    vi.restoreAllMocks();
   });
 
   it('non-member sees the notice', async () => {

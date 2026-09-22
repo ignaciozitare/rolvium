@@ -214,6 +214,9 @@ export function sceneVisibleTo(s: Pick<Scene, 'id' | 'visiblePlayers'>, activeSc
  *
  *  1. la que ya estaba mirando —la lista se recarga sola cada vez que cambia algo, y sin esto cualquier
  *     cambio ajeno le movería la vista de debajo del ratón;
+ *  1b. la que la mesa le PIDE abrir —pinchada en AVENTURAS, o el enlace `?scene=` de la ventana aparte—.
+ *     Va por delante de la última que miró: si no, pincharla le dejaba en la de antes (lo cazó el 4.º QA,
+ *     2026-09-22). Abrirla NO la activa: abrir ≠ activar, los jugadores se quedan donde estaban;
  *  2. la ÚLTIMA QUE MIRÓ, apuntada en su navegador: es la que hace que recargar no le mueva de sitio;
  *  3. la escena ACTIVA de la mesa, que es lo que ven los jugadores;
  *  4. la primera de la lista.
@@ -223,9 +226,10 @@ export function sceneVisibleTo(s: Pick<Scene, 'id' | 'visiblePlayers'>, activeSc
  */
 export function sceneToOpen(
   scenes: Pick<Scene, 'id'>[], current: string | null, remembered: string | null, activeSceneId: string | null,
+  requested: string | null = null,
 ): string | null {
   const hay = (id: string | null): string | null => (id && scenes.some(s => s.id === id) ? id : null);
-  return hay(current) ?? hay(remembered) ?? hay(activeSceneId) ?? scenes[0]?.id ?? null;
+  return hay(current) ?? hay(requested) ?? hay(remembered) ?? hay(activeSceneId) ?? scenes[0]?.id ?? null;
 }
 /** Hidden tokens do not exist for players (RLS) — kept here so a stale cache never leaks them. */
 export function visibleTokens(tokens: Token[], isDm: boolean, playerView = false): Token[] {

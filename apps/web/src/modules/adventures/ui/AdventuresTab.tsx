@@ -28,7 +28,7 @@ type OpenMenu = { kind: 'adventure' | 'scene'; id: string; anchor: HTMLElement }
 
 interface Props {
   campaignId: string;
-  /** Abrir una escena en la mesa: lo hace `TablePage`, que es quien sabe de escena activa. */
+  /** Abrir una escena en la mesa: lo hace `TablePage`, que se la abre al director SIN activarla (abrir ≠ activar). */
   onOpenScene: (sceneId: string) => void;
   adventures?: AdventuresPort;
   maps?: MapsPort;

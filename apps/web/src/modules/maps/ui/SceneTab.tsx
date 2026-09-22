@@ -103,6 +103,11 @@ interface Props {
   members: CampaignMember[];
   /** From the table snapshot (live). Players see this scene; the DM starts on it. */
   activeSceneId: string | null;
+  /**
+   * La escena que la mesa le pide ABRIR al director (pinchada en AVENTURAS, o `?scene=` de la ventana aparte).
+   * Sólo la abre él: no la activa, los jugadores se quedan donde estaban (abrir ≠ activar).
+   */
+  openSceneId?: string | null;
   charactersRepo: CharactersPort;
   /** The dice roller belongs to H6 and is hosted by the table; the scene only owns the button that opens it. */
   onOpenDice?: () => void;
@@ -134,7 +139,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, adventures, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
+export function SceneTab({ campaignId, adventures, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, openSceneId = null, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -284,12 +289,12 @@ export function SceneTab({ campaignId, adventures, role, userId, system, canMana
     let alive = true;
     setStatus('loading');
     if (isDm) {
-      void repo.listScenes(campaignId).then(l => { if (!alive) return; setScenes(l); setSelectedId(cur => sceneToOpen(l, cur, memory.lastScene(campaignId), activeSceneId)); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
+      void repo.listScenes(campaignId).then(l => { if (!alive) return; setScenes(l); setSelectedId(cur => sceneToOpen(l, cur, memory.lastScene(campaignId), activeSceneId, openSceneId)); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
     } else if (activeSceneId) {
       void repo.getScene(activeSceneId).then(s => { if (!alive) return; setPlayerScene(s); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
     } else { setPlayerScene(null); setStatus('ready'); }
     return () => { alive = false; };
-  }, [repo, campaignId, isDm, activeSceneId, memory]);
+  }, [repo, campaignId, isDm, activeSceneId, memory, openSceneId]);
   /**
    * …Y SE APUNTA LO QUE MIRA, para que la recarga le devuelva aquí. Sólo el director: un jugador no elige
    * escena, la suya la manda la mesa.
