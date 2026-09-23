@@ -12,7 +12,8 @@
 > 1. ✅ **HECHO** (`74b062c`): carril en ÁRBOL (las escenas cuelgan de su aventura, sólo la abierta desplegada, su
 >    «+ ESCENA» dentro) · AVENTURAS justo antes de ESCENA · el desplegable de la Escena sin la palabra «AVENTURA».
 > 2. ✅ **HECHO**: filas de PNJ/encuentro **elegidas del Bestiario**, su opción «**b**». Detalle abajo.
-> 3. ⏳ **LO SIGUIENTE**: la BIBLIOTECA DE FOTOS (módulo `photos`, H13): pestaña del carril lateral sólo del director.
+> 3. ⏳ **EN CURSO**: la BIBLIOTECA DE FOTOS (módulo `photos`, H13): pestaña del carril lateral sólo del director.
+>    **Diseño dibujado, pendiente de que LO MIRE ÉL** (ver abajo). Sin código todavía.
 > 4. ⏳ Fotos en la escena (fila de `maps_scene_props` con `photo_id`).
 > 5. ⏳ Fotos en el chat (`chat_messages.kind='photo'`).
 >
@@ -52,9 +53,26 @@
 > - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
 > - `chat` y `core/images` no tienen las nueve secciones: el auditor los hará DUROS al tocarlos (puntos 3-5).
 >
+> ### El punto 3, dónde está (2026-09-23)
+> - **Lámina dibujada en `rolvium.pen`**: `Fotos/Biblioteca · el carril · sólo el director  ←  NUEVO 23-09`
+>   (`aZnl0`), en **§ 4 · LA MESA**, a la derecha de la fila del Bestiario, con marco y cartel magenta.
+>   Cuatro columnas: VACÍA · CON FOTOS · SUBIENDO (cuánto adelgaza) · EL MENÚ DE UNA FOTO.
+>   Faltan por dibujar: borrar una foto que se usa, y la foto a lo grande.
+> - ⚠️ **NO HE PODIDO VERLA.** `TakeScreenshot` y `Export` del MCP devuelven la lámina **vacía** (sólo el
+>   fondo), también con una sonda mínima de un texto y un rectángulo — o sea, **no es el dibujo, es el
+>   entorno**: lo que inserto por MCP no llega al pintor. `Get` sí lee el árbol y está bien montado
+>   (los paneles son `ref` a `LtIYz`/`PL/Hoja` con `descendants`, como las láminas que ya había).
+>   **Él la ve en su editor**; hay que pedirle que la mire antes de dibujar más.
+> - **Banco de compresión listo** (`scratchpad/medir.mjs`): Chromium de verdad, el mismo
+>   `canvas.toBlob('image/webp', q)` de producción, barre lado máximo × calidad y deja los WebP para mirarlos.
+>   Probado con `fondo.png` (3,35 MB): ahorra 95-100 %, pero **es papel liso y no dice nada de una foto**.
+>   Su biblioteca local no sirve de muestra: los 168 fondos ya están comprimidos (WebP, máx. 871 KB).
+>   **Hace falta UNA FOTO SUYA de verdad**, sin comprimir, de las que pondría en una aventura.
+>
 > ### Antes de construir las fotos (puntos 3-5)
 > - **Enseñarle el antes/después de compresión con una foto real**, como con las texturas.
-> - **Que él bautice la pestaña de la biblioteca** (no inventarle el nombre).
+> - **Que él bautice la pestaña de la biblioteca** (no inventarle el nombre). En la lámina va **propuesta**
+>   como «FOTOS», con el cartel magenta al lado para que la cambie.
 > - **Las 3 migraciones de esta rama siguen SÓLO EN LOCAL**: `20260922120000_photos_biblioteca`,
 >   `20260922120100_photos_en_escena_y_chat`, `20260922120200_adventures_funciones_de_trigger_cerradas`.
 >   Van a producción por MCP, una a una, ANTES del merge a `main`.
