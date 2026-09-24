@@ -27,8 +27,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 ## What the user can do
 
 **The GM**
-- **Open the library** from a new tab of the table's side rail, next to Bitácora and Notas. Only the GM has
-  that tab.
+- **Open the library** from the side rail's **GALERÍA** tab, next to Bitácora and Notas. Only the GM has that
+  tab. He named it on 2026-09-24 («*cambia fotos por galeria*»); the module is still `photos` in the code. With
+  five tabs the bar wraps onto a second line, which is what `.dc-tabs` already does (`flex-wrap: wrap`).
 - **See every photo of the campaign**, newest first, as a grid of thumbnails with their names.
 - **Search** by name (accent- and case-insensitive, like the Bestiary's search).
 - **Upload** photos from disk (or by dragging them in), one or several at a time. Each one is compressed in
@@ -38,8 +39,12 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
   conversations). Then it disappears from the scenes, and the adventures and the chat show «foto borrada»
   where it was.
 - **See it bigger**, by clicking it.
-- **Drop it into the scene**: from the library, choose it for the scene and click where it goes on the map —
-  the same gesture as «Colocar» from the Bestiary. If the GM is on another tab, the table switches to Escena.
+- **Drag it onto the scene** (2026-09-24, «*asegurate que pueda arrastrar las fotos a la escena y no que solo
+  sea con el boton*»): grab the photo in the grid and drop it on the map. **It lands where it is dropped.** This
+  is the everyday gesture, and it works whenever the Escena tab is showing — the rail sits right beside the map.
+- **Or send it to the scene from its menu** («A la escena»), which arms it and clicks where it goes, the same
+  gesture as «Colocar» from the Bestiary. If the GM is on another tab, the table switches to Escena. **The
+  button stays**: it is the way in when the map is not on screen. Dragging does not replace it.
 - **Send it through the chat**, to a conversation (one-to-one or group), from the library or from the chat
   itself.
 
@@ -69,8 +74,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 
 | Screen / part | What it is | Plate |
 |---|---|---|
-| Library tab | The side rail's new tab, GM only: search · upload · grid of photos | ⏳ to be drawn in `rolvium.pen` § 4 · LA MESA |
-| Photo menu | On each photo: rename · to the scene · send through the chat · delete | ⏳ to be drawn |
+| Library tab | The side rail's GALERÍA tab, GM only: search · upload · grid of photos, plus the empty and the uploading states | § 4 · `Fotos/Biblioteca · el carril · sólo el director` |
+| Photo menu | On each photo: rename · to the scene · send through the chat · see it bigger · delete | § 4 · same plate, column «EL MENÚ DE UNA FOTO» |
+| Dragging it onto the scene | Grabbing it in the grid, the drop on the map, and what is inside the play area vs beside it | § 4 · same plate, column «ARRASTRARLA A LA ESCENA» |
 | Delete dialog | «Se usa en…» with the adventures, scenes and conversations, then confirm | ⏳ to be drawn |
 | Photo, bigger | The photo on its own over the table | ⏳ to be drawn (reuse the Bestiary's `PhotoModal` look if it fits) |
 | Photo block in an adventure | The photo at text width inside the document; the editor bar's photo button with «Subir» / «De la biblioteca» | ⏳ to be drawn in § 4 (AVENTURAS) |
@@ -78,7 +84,7 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 | Photo in the chat | A message with a photo, in a conversation and in its pill; the attach button (GM only) | ⏳ to be drawn in the chat's section |
 | Compression level in Ajustes | A fourth column «Fotos» next to textures, objects and backgrounds | ⏳ to be drawn in Admin → Ajustes |
 
-The tab's label is not his yet: it is proposed in the drawing and he names it when he approves it.
+The tab's label is **GALERÍA**, his own (2026-09-24). It was drawn proposed as «FOTOS» and he renamed it.
 
 ## Rules & limits
 
@@ -90,6 +96,10 @@ The tab's label is not his yet: it is proposed in the drawing and he names it wh
   - it is placed in a scene the player can see, **inside the play area**; or
   - it is attached to a message of a conversation the player is in.
   A photo in an adventure is never shown to players (adventures are the GM's).
+- **Dragging is the everyday way in, the button is the fallback.** A drag only exists while the map is on
+  screen, so the menu's «A la escena» is kept for every other case; both end in the same placed photo, and
+  neither is a different kind of object. A photo dropped **outside the map's own frame** (on the chrome around
+  it) is not placed and nothing happens — it is not an error, the drag simply does not land.
 - **Inside the play area** means touching the scene's map rectangle (the exact rotated shape, not the box around
   it; touching the edge exactly does not count). What sticks out is cut, exactly like the rest of the map. A photo
   entirely outside **never reaches the player's browser**: the player's screen knows *where* it is (so that it
@@ -123,6 +133,8 @@ The tab's label is not his yet: it is proposed in the drawing and he names it wh
 | Deleting a photo in use | Its menu → delete | The dialog listing where it is used, then confirm |
 | A deleted photo in an adventure or chat | After deleting it | «foto borrada» in its place |
 | Placing with no scene open | «A la escena» with no scene | The table goes to Escena and says there is no scene to place it in |
+| Dragging with no scene open | The map is not there to drop on | There is nothing to drop onto, so nothing happens; the button is the way in, and it explains itself |
+| Dropping it outside the map | The drag ends on the chrome around the map | Nothing is placed and nothing is said: a drag that does not land is not a mistake |
 | A broken part | The library throws while painting | The side rail's net (`core/errors`): the rail falls, not the table |
 | A player who somehow reaches it | Direct URL / id | Nothing: for them the row does not exist |
 
@@ -237,6 +249,16 @@ moved to touch it → yes; touching the edge exactly → no. A player's ordinary
 6. **The order** (agreed: «*vale*»): (1) the quick adventure fixes, (2) the Bestiary in the tables, (3) the
    library and photos in the adventure, (4) photos in the scene, (5) photos in the chat — all in the same branch,
    without merging halfway.
+
+### His, 2026-09-24 (verbatim)
+
+7. **The tab is GALERÍA**: «*cambia fotos por galeria*». It had been drawn proposed as «FOTOS», which the spec
+   had left for him to name. The code's module keeps its name (`photos`); what he named is what is read on screen.
+8. **Dragging, not only the button**: «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea
+   con el boton*». The table has **no drag-onto-the-map today** — everything is placed by arming and clicking
+   (`armEncounter`), and the only drag-and-drop that exists is inside the objects library, for reordering and for
+   dropping files in. So this is a new gesture on the map, not a reuse. The button stays, because a drag needs
+   the map on screen and he does not always have it there.
 
 ### Mine, 2026-09-22 (shown to him in the summary he confirmed with «*si*»)
 

@@ -53,16 +53,25 @@
 > - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
 > - `chat` y `core/images` no tienen las nueve secciones: el auditor los hará DUROS al tocarlos (puntos 3-5).
 >
-> ### El punto 3, dónde está (2026-09-23)
+> ### Sus dos órdenes del 2026-09-24
+> - «*cambia fotos por galeria*» → la pestaña se llama **GALERÍA**. El módulo del código sigue siendo `photos`.
+> - «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea con el boton*» → **arrastrar la foto
+>   de la galería y soltarla en el mapa**, además del botón «A la escena», que se queda (hace falta cuando no
+>   tienes el mapa delante). ⚠️ **La mesa NO sabe hoy recibir nada arrastrado**: todo se coloca armando y
+>   pinchando (`armEncounter`), y el único arrastrar-y-soltar que existe es DENTRO de la biblioteca de objetos
+>   (reordenar y meter ficheros). Es un gesto nuevo sobre el mapa, no una reutilización.
+>
+> ### El punto 3, dónde está (2026-09-24)
 > - **Lámina dibujada en `rolvium.pen`**: `Fotos/Biblioteca · el carril · sólo el director  ←  NUEVO 23-09`
 >   (`aZnl0`), en **§ 4 · LA MESA**, a la derecha de la fila del Bestiario, con marco y cartel magenta.
->   Cuatro columnas: VACÍA · CON FOTOS · SUBIENDO (cuánto adelgaza) · EL MENÚ DE UNA FOTO.
->   Faltan por dibujar: borrar una foto que se usa, y la foto a lo grande.
-> - ⚠️ **NO HE PODIDO VERLA.** `TakeScreenshot` y `Export` del MCP devuelven la lámina **vacía** (sólo el
->   fondo), también con una sonda mínima de un texto y un rectángulo — o sea, **no es el dibujo, es el
->   entorno**: lo que inserto por MCP no llega al pintor. `Get` sí lee el árbol y está bien montado
->   (los paneles son `ref` a `LtIYz`/`PL/Hoja` con `descendants`, como las láminas que ya había).
->   **Él la ve en su editor**; hay que pedirle que la mire antes de dibujar más.
+>   **Cinco** columnas: VACÍA · CON FOTOS · SUBIENDO (cuánto adelgaza) · EL MENÚ DE UNA FOTO ·
+>   **ARRASTRARLA A LA ESCENA**. Faltan por dibujar: borrar una foto que se usa, y la foto a lo grande.
+> - ✅ **Ya se ve.** Lo de ayer (láminas vacías en `TakeScreenshot` y `Export`) era pasajero: el MCP tardó en
+>   pintar lo recién insertado. **La API buena del `execute` es** `Insert · Copy · Replace · Move · Delete ·
+>   Update · SetVariables · GetVariables · Get · Print · Generate · TakeScreenshot · Export · FindEmptySpace`
+>   (se saca con `throw new Error(Object.getOwnPropertyNames(globalThis)…)`). `Print` devuelve datos;
+>   `Export([id], "png", carpeta)` deja el PNG en disco y se puede mirar. **`TakeScreenshot` sólo pinta bien lo
+>   que está en el viewport; `Export` no.** Ojo: los nodos metidos por `descendants` NO los ve `Get(visitor)`.
 > - **Banco de compresión listo** (`scratchpad/medir.mjs`): Chromium de verdad, el mismo
 >   `canvas.toBlob('image/webp', q)` de producción, barre lado máximo × calidad y deja los WebP para mirarlos.
 >   Probado con `fondo.png` (3,35 MB): ahorra 95-100 %, pero **es papel liso y no dice nada de una foto**.
