@@ -65,7 +65,20 @@
 > - **Lámina dibujada en `rolvium.pen`**: `Fotos/Biblioteca · el carril · sólo el director  ←  NUEVO 23-09`
 >   (`aZnl0`), en **§ 4 · LA MESA**, a la derecha de la fila del Bestiario, con marco y cartel magenta.
 >   **Cinco** columnas: VACÍA · CON FOTOS · SUBIENDO (cuánto adelgaza) · EL MENÚ DE UNA FOTO ·
->   **ARRASTRARLA A LA ESCENA**. Faltan por dibujar: borrar una foto que se usa, y la foto a lo grande.
+>   **ARRASTRARLA A LA ESCENA**. **Aprobada por él el 24-09** («*esta bien*»).
+> - ✅ **EL DISEÑO ESTÁ COMPLETO** (24-09). Ya no queda ni un ⏳ en § Screens del spec. Las otras cuatro láminas:
+>   · § 4 · `Fotos/Borrar una foto que se usa · y LA FOTO A LO GRANDE` (`oO15P`) — el «Se usa en…» y la hoja
+>     de pergamino, la misma del Bestiario.
+>   · § 4 · `Fotos/En una aventura · el bloque de foto` (`NKHzx`) — el botón de la barra con «Subir una del
+>     ordenador / De la galería», la foto al ancho del texto y el hueco «foto borrada».
+>   · § 4 · `Fotos/En el chat · mandarla y verla` (`df9F8`) — el clip (sólo el director), el mensaje con foto
+>     y la pastilla.
+>   · § 6 · `Fotos/En la escena · puesta, cogida y al lado` (`oNZA6`) — tiradores, giro, la de al lado, y el
+>     menú del botón derecho.
+>   · § 14 · `Admin/Ajustes · compresión con FOTOS` (`V6AM3n`) — la cuarta columna, en claro y en oscuro.
+> - ⚠️ **UNA PREGUNTA SIN CONTESTAR, marcada en magenta en la lámina de la escena**: una foto soltada en el
+>   mapa, ¿va ENCIMA o DEBAJO de las fichas? Los objetos de `maps` tienen capas (`layerId`); él no lo ha dicho
+>   nunca y NO se decide solo. **Preguntárselo antes de construir el punto 4.**
 > - ✅ **Ya se ve.** Lo de ayer (láminas vacías en `TakeScreenshot` y `Export`) era pasajero: el MCP tardó en
 >   pintar lo recién insertado. **La API buena del `execute` es** `Insert · Copy · Replace · Move · Delete ·
 >   Update · SetVariables · GetVariables · Get · Print · Generate · TakeScreenshot · Export · FindEmptySpace`

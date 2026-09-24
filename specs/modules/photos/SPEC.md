@@ -39,6 +39,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
   conversations). Then it disappears from the scenes, and the adventures and the chat show «foto borrada»
   where it was.
 - **See it bigger**, by clicking it.
+- **Remove it from the scene** from the placed photo's right-click menu («Quitarla de la escena»), which is
+  **not** deleting it from the library — the two are kept visibly apart in the drawing, because they read the
+  same and are not.
 - **Drag it onto the scene** (2026-09-24, «*asegurate que pueda arrastrar las fotos a la escena y no que solo
   sea con el boton*»): grab the photo in the grid and drop it on the map. **It lands where it is dropped.** This
   is the everyday gesture, and it works whenever the Escena tab is showing — the rail sits right beside the map.
@@ -77,14 +80,20 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 | Library tab | The side rail's GALERÍA tab, GM only: search · upload · grid of photos, plus the empty and the uploading states | § 4 · `Fotos/Biblioteca · el carril · sólo el director` |
 | Photo menu | On each photo: rename · to the scene · send through the chat · see it bigger · delete | § 4 · same plate, column «EL MENÚ DE UNA FOTO» |
 | Dragging it onto the scene | Grabbing it in the grid, the drop on the map, and what is inside the play area vs beside it | § 4 · same plate, column «ARRASTRARLA A LA ESCENA» |
-| Delete dialog | «Se usa en…» with the adventures, scenes and conversations, then confirm | ⏳ to be drawn |
-| Photo, bigger | The photo on its own over the table | ⏳ to be drawn (reuse the Bestiary's `PhotoModal` look if it fits) |
-| Photo block in an adventure | The photo at text width inside the document; the editor bar's photo button with «Subir» / «De la biblioteca» | ⏳ to be drawn in § 4 (AVENTURAS) |
-| Photo in the scene | The selected photo with its corner handles and rotation handle; the same one beside the play area, marked as GM-only | ⏳ to be drawn in § 5/§ 6 (LA ESCENA) |
-| Photo in the chat | A message with a photo, in a conversation and in its pill; the attach button (GM only) | ⏳ to be drawn in the chat's section |
-| Compression level in Ajustes | A fourth column «Fotos» next to textures, objects and backgrounds | ⏳ to be drawn in Admin → Ajustes |
+| Delete dialog | «Se usa en…» with the adventures, scenes and conversations, then confirm | § 4 · `Fotos/Borrar una foto que se usa · y LA FOTO A LO GRANDE` |
+| Photo, bigger | The photo on its own over the table, on the same parchment sheet as the Bestiary's `PhotoModal` | § 4 · same plate, right-hand column |
+| Photo block in an adventure | The photo at text width inside the document, the «foto borrada» gap, and the editor bar's photo button with «Subir una del ordenador» / «De la galería» | § 4 · `Fotos/En una aventura · el bloque de foto` |
+| Photo in the scene | The selected photo with its corner handles and rotation handle, one beside the play area marked GM-only, and the right-click menu | § 6 · `Fotos/En la escena · puesta, cogida y al lado` |
+| Photo in the chat | A message with a photo, the pill it arrives in, and the attach clip (GM only) with its two ways in | § 4 · `Fotos/En el chat · mandarla y verla` |
+| Compression level in Ajustes | A fourth column «Fotos» next to textures, objects and backgrounds, dark and light | § 14 · `Admin/Ajustes · compresión con FOTOS` |
 
 The tab's label is **GALERÍA**, his own (2026-09-24). It was drawn proposed as «FOTOS» and he renamed it.
+All the plates above were drawn on 2026-09-24 and approved («*esta bien*»).
+
+**Open, deliberately left undecided in the drawing**: where a photo dropped on the map sits in the stack —
+over the tokens or under them. The props of `maps` have layers (`layerId`); a photo placed among them needs a
+z-order, and nothing he has said decides it. It is marked in the plate in magenta and must be asked, not
+assumed.
 
 ## Rules & limits
 
