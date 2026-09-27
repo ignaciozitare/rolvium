@@ -118,9 +118,19 @@ It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & l
   in `core/images` does not hold here: an adventure's photo can be a spoiler). The file name is set by the
   server (uuid), never taken from the user.
 - **Compressed in the browser before uploading, to WebP**, like textures, objects and backgrounds («*se tienen
-  que comprimir como lo hicimos con las texturas*»), with the shared compressor of `packages/ui`. Photos get
-  **their own level** in Admin → Ajustes (Ligero · Equilibrado · Máximo ahorro, Equilibrado by default). The
-  numbers are **measured on a real photo and shown to him before building**, as was done with textures.
+  que comprimir como lo hicimos con las texturas*»), with the shared compressor of `packages/ui`. Photos have
+  **their own level** in Admin → Ajustes (Equilibrado by default), **measured on a real image of his on
+  2026-09-27 and approved by him** («*si*») — a knight, 1122×1402, 2.68 MB PNG:
+
+  | Level | Longest side · quality | It became | Saved |
+  |---|---|---|---|
+  | Ligero | 1600 px · 0,88 | 1122×1402 (not reduced) · 362 KB | 87 % |
+  | **Equilibrado (default)** | 1280 px · 0,82 | 1024×1280 · 204 KB | 93 % |
+  | Máximo ahorro | 1024 px · 0,76 | 819×1024 · 124 KB | 95 % |
+
+  Unlike a background, a photo **does** lose resolution: a background is read full-screen and zoomed, a photo is
+  read at the width of the text (~600 px) or in the big sheet (760 px), so even Máximo ahorro leaves it above
+  what is ever shown. The numbers live in `LEVELED_TARGETS.photo` and are pinned by a test.
 - The limits of `core/images` apply: 8 MB input file at most, 1.5 MB after compressing; PNG, JPEG, WebP and GIF
   (a GIF keeps its first frame).
 - **Name**: 1 to 120 characters; the file's name without extension by default.

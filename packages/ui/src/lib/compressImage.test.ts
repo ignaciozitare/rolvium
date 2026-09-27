@@ -105,6 +105,33 @@ describe('compressImage — el camino normal', () => {
     }
   });
 
+  /**
+   * LA FOTO de la galería (H13). Números medidos el 2026-09-27 sobre una imagen suya de verdad (un caballero,
+   * 1122×1402, 2,68 MB PNG) y aprobados por él: Ligero 362 KB · Equilibrado 204 KB · Máximo ahorro 124 KB.
+   * Se fijan aquí para que nadie los cambie sin volver a medirlos, como ya se hizo con la textura.
+   */
+  it('una foto, en los tres niveles, escala al lado y calidad medidos con él', async () => {
+    const cases: Array<[level: 'light' | 'balanced' | 'max', max: number, quality: number]> = [
+      ['light', 1600, 0.88],
+      ['balanced', 1280, 0.82],
+      ['max', 1024, 0.76],
+    ];
+    for (const [level, max, quality] of cases) {
+      const d = deps({}, 1122, 1402);
+      await compressImage(fakeFile(2_806_255), 'photo', level, d);
+      const size = fitDimensions(1122, 1402, max);
+      expect(d.encode).toHaveBeenCalledWith(expect.anything(), size.width, size.height, quality);
+      expect(LEVELED_TARGETS.photo[level]).toEqual({ max, quality });
+    }
+  });
+
+  /** Una foto MÁS PEQUEÑA que el tope no se agranda: subirla estirada sólo añadiría peso y borrosidad. */
+  it('una foto por debajo del lado máximo se sube tal cual, sin estirarla', async () => {
+    const d = deps({}, 900, 600);
+    await compressImage(fakeFile(200_000), 'photo', 'balanced', d);
+    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 900, 600, 0.82);
+  });
+
   it('si no se puede leer la imagen, el error dice que fue al decodificar', async () => {
     const d = deps({ decode: vi.fn().mockRejectedValue(new Error('roto')) });
     await expect(compressImage(fakeFile(1000), 'avatar', 'balanced', d)).rejects.toMatchObject({ code: 'decode' });

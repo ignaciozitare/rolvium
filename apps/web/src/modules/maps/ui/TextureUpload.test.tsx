@@ -65,7 +65,7 @@ describe('<TextureUpload>', () => {
     vi.mocked(compressImage).mockResolvedValue(out);
     const f = jpg('losa.jpg');
 
-    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'max', prop: 'balanced', background: 'balanced' });
+    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'max', prop: 'balanced', background: 'balanced', photo: 'balanced' });
     await compressTexture(f);
     expect(vi.mocked(compressImage)).toHaveBeenCalledWith(f, 'texture', 'max');
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 Un solo camino para subir imágenes en toda la app, y que ninguna pese más de lo necesario. Who: todos los
-miembros para su avatar; el director para fichas de bestiario, texturas, objetos y fondos.
+miembros para su avatar; el director para fichas de bestiario, texturas, objetos, fondos y las fotos de su galería.
 
 Origen de este apartado (2026-09-14): su biblioteca local pesaba 134 MB en texturas y el tráfico de Supabase
 (5 GB/mes en el plan gratis) se agotaba a los ~90 aperturas de mesa. Se le enseñó un antes/después real (WebP)
@@ -28,14 +28,21 @@ reabriendo a propósito una decisión suya anterior (ver el aviso más abajo).
   que ganar ahí).
 - **Textura, objeto y fondo — dependen del nivel elegido en Ajustes**, uno independiente por tipo:
 
-  | Nivel | Textura (lado máx. · calidad) | Objeto (lado máx. · calidad) | Fondo (lado máx. · calidad) |
-  |---|---|---|---|
-  | Ligero | 1280 px · 0,85 | 1024 px · 0,85 | sin reducir · 0,95 |
-  | **Equilibrado (por defecto)** | 1024 px · 0,82 | 768 px · 0,80 | sin reducir · 0,90 |
-  | Máximo ahorro | 800 px · 0,80 | 640 px · 0,75 | sin reducir · 0,82 |
+  | Nivel | Textura (lado máx. · calidad) | Objeto (lado máx. · calidad) | Fondo (lado máx. · calidad) | Foto (lado máx. · calidad) |
+  |---|---|---|---|---|
+  | Ligero | 1280 px · 0,85 | 1024 px · 0,85 | sin reducir · 0,95 | 1600 px · 0,88 |
+  | **Equilibrado (por defecto)** | 1024 px · 0,82 | 768 px · 0,80 | sin reducir · 0,90 | 1280 px · 0,82 |
+  | Máximo ahorro | 800 px · 0,80 | 640 px · 0,75 | sin reducir · 0,82 | 1024 px · 0,76 |
 
   Números probados de verdad (Chromium headless, el mismo `canvas.toBlob` de producción) sobre una textura, un
   objeto y un fondo reales de su biblioteca antes de aprobarlos.
+
+  > **La FOTO (H13) se midió el 2026-09-27** con una imagen suya —un caballero, 1122×1402, **2,68 MB PNG**— y
+  > la aprobó («*si*»): **Ligero 362 KB** (no reduce resolución), **Equilibrado 204 KB** (1024×1280, −93 %) y
+  > **Máximo ahorro 124 KB** (819×1024). A 1:1 sobre la cara y el grabado del peto, Ligero es indistinguible y
+  > Equilibrado aguanta la cara; Máximo ahorro se nota en el detalle fino sólo si se amplía por encima de su
+  > tamaño. Una foto se mira al ancho del texto de una aventura (~600 px) o en la hoja grande (760 px), así que
+  > los tres van sobrados; por eso SÍ reduce resolución, a diferencia del fondo.
 
   > ⚠ **El fondo NUNCA reduce resolución, solo cambia de formato/calidad** — a diferencia de textura y objeto.
   > Es lo que más de cerca se mira de toda la mesa (pantalla completa y con zoom), y esa era su objeción

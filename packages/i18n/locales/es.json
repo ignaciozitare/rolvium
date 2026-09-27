@@ -133,7 +133,9 @@
       "texture": "Texturas",
       "prop": "Objetos",
       "background": "Fondos",
+      "photo": "Fotos",
       "backgroundNote": "Nunca pierde resolución — sólo cambia el formato.",
+      "photoNote": "Las de la galería de una campaña. Medido con una foto real: de 2,7 MB a 204 KB en Equilibrado.",
       "saveNote": "Los cambios se guardan al elegir un nivel.",
       "saveError": "No se pudo guardar el nivel.",
       "level": {

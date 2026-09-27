@@ -11,7 +11,7 @@
  * entera y la codifica.
  */
 
-export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop' | 'texture';
+export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop' | 'texture' | 'photo';
 
 /** Qué tan agresivo comprimir. Lo elige un admin en Ajustes, por separado para cada destino de abajo. */
 export type CompressionLevel = 'light' | 'balanced' | 'max';
@@ -30,11 +30,12 @@ export const IMAGE_TARGETS: Record<'avatar' | 'token', TargetSpec> = {
 };
 
 /**
- * Textura, objeto (`prop`) y fondo: dependen del nivel elegido en Admin → Ajustes (uno por tipo). Números
- * probados de verdad el 2026-09-14 sobre una textura, un objeto y un fondo reales, antes de que él los aprobara
+ * Textura, objeto (`prop`), fondo y foto: dependen del nivel elegido en Admin → Ajustes (uno por tipo). Números
+ * probados de verdad —Chromium, el mismo `canvas.toBlob` de producción— sobre imágenes reales suyas antes de que
+ * él los aprobara: los tres primeros el 2026-09-14, la FOTO el 2026-09-27
  * (spec: `specs/core/images/SPEC.md`).
  */
-export const LEVELED_TARGETS: Record<'texture' | 'prop' | 'background', Record<CompressionLevel, TargetSpec>> = {
+export const LEVELED_TARGETS: Record<'texture' | 'prop' | 'background' | 'photo', Record<CompressionLevel, TargetSpec>> = {
   texture: {
     light:    { max: 1280, quality: 0.85 },
     balanced: { max: 1024, quality: 0.82 },
@@ -49,6 +50,18 @@ export const LEVELED_TARGETS: Record<'texture' | 'prop' | 'background', Record<C
     light:    { max: Infinity, quality: 0.95 },
     balanced: { max: Infinity, quality: 0.90 },
     max:      { max: Infinity, quality: 0.82 },
+  },
+  /*
+   * LA FOTO de la galería (H13). Medida el 2026-09-27 sobre una imagen suya —un caballero, 1122×1402, 2,68 MB
+   * PNG— y aprobada por él («*si*»): Ligero 362 KB, Equilibrado 204 KB, Máximo ahorro 124 KB. Una foto se mira
+   * al ancho del texto de una aventura (~600 px) o en la hoja grande (760 px), así que incluso Máximo ahorro
+   * la deja por encima de lo que se ve; Equilibrado aguanta una cara sin ablandarla.
+   * NO es como el fondo, que nunca reduce resolución: un fondo se mira a pantalla completa y con zoom.
+   */
+  photo: {
+    light:    { max: 1600, quality: 0.88 },
+    balanced: { max: 1280, quality: 0.82 },
+    max:      { max: 1024, quality: 0.76 },
   },
 };
 

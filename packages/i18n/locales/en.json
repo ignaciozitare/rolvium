@@ -133,7 +133,9 @@
       "texture": "Textures",
       "prop": "Objects",
       "background": "Backgrounds",
+      "photo": "Photos",
       "backgroundNote": "Never loses resolution — only the format changes.",
+      "photoNote": "A campaign's gallery. Measured on a real photo: 2.7 MB down to 204 KB on Balanced.",
       "saveNote": "Changes are saved as soon as you pick a level.",
       "saveError": "The level could not be saved.",
       "level": {

@@ -43,7 +43,7 @@ describe('<BackgroundUpload>', () => {
    */
   it('al añadir sin `prepare`: comprime al destino `background` con el nivel guardado en Ajustes, y sube el nombre del fichero', async () => {
     const { compressImage } = await import('@rolvium/ui');
-    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'balanced', background: 'max' });
+    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'balanced', background: 'max', photo: 'balanced' });
     vi.mocked(compressImage).mockResolvedValue({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 1692, height: 930 });
     const u = userEvent.setup();
     const cb = { onAdd: vi.fn(async (_name: string, _blob: Blob) => undefined), onClose: vi.fn() };

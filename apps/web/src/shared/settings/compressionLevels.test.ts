@@ -21,13 +21,13 @@ describe('compressionLevels — parseCompressionLevels', () => {
   });
 
   it('lo guardado manda cuando el nivel es válido, clave por clave', () => {
-    expect(parseCompressionLevels({ texture: 'light', prop: 'max', background: 'balanced' }))
-      .toEqual({ texture: 'light', prop: 'max', background: 'balanced' });
+    expect(parseCompressionLevels({ texture: 'light', prop: 'max', background: 'balanced', photo: 'max' }))
+      .toEqual({ texture: 'light', prop: 'max', background: 'balanced', photo: 'max' });
   });
 
   it('un nivel inválido en UNA clave cae en el de serie de esa clave, sin tocar las otras', () => {
-    expect(parseCompressionLevels({ texture: 'max', prop: 'nope', background: 'light' }))
-      .toEqual({ texture: 'max', prop: DEFAULT_COMPRESSION_LEVELS.prop, background: 'light' });
+    expect(parseCompressionLevels({ texture: 'max', prop: 'nope', background: 'light', photo: 'nope' }))
+      .toEqual({ texture: 'max', prop: DEFAULT_COMPRESSION_LEVELS.prop, background: 'light', photo: DEFAULT_COMPRESSION_LEVELS.photo });
   });
 
   it('varias claves inválidas a la vez caen cada una en su valor de serie', () => {
@@ -37,7 +37,7 @@ describe('compressionLevels — parseCompressionLevels', () => {
 
   it('claves de más (basura o de otro ajuste) se ignoran; faltar una clave cae en su valor de serie', () => {
     expect(parseCompressionLevels({ texture: 'light', otraCosa: 'x' }))
-      .toEqual({ texture: 'light', prop: DEFAULT_COMPRESSION_LEVELS.prop, background: DEFAULT_COMPRESSION_LEVELS.background });
+      .toEqual({ texture: 'light', prop: DEFAULT_COMPRESSION_LEVELS.prop, background: DEFAULT_COMPRESSION_LEVELS.background, photo: DEFAULT_COMPRESSION_LEVELS.photo });
   });
 
   it('la clave del ajuste en `app_settings` es la esperada', () => {
