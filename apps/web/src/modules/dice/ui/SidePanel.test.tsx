@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { fakeRollLog, fakeChatPort } from '../../../../tests/helpers/fakes';
 import { emptyDoc } from '@rolvium/core';
 import type { JournalPort } from '@/modules/journal';
+import type { PhotosPort } from '@/modules/photos';
 import { SidePanel } from './SidePanel';
 
 /** Notas y Bitácora abren de verdad desde el 2026-09-20; antes las dos decían «llega pronto». */
@@ -13,6 +14,13 @@ const fakeJournal = (): JournalPort => ({
   saveNotes: vi.fn().mockResolvedValue('t'),
   openLogbook: vi.fn().mockResolvedValue({ id: 'l1', campaignId: 'c1', doc: emptyDoc(), updatedBy: null, updatedAt: 't' }),
   saveLogbook: vi.fn().mockResolvedValue('t'),
+});
+
+/** La galería (H13) lee de la base en cuanto se abre: sin puerto iría contra Supabase desde un test. */
+const fakePhotos = (): PhotosPort => ({
+  list: vi.fn().mockResolvedValue([]), create: vi.fn(), rename: vi.fn(), remove: vi.fn(),
+  usage: vi.fn().mockResolvedValue({ adventures: [], scenes: [], messages: 0 }),
+  urlsFor: vi.fn().mockResolvedValue({}),
 });
 
 describe('<SidePanel>', () => {
@@ -90,5 +98,29 @@ describe('<SidePanel>', () => {
     await u.click(screen.getByRole('tab', { name: /Susurros/ }));
     await u.click(await screen.findByText('Laura'));
     expect(onChatOpen).toHaveBeenCalledWith('conv-1', 'Laura');
+  });
+
+  /**
+   * LA GALERÍA (H13) es SÓLO del director — su orden de siempre para su material, y la misma barrera doble que
+   * el Bestiario y las Aventuras: la pestaña no se pinta, y aunque se pintara la RLS no le daría una fila.
+   */
+  it('la pestaña GALERÍA sólo existe para el director', async () => {
+    const base = { campaignId: 'c1', system: plenilunio, rollerOpen: false, onToggleRoller: vi.fn(), log: fakeRollLog(), myUserId: 'me', chat: fakeChatPort(), journal: fakeJournal() };
+    const { rerender } = renderWithProviders(<SidePanel {...base} />);
+    expect(screen.queryByRole('tab', { name: 'Galería' })).toBeNull();
+    rerender(<SidePanel {...base} isDm photos={fakePhotos()} />);
+    expect(screen.getByRole('tab', { name: 'Galería' })).toBeInTheDocument();
+  });
+
+  it('el director la abre y ve su biblioteca, con las cuatro de siempre al lado', async () => {
+    const u = userEvent.setup();
+    const photos = fakePhotos();
+    renderWithProviders(<SidePanel campaignId="c1" system={plenilunio} rollerOpen={false} onToggleRoller={vi.fn()} log={fakeRollLog()} myUserId="me" chat={fakeChatPort()} journal={fakeJournal()} isDm photos={photos} />);
+    for (const name of ['Registro', 'Susurros', 'Notas', 'Bitácora', 'Galería']) {
+      expect(screen.getByRole('tab', { name })).toBeInTheDocument();
+    }
+    await u.click(screen.getByRole('tab', { name: 'Galería' }));
+    expect(await screen.findByText(/Sólo tú las ves/)).toBeInTheDocument();
+    expect(photos.list).toHaveBeenCalledWith('c1');
   });
 });

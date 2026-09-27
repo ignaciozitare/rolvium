@@ -341,7 +341,8 @@
       "log": "Log",
       "chat": "Whispers",
       "notes": "Notes",
-      "journal": "Journal"
+      "journal": "Journal",
+      "gallery": "Gallery"
     },
     "logEmpty": "Press ROLL on a stat, or use the free roller.",
     "resource": {
@@ -1953,6 +1954,46 @@
       "sheet": "See its card",
       "roll": "Roll for it",
       "unlink": "Remove the link"
+    }
+  },
+  "photos": {
+    "title": "Gallery",
+    "onlyYou": "Only you see them. These photos belong to this campaign and no other.",
+    "search": "Search a photo…",
+    "upload": "Upload photos",
+    "uploading": "Uploading",
+    "unnamed": "Photo",
+    "empty": "No photos yet.",
+    "emptyHint": "Press «Upload photos» to bring the first ones.",
+    "noMatch": "No photo is called that.",
+    "see": "See «{{name}}»",
+    "seeBig": "See it bigger",
+    "menu": "Options for «{{name}}»",
+    "rename": "Rename it",
+    "renamePrompt": "What is it called?",
+    "remove": "Delete it",
+    "removeTitle": "Delete «{{name}}»",
+    "removeLead": "Not deleted lightly: first, where it is used.",
+    "usedIn": "Used in",
+    "usageNone": "It is not placed anywhere.",
+    "usageMessages": "{{n}} chat messages",
+    "usageUnknown": "I could not check where it is used. If you delete it, it will vanish from the scenes and leave «foto borrada» wherever it was written.",
+    "removeConsequence": "Deleting it removes it from the scene. In the adventure and the chat a «foto borrada» placeholder stays in its place: neither the text nor the message breaks.",
+    "up": {
+      "compressing": "compressing…",
+      "uploading": "uploading…",
+      "done": "done",
+      "failed": "did not go in"
+    },
+    "error": {
+      "load": "The gallery could not be opened.",
+      "rename": "It could not be renamed.",
+      "remove": "It could not be deleted.",
+      "upload": "It could not be uploaded.",
+      "mime": "That is not an image. Only PNG, JPG, WebP or GIF.",
+      "tooBig": "It weighs more than 8 MB. That one does not go in; the others carry on.",
+      "stillTooBig": "Even compressed it is still too heavy.",
+      "decode": "That image could not be opened."
     }
   }
 }

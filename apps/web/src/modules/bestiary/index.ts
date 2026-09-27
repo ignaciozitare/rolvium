@@ -16,3 +16,9 @@ export { EntryCard } from './ui/EntryCard';
 export { EntrySheetModal } from './ui/EntrySheetModal';
 export { NpcSheetModal } from './ui/NpcSheetModal';
 export { CreatureRollPopover } from './ui/CreatureRollPopover';
+/**
+ * La HOJA DE PERGAMINO a pantalla completa. No es del Bestiario: es el contenedor de cualquier hoja que se abre
+ * encima de la mesa, y por eso lo usa también la galería de fotos (H13). Vive aquí por dónde nació (2026-08-21),
+ * no por dónde debería estar: el día que alguien toque esto, su sitio es `@rolvium/ui` o `shared/ui`.
+ */
+export { SheetOverlay } from './ui/SheetOverlay';

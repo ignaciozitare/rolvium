@@ -9,6 +9,7 @@ import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, fakeChatPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, initialTabFor, tabsFor, askTargetsFrom } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
+import type { PhotosPort } from '@/modules/photos';
 import type { AdventuresPort } from '@/modules/adventures';
 import { heading, paragraph, type RichDoc } from '@rolvium/core';
 
@@ -80,6 +81,13 @@ const fakeBestiaryRepo = (): BestiaryPort => ({
   create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
 });
 
+/** LA GALERÍA (H13) se inyecta por lo mismo que el Bestiario: sin puerto, abrir la pestaña iría a Supabase. */
+const fakePhotosRepo = (): PhotosPort => ({
+  list: vi.fn().mockResolvedValue([]), create: vi.fn(), rename: vi.fn(), remove: vi.fn(),
+  usage: vi.fn().mockResolvedValue({ adventures: [], scenes: [], messages: 0 }),
+  urlsFor: vi.fn().mockResolvedValue({}),
+});
+
 /**
  * AVENTURAS (H12) se inyecta por la misma razón exacta que el Bestiario: sin el puerto, abrir la pestaña en
  * un test iría contra el contenedor real —y contra Supabase—, y la pestaña del director no se podría probar.
@@ -97,12 +105,12 @@ const fakeAdventuresRepo = (doc: RichDoc = ADVENTURE_DOC): AdventuresPort => ({
   create: vi.fn(), update: vi.fn(), saveDoc: vi.fn(), remove: vi.fn(),
 } as unknown as AdventuresPort);
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo(), path = '/table/c1') {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo(), photos = fakePhotosRepo(), path = '/table/c1') {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} photos={photos} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: [path] } } },
   );
-  return { rolls, rollLog, maps, vision, bestiary, attacks, chat, adventures };
+  return { rolls, rollLog, maps, vision, bestiary, attacks, chat, adventures, photos };
 }
 
 describe('table: rules', () => {
@@ -275,6 +283,24 @@ describe('table: page', () => {
     await waitFor(() => expect(createScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'La carpa', adventureId: 'a2' })));
   });
 
+  /**
+   * LA GALERÍA (H13, 2026-09-27) — el carril lateral gana su quinta pestaña, y es del director. Aquí se
+   * comprueba el cable que sólo la mesa puede dar: que sabe quién mira y le pasa el puerto de fotos.
+   */
+  it('la GALERÍA es del director: la abre y lee la biblioteca de SU campaña', async () => {
+    const u = userEvent.setup();
+    const { photos } = mount(GM, fakeTableRepo('dm'));
+    await u.click(await screen.findByRole('tab', { name: 'Galería' }));
+    expect(await screen.findByText(/Sólo tú las ves/)).toBeInTheDocument();
+    await waitFor(() => expect(photos.list).toHaveBeenCalledWith('c1'));
+  });
+
+  it('el jugador NO tiene la pestaña Galería', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('tab', { name: 'Registro' });
+    expect(screen.queryByRole('tab', { name: 'Galería' })).toBeNull();
+  });
+
   it('el jugador no tiene la pestaña AVENTURAS', async () => {
     mount(PLAYER_USER, fakeTableRepo('player'));
     await screen.findByRole('button', { name: 'Escena' });
@@ -324,7 +350,7 @@ describe('table: page', () => {
     withBrowserMemory().set(REMEMBERED, SCENE_WAREHOUSE.id);
     const maps = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL] });
     mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), maps,
-      fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), `/table/c1?scene=${SCENE_CHAPEL.id}`);
+      fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), fakePhotosRepo(), `/table/c1?scene=${SCENE_CHAPEL.id}`);
     expect(await screen.findByRole('button', { name: `Ver escena ${SCENE_CHAPEL.name}`, pressed: true })).toBeInTheDocument();
     expect(maps.activated).not.toContain(SCENE_CHAPEL.id);
   });

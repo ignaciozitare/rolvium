@@ -2,6 +2,115 @@
 
 ## 🎯 Current task
 
+> # 📍 ESTADO (2026-09-27) — LA GALERÍA (H13) CONSTRUIDA · ⛔ 3 FALLOS POR ARREGLAR EN UN CHAT NUEVO
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Sin mergear.
+>
+> **FRASE PARA EL CHAT NUEVO**: «Rolvium: sigue con `feat/aventuras-segunda-vuelta`. Aplica los 3 arreglos de la
+> galería que están escritos en el bloque de arriba de WORK_STATE.md, con sus 4 pruebas, y pasa review.»
+>
+> ## ⛔ LO PRIMERO: LOS 3 FALLOS (los cazó la revisión del 27-09; están CONFIRMADOS leyendo el código)
+> Los tres viven en los CAMINOS DE ERROR de la galería, que es justo lo que no cubren las 13 pruebas nuevas.
+> Son ~15 líneas en dos ficheros. **No se mergea nada sin esto.**
+>
+> ### 🐞 1 y 2 — renombrar y borrar fallan EN SILENCIO, y el aviso de formato se borra solo
+> **Causa única**: `reload()` en `apps/web/src/modules/photos/ui/usePhotos.ts` hace `setError(null)` como
+> segunda línea. Como `reload()` corre entero hasta su primer `await`, BORRA el aviso que acaba de poner quien
+> la llamó (`rename` y `remove` hacen `setError(...)` y luego `await reload()`), así que el `<p role="alert">`
+> no llega a pintarse nunca. Lo mismo con `photos.error.mime` de un lote mixto: `GalleryPanel.tsx:47` lo pone y
+> `ph.upload()` termina en `reload()`. (Ironía: si TODOS los ficheros son malos, `upload` vuelve antes de
+> `reload` y el aviso SÍ sobrevive — o sea, aguanta cuando menos falta hace.)
+> **ARREGLO** — en `usePhotos.ts`, quitar el `setError(null)` de arriba y limpiar sólo el de carga, al acertar:
+> ```ts
+> const reload = useCallback(async () => {
+>   setLoading(true);
+>   try {
+>     const rows = await repo.list(campaignId);
+>     setPhotos(rows);
+>     setUrls(await repo.urlsFor(campaignId, rows.map(p => p.id)).catch(() => ({})));
+>     // Sólo se limpia el aviso de CARGA: el de renombrar, borrar o formato tiene que sobrevivir a la
+>     // resincro — si no, el fallo es mudo. (🐞 revisión del 2026-09-27.)
+>     setError(prev => (prev === 'photos.error.load' ? null : prev));
+>   } catch {
+>     setError('photos.error.load');
+>   } finally {
+>     setLoading(false);
+>   }
+> }, [campaignId, repo]);
+> ```
+>
+> ### 🐞 3 — cancelar el aviso de borrar lo vuelve a ABRIR solo
+> `GalleryPanel.tsx`, `pedirBorrar`: el botón Cancelar está vivo mientras carga (sólo el rojo lleva
+> `disabled`), y cuando `ph.usage(photo)` contesta hace `setOpen({kind:'remove',…})` sin mirar si ya se cerró.
+> En una conexión lenta, el diálogo de BORRAR reaparece solo.
+> **ARREGLO** — lo que llega tarde no vuelve a abrir nada:
+> ```ts
+> const pedirBorrar = async (photo: Photo) => {
+>   setOpen({ kind: 'remove', photo, usage: null });
+>   // Si ya lo cerró (o abrió otro), lo que llega tarde NO vuelve a abrirlo solo.
+>   const llega = (usage: PhotoUsage) =>
+>     setOpen(o => (o?.kind === 'remove' && o.photo.id === photo.id ? { ...o, usage } : o));
+>   try { llega(await ph.usage(photo)); }
+>   catch { llega({ adventures: [], scenes: [], messages: -1 }); }
+> };
+> ```
+>
+> ### Las 4 pruebas que faltan (nivel B, en `GalleryPanel.test.tsx`)
+> 1. `rename` rechaza → sale «No se ha podido cambiar el nombre.» y vuelve el nombre viejo.
+> 2. `remove` rechaza → sale «No se ha podido borrar.» y la foto sigue ahí.
+> 3. lote mixto (PDF + PNG) → el aviso de formato SIGUE en pantalla cuando el PNG termina.
+> 4. cancelar mientras `usage` está en vuelo → el Modal se queda cerrado.
+>
+> ## ✅ LO QUE SÍ ESTÁ HECHO Y VERDE (commiteado)
+> - **Nivel de compresión de FOTO**, medido el 27-09 con una imagen suya (caballero, 1122×1402, 2,68 MB PNG) en
+>   Chromium con el mismo `canvas.toBlob` de producción, y **aprobado por él** («*si*»):
+>   Ligero 1600/0,88 → 362 KB · **Equilibrado 1280/0,82 → 204 KB** · Máximo ahorro 1024/0,76 → 124 KB.
+>   En `LEVELED_TARGETS.photo`, con dos pruebas que clavan los números. Cuarta columna «Fotos» en Ajustes.
+> - **LA GALERÍA**: `photos/ui/usePhotos.ts` + `GalleryPanel.tsx` + `photos.css`. Quinta pestaña del carril,
+>   **sólo del director** (`isDm`). Ver · buscar · subir en lote (con cuánto adelgaza y los rechazos) ·
+>   renombrar · verla a lo grande · borrar con «Se usa en…». **NO hay botones de «a la escena» ni «por el
+>   chat»**: son las rebanadas 4 y 5 y no se pinta lo que no funciona.
+> - `bestiary/index.ts` exporta `SheetOverlay` (la hoja de pergamino) para reusarla sin copiarla.
+> - `specs/core/images/SPEC.md` REESCRITO a las nueve secciones en inglés (el auditor lo puso duro al tocar el
+>   área). No se perdió nada.
+> - Pruebas: web **2.306** · core 171 · ui 81 · api 305 · functional 69 · smoke 12 · regression 2.225.
+>   `typecheck`, `build:web` y `build:api` limpios. `npm run audit` **0 hard**.
+> - Revisión: **BLOQUEÓ** por los 3 fallos de arriba. Todo lo demás lo dio por bueno, incluidas las dos
+>   decisiones que le pregunté: `SheetOverlay` por la puerta (no copiar) y la cola de subidas propia en vez de
+>   reusar `LibraryUpload` (que es una VENTANA con selector de paquete y traicionaría la lámina aprobada).
+>
+> ## 📌 Deuda anotada por la revisión, NO tocada (decidir aparte)
+> - ⚠️ **`usage()` busca un bloque `image` que NO EXISTE todavía** en `RichBlock`
+>   (`SupabasePhotosRepo.ts:67` usa `.contains('doc', { blocks: [{ type: 'image', photoId }] })`). Hoy esa rama
+>   no encuentra nada, y `SupabasePhotosRepo.test.ts:121` fija la forma ADIVINADA, así que seguiría verde aunque
+>   la de verdad se llame de otra manera. **Al construir la rebanada 4 hay que derivar el predicado del tipo
+>   `RichBlock`** (o añadir ya la variante `image` con `photoId`). La honestidad del aviso de borrar depende de eso.
+> - **Los enlaces firmados caducan a la hora y nadie los vuelve a firmar**: en una mesa de más de una hora las
+>   miniaturas se rompen en silencio hasta recargar. `reload` ya está expuesto; falta quien lo llame.
+> - `photos_photos.created_by` nunca se rellena (ni lo manda el repo ni hay `DEFAULT auth.uid()`): o default en
+>   una migración, o fuera.
+> - `photos.title` («Galería») es una clave muerta en los dos idiomas: la pestaña usa `table.panel.gallery`.
+> - El copy EN de `photos.removeConsequence` y `photos.usageUnknown` lleva «foto borrada» en castellano dentro.
+>   Cuando la rebanada 5 cree el hueco de verdad, eso tiene que ser su propia clave.
+> - `photos.usageMessages` no tiene singular: con 1 se lee «1 mensajes del chat». `@rolvium/i18n` no tiene
+>   plurales y todo el repo hace igual, pero aquí canta.
+> - **`SheetOverlay` debería vivir en `@rolvium/ui` o `shared/ui`**, no en `bestiary`. Mover ahora sería
+>   consolidación entre módulos sin que él lo pida.
+> - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
+> - `chat` y `core/images`… `core/images` ya está hecho; queda `chat` sin las nueve secciones (rebanada 5).
+>
+> ## ⏭️ Después de los 3 arreglos
+> Rebanada **4** (fotos en la escena: arrastrar desde la galería, va **DEBAJO de las fichas** — orden suya del
+> 27-09) y **5** (fotos en el chat). Y antes del merge: **las 3 migraciones a producción por MCP**
+> (`20260922120000_photos_biblioteca` · `20260922120100_photos_en_escena_y_chat` ·
+> `20260922120200_adventures_funciones_de_trigger_cerradas`), que siguen **sólo en local**.
+>
+> ## 💾 Y el `.pen` sigue SIN GUARDAR
+> Los dibujos de la galería (5 láminas) están en su editor pero **no en disco**: hacen falta su **Cmd+S** y un
+> commit de `rolvium.pen`. Antes de volver a dibujar: comparar `git hash-object rolvium.pen` con
+> `git rev-parse HEAD:rolvium.pen`.
+>
+> *(Lo de abajo es el estado anterior.)*
+>
 > # 📍 ESTADO (2026-09-22, noche) — AVENTURAS 2.ª VUELTA + LA BIBLIOTECA DE FOTOS
 > ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Spec ✅ · DBA ✅ · Scaffold ✅ · Diseño ronda A ✅
 > ## ✅ PUNTO 2 CONSTRUIDO Y REVISADO. Sin mergear: quedan los puntos 3, 4 y 5 de su orden.

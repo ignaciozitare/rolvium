@@ -37,6 +37,7 @@ import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { AdventuresTab, adventuresPort as defaultAdventures, type AdventuresPort } from '@/modules/adventures';
 import type { JournalPort } from '@/modules/journal';
+import type { PhotosPort } from '@/modules/photos';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
@@ -45,7 +46,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, photos, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; photos?: PhotosPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -262,7 +263,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {sideOpen && <SafeRegion label="table:side">
               <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
                 myUserId={user.id} chatUnread={chatUnread}
-                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />
+                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat}
+                isDm={role === 'dm'} {...(photos ? { photos } : {})} />
             </SafeRegion>}
           </aside>
         </div>

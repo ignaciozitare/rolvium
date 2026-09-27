@@ -138,4 +138,18 @@ describe('<AdminSettings>', () => {
     expect(port.save).not.toHaveBeenCalled();
     expect(within(grupo('Texturas')).getByRole('radio', { name: 'Equilibrado' })).toHaveAttribute('aria-checked', 'true');
   });
+
+  /**
+   * LA CUARTA COLUMNA, FOTOS (H13, 2026-09-27). Sus números se midieron con una imagen suya de verdad y los
+   * aprobó; aquí sólo se comprueba que el admin puede elegir el nivel y que se guarda con los otros tres.
+   */
+  it('Fotos es una columna más, con sus tres niveles, y se guarda sin tocar las otras', async () => {
+    const u = userEvent.setup();
+    const port = fakePort({ load: vi.fn().mockResolvedValue({ texture: 'max', prop: 'light', background: 'balanced', photo: 'balanced' }) });
+    renderWithProviders(<AdminSettings compressionLevels={port} />);
+    const grupo = await screen.findByRole('radiogroup', { name: 'Fotos' });
+    expect(within(grupo).getByRole('radio', { name: 'Equilibrado' })).toBeChecked();
+    await u.click(within(grupo).getByRole('radio', { name: 'Ligero' }));
+    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'max', prop: 'light', background: 'balanced', photo: 'light' }));
+  });
 });

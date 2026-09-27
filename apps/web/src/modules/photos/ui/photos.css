@@ -1,0 +1,105 @@
+/* LA GALERÍA (H13) — la pestaña del carril, sólo del director.
+   Diseño: rolvium.pen § 4 · «Fotos/Biblioteca · el carril · sólo el director» (aprobada el 2026-09-24).
+   Vive DENTRO de la mesa, así que viste con --sys-*: aquí manda el papel del sistema de juego, no el
+   claro/oscuro de la app. Lo único que va con los tokens de plataforma es lo que es chrome de plataforma
+   (el Modal de borrar), y eso lo pone el propio componente. */
+
+.ph-panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.ph-note { margin: 0; font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic;
+  color: var(--sys-ink-dim); }
+.ph-state { margin: 0; padding: 10px 0; font-family: var(--sys-font-body); font-size: var(--fs-xs);
+  color: var(--sys-ink-soft); }
+.ph-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 8px;
+  background: color-mix(in srgb, var(--sys-blood) 12%, transparent); color: var(--sys-blood);
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); }
+.ph-link { flex: none; border: none; background: none; color: var(--sys-blood); font-family: inherit;
+  font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
+
+/* Buscar — el mismo gesto que el del Bestiario. */
+.ph-search { display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  background: var(--sys-paper-lo); border: 1px solid var(--sys-line); }
+.ph-search .material-symbols-outlined { font-size: var(--icon-xs); color: var(--sys-ink-dim); }
+.ph-search input { flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); color: var(--sys-ink); }
+.ph-search input::placeholder { color: var(--sys-ink-dim); }
+
+/* SUBIR es acción: va en sangre, como todo lo que hace algo dentro de la mesa. */
+.ph-upload { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px;
+  border: none; background: var(--sys-blood); color: var(--sys-paper-hi); cursor: pointer;
+  font-family: var(--sys-font-display); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; }
+.ph-upload:hover { background: color-mix(in srgb, var(--sys-blood) 85%, var(--sys-ink)); }
+.ph-upload .material-symbols-outlined { font-size: var(--icon-xs); }
+
+/* La cola de subidas, con lo que adelgaza cada una. */
+.ph-uploads { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ph-up { display: flex; flex-direction: column; gap: 3px; padding: 6px 7px; background: var(--sys-paper-lo); }
+.ph-up-failed { border: 1px solid var(--sys-blood); }
+.ph-up-head { display: flex; align-items: center; gap: 6px; }
+.ph-up-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); color: var(--sys-ink); }
+.ph-up-state { flex: none; font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600;
+  color: var(--sys-ink-soft); }
+.ph-up-done .ph-up-state { color: var(--sys-olive); }
+.ph-up-failed .ph-up-state { color: var(--sys-blood); }
+.ph-up-x { flex: none; display: inline-flex; padding: 0; border: none; background: none; cursor: pointer;
+  color: var(--sys-ink-dim); line-height: 0; }
+.ph-up-x .material-symbols-outlined { font-size: var(--icon-xs); }
+.ph-up-size { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  color: var(--sys-ink-dim); }
+.ph-up-err { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  color: var(--sys-blood); }
+
+/* La rejilla: dos por fila, la imagen manda y el nombre debajo. */
+.ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; }
+.ph-cell { position: relative; display: flex; flex-direction: column; gap: 3px; margin: 0; min-width: 0; }
+.ph-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 3 / 2;
+  padding: 0; border: none; background: var(--sys-paper-lo); cursor: pointer; overflow: hidden; }
+.ph-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ph-thumb .material-symbols-outlined { font-size: var(--icon-md); color: var(--sys-ink-dim); }
+.ph-more { position: absolute; top: 4px; right: 4px; display: inline-flex; padding: 1px 2px; border: none;
+  background: var(--sys-paper-hi); color: var(--sys-ink); cursor: pointer; line-height: 0; opacity: 0; }
+.ph-cell:hover .ph-more, .ph-more:focus-visible, .ph-more[aria-expanded="true"] { opacity: 1; }
+.ph-more .material-symbols-outlined { font-size: var(--icon-xs); }
+.ph-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); color: var(--sys-ink-soft); }
+
+/* El menú de una foto: pequeño y encima de su celda. */
+.ph-catch { position: fixed; inset: 0; z-index: 39; background: none; }
+.ph-menu { position: absolute; top: 24px; right: 0; z-index: 40; display: flex; flex-direction: column;
+  min-width: 168px; padding: 4px; background: var(--sys-paper-hi); border: 1px solid var(--sys-ink);
+  box-shadow: var(--sys-card-shadow); }
+.ph-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: none; background: none;
+  color: var(--sys-ink); font-family: var(--sys-font-body); font-size: var(--fs-xs); text-align: left;
+  cursor: pointer; }
+.ph-item:hover { background: color-mix(in srgb, var(--sys-blood) 12%, transparent); color: var(--sys-blood); }
+.ph-item-danger { color: var(--sys-blood); }
+.ph-item .material-symbols-outlined { font-size: var(--icon-xs); }
+
+/* Verla a lo grande: dentro de la hoja de pergamino, a sangre. */
+.ph-big { display: flex; align-items: center; justify-content: center; background: var(--sys-paper-lo); }
+.ph-big img { max-width: 100%; max-height: 70vh; object-fit: contain; }
+.ph-big-foot { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; }
+.ph-big-name { flex: 1; min-width: 0; font-family: var(--sys-font-display); font-size: var(--fs-sm);
+  color: var(--sys-ink); }
+.ph-big-meta { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  color: var(--sys-ink-dim); }
+
+/* El aviso de borrar va dentro de un `Modal`, que es chrome de PLATAFORMA: aquí mandan los tokens de la app. */
+.ph-remove { display: flex; flex-direction: column; gap: 10px; }
+.ph-remove-lead { margin: 0; font-size: var(--fs-sm); color: var(--tx2); }
+.ph-remove-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--tx3); }
+.ph-usage { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ph-usage li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--sf2);
+  font-size: var(--fs-sm); color: var(--tx); }
+.ph-usage .material-symbols-outlined { font-size: var(--icon-sm); color: var(--tx3); }
+.ph-remove-warn { margin: 0; padding: 8px 10px; background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--tx); font-size: var(--fs-sm); }
+.ph-remove-none { margin: 0; font-size: var(--fs-sm); color: var(--tx2); }
+.ph-remove-foot { display: flex; justify-content: flex-end; gap: 8px; }
+.ph-btn { padding: 7px 14px; border: 1px solid var(--bd); background: transparent; color: var(--tx);
+  font-family: inherit; font-size: var(--fs-sm); cursor: pointer; border-radius: var(--r); }
+.ph-btn:hover { background: var(--sf3); }
+.ph-btn-danger { border-color: var(--red); background: var(--red); color: var(--ac-on); }
+.ph-btn-danger:disabled { opacity: .5; cursor: default; }
