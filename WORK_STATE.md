@@ -79,8 +79,21 @@
 > - ✅ **CONTESTADO el 27-09**: una foto soltada en el mapa va **«debajo»** de las fichas. No cuesta nada —
 >   es justo donde ya se pintan los objetos plantados (`mp-layer-props`: encima del suelo y las salas, debajo
 >   de los muros, de lo dibujado a mano y de las fichas). Una foto NUNCA tapa a un personaje. Sin magenta ya.
-> - 🚧 **LO ÚNICO QUE BLOQUEA EMPEZAR A CONSTRUIR: una foto suya de verdad** para medir la compresión. El
->   banco está listo (`scratchpad/medir.mjs`); es un comando y se le enseña la tabla.
+> - ✅ **COMPRESIÓN MEDIDA (27-09)** con una imagen suya de verdad —un caballero, 1122×1402, **2,68 MB PNG**—
+>   en Chromium de verdad, con el mismo `canvas.toBlob('image/webp', q)` de producción. Niveles PROPUESTOS,
+>   **a la espera de que él los apruebe**:
+>   | Nivel | Lado máx. · calidad | Queda en | Pesa | Ahorra |
+>   |---|---|---|---|---|
+>   | Ligero | 1600 px · 0,88 | 1122×1402 (sin reducir) | 362 KB | 87 % |
+>   | **Equilibrado (propuesto por defecto)** | 1280 px · 0,82 | 1024×1280 | 204 KB | 93 % |
+>   | Máximo ahorro | 1024 px · 0,76 | 819×1024 | 124 KB | 95 % |
+>   Comparación 1:1 de la cara y del grabado del peto en `scratchpad/foto/comparacion.png`. Lectura honesta:
+>   Ligero es indistinguible; Equilibrado aguanta la cara y ablanda un pelo el grabado fino; Máximo ahorro se
+>   nota en el detalle fino **si se amplía por encima de su tamaño** — a lo que se mira de verdad (ancho del
+>   texto ~600 px, la vista grande 760 px) los tres van sobrados.
+>   Cuando los apruebe: añadir `photo` a `LEVELED_TARGETS` en `packages/ui/src/lib/compressImage.ts` y la
+>   tabla a `specs/core/images/SPEC.md` y a `specs/modules/photos/SPEC.md`.
+> - 🚧 **Falta su visto bueno a esos tres números** y su **Cmd+S** del `.pen`. Nada más bloquea construir.
 > - ✅ **Ya se ve.** Lo de ayer (láminas vacías en `TakeScreenshot` y `Export`) era pasajero: el MCP tardó en
 >   pintar lo recién insertado. **La API buena del `execute` es** `Insert · Copy · Replace · Move · Delete ·
 >   Update · SetVariables · GetVariables · Get · Print · Generate · TakeScreenshot · Export · FindEmptySpace`
