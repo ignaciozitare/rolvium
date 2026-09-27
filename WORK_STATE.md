@@ -76,9 +76,11 @@
 >   · § 6 · `Fotos/En la escena · puesta, cogida y al lado` (`oNZA6`) — tiradores, giro, la de al lado, y el
 >     menú del botón derecho.
 >   · § 14 · `Admin/Ajustes · compresión con FOTOS` (`V6AM3n`) — la cuarta columna, en claro y en oscuro.
-> - ⚠️ **UNA PREGUNTA SIN CONTESTAR, marcada en magenta en la lámina de la escena**: una foto soltada en el
->   mapa, ¿va ENCIMA o DEBAJO de las fichas? Los objetos de `maps` tienen capas (`layerId`); él no lo ha dicho
->   nunca y NO se decide solo. **Preguntárselo antes de construir el punto 4.**
+> - ✅ **CONTESTADO el 27-09**: una foto soltada en el mapa va **«debajo»** de las fichas. No cuesta nada —
+>   es justo donde ya se pintan los objetos plantados (`mp-layer-props`: encima del suelo y las salas, debajo
+>   de los muros, de lo dibujado a mano y de las fichas). Una foto NUNCA tapa a un personaje. Sin magenta ya.
+> - 🚧 **LO ÚNICO QUE BLOQUEA EMPEZAR A CONSTRUIR: una foto suya de verdad** para medir la compresión. El
+>   banco está listo (`scratchpad/medir.mjs`); es un comando y se le enseña la tabla.
 > - ✅ **Ya se ve.** Lo de ayer (láminas vacías en `TakeScreenshot` y `Export`) era pasajero: el MCP tardó en
 >   pintar lo recién insertado. **La API buena del `execute` es** `Insert · Copy · Replace · Move · Delete ·
 >   Update · SetVariables · GetVariables · Get · Print · Generate · TakeScreenshot · Export · FindEmptySpace`

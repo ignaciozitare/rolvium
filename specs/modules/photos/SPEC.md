@@ -90,10 +90,7 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 The tab's label is **GALERÍA**, his own (2026-09-24). It was drawn proposed as «FOTOS» and he renamed it.
 All the plates above were drawn on 2026-09-24 and approved («*esta bien*»).
 
-**Open, deliberately left undecided in the drawing**: where a photo dropped on the map sits in the stack —
-over the tokens or under them. The props of `maps` have layers (`layerId`); a photo placed among them needs a
-z-order, and nothing he has said decides it. It is marked in the plate in magenta and must be asked, not
-assumed.
+It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & limits.
 
 ## Rules & limits
 
@@ -105,6 +102,10 @@ assumed.
   - it is placed in a scene the player can see, **inside the play area**; or
   - it is attached to a message of a conversation the player is in.
   A photo in an adventure is never shown to players (adventures are the GM's).
+- **A photo sits UNDER the tokens** (his word, 2026-09-27: «*debajo*»). That is exactly where the planted
+  objects of `maps` are already painted — `mp-layer-props`, above the floor and the rooms, below the walls,
+  below what is drawn by hand and below the tokens. So **a photo never covers a character**, and nothing new
+  has to be invented for the stack: a placed photo is a row of `maps_scene_props` and inherits that order.
 - **Dragging is the everyday way in, the button is the fallback.** A drag only exists while the map is on
   screen, so the menu's «A la escena» is kept for every other case; both end in the same placed photo, and
   neither is a different kind of object. A photo dropped **outside the map's own frame** (on the chrome around
@@ -263,7 +264,9 @@ moved to touch it → yes; touching the edge exactly → no. A player's ordinary
 
 7. **The tab is GALERÍA**: «*cambia fotos por galeria*». It had been drawn proposed as «FOTOS», which the spec
    had left for him to name. The code's module keeps its name (`photos`); what he named is what is read on screen.
-8. **Dragging, not only the button**: «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea
+8. **Under the tokens**: asked whether a photo dropped on the map goes over or under the tokens, he answered
+   «*debajo*». It costs nothing: the props layer already paints there. Drawn in § 6 · `Fotos/En la escena…`.
+9. **Dragging, not only the button**: «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea
    con el boton*». The table has **no drag-onto-the-map today** — everything is placed by arming and clicking
    (`armEncounter`), and the only drag-and-drop that exists is inside the objects library, for reordering and for
    dropping files in. So this is a new gesture on the map, not a reuse. The button stays, because a drag needs
