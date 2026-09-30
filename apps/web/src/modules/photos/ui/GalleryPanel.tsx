@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { ACCEPTED_MIME, EmptyState, Modal, formatBytes, useDialog } from '@rolvium/ui';
 import { SheetOverlay } from '@/modules/bestiary';
+import { encodePhotoDrag, PHOTO_DRAG_MIME } from '@/shared/lib/photoDrag';
 import type { PhotosPort } from '../domain/ports/PhotosPort';
 import type { Photo, PhotoUsage } from '../domain/entities/Photo';
 import { usePhotos } from './usePhotos';
@@ -57,11 +58,15 @@ export function GalleryPanel({ campaignId, repo }: Props): JSX.Element {
   /** Antes de borrar se pregunta a la base dónde se usa: es lo que hace honesto el aviso. */
   const pedirBorrar = async (photo: Photo) => {
     setOpen({ kind: 'remove', photo, usage: null });
+    // Si ya lo cerró (o abrió otro), lo que llega tarde NO vuelve a abrirlo solo. En una conexión lenta el
+    // aviso de BORRAR reaparecía por su cuenta después de Cancelar. (🐞 revisión del 2026-09-27.)
+    const llega = (usage: PhotoUsage) =>
+      setOpen(o => (o?.kind === 'remove' && o.photo.id === photo.id ? { ...o, usage } : o));
     try {
-      setOpen({ kind: 'remove', photo, usage: await ph.usage(photo) });
+      llega(await ph.usage(photo));
     } catch {
       // Sin saber dónde se usa se sigue pudiendo borrar: se avisa de que no se ha podido mirar.
-      setOpen({ kind: 'remove', photo, usage: { adventures: [], scenes: [], messages: -1 } });
+      llega({ adventures: [], scenes: [], messages: -1 });
     }
   };
 
@@ -82,6 +87,9 @@ export function GalleryPanel({ campaignId, repo }: Props): JSX.Element {
       <input ref={fileInput} type="file" accept={ACCEPTED_MIME.join(',')} multiple hidden
              aria-label={t('photos.upload')} data-testid="ph-input"
              onChange={e => { pedirFicheros(e.target.files); e.target.value = ''; }} />
+
+      {/* Lo dice la pantalla porque un arrastre no se ve venir: sin esta línea nadie sabe que se puede. */}
+      <p className="ph-hint">{t('photos.dragHint')}</p>
 
       {ph.error && (
         <p className="ph-error" role="alert">
@@ -129,7 +137,18 @@ export function GalleryPanel({ campaignId, repo }: Props): JSX.Element {
             <div className="ph-grid">
               {ph.visible.map(photo => (
                 <figure key={photo.id} className="ph-cell">
+                  {/*
+                    * ARRASTRARLA A LA ESCENA (orden suya, 2026-09-24: «*asegurate que pueda arrastrar las
+                    * fotos a la escena y no que solo sea con el boton*»). Va en la miniatura, que es lo que la
+                    * mano quiere coger. El id y el TAMAÑO viajan juntos para que el mapa sepa la huella en el
+                    * momento de soltar, sin ir a preguntar a la base y sin que la foto aparezca tarde.
+                    */}
                   <button type="button" className="ph-thumb" onClick={() => setOpen({ kind: 'big', photo })}
+                          draggable
+                          onDragStart={e => {
+                            e.dataTransfer.setData(PHOTO_DRAG_MIME, encodePhotoDrag(photo));
+                            e.dataTransfer.effectAllowed = 'copy';
+                          }}
                           aria-label={t('photos.see', { name: photo.name })}>
                     {ph.urls[photo.id]
                       ? <img src={ph.urls[photo.id]} alt="" />

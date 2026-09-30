@@ -4,12 +4,13 @@ import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPo
 import type { ChatDirectoryEntry, ChatMessage, ChatMessageKind } from '../domain/entities/Chat';
 import type { ChatPort, Unsubscribe } from '../domain/ports/ChatPort';
 
-const MESSAGE_SELECT = `id, conversation_id, author_id, kind, body, character_id, system_id, roll_kind, roll_request, roll_dice, roll_result, roll_ref_id, created_at,
+const MESSAGE_SELECT = `id, conversation_id, author_id, kind, body, character_id, system_id, roll_kind, roll_request, roll_dice, roll_result, roll_ref_id, photo_id, created_at,
   author:users!chat_messages_author_id_fkey(name, alias, avatar_url), character:characters(name)`;
 
 interface MessageRow {
   id: string; conversation_id: string; author_id: string; kind: ChatMessageKind; body: string | null;
   character_id: string | null; system_id: string | null; roll_kind: 'system' | 'free' | null;
+  /* H13 — opcional: una fila anterior a la columna no lo trae. */ photo_id?: string | null;
   roll_request: RollRequest | null; roll_dice: RolledDice | null; roll_result: RollResult | null;
   roll_ref_id: string | null; created_at: string;
   author: { name: string; alias?: string | null; avatar_url: string | null } | { name: string; alias?: string | null; avatar_url: string | null }[] | null;
@@ -24,7 +25,7 @@ export function mapMessageRow(r: MessageRow): ChatMessage {
     // Quién escribe se nombra como en el Registro (`SupabaseRollLogRepo`): el alias de la mesa si lo tiene, si no el nombre de la cuenta.
     id: r.id, conversationId: r.conversation_id, authorId: r.author_id, authorName: author?.alias?.trim() || author?.name || '', authorAvatarUrl: author?.avatar_url ?? null,
     kind: r.kind, body: r.body, characterId: r.character_id, characterName: character?.name ?? null, systemId: r.system_id,
-    rollKind: r.roll_kind, rollRequest: r.roll_request, rollDice: r.roll_dice, rollResult: r.roll_result, rollRefId: r.roll_ref_id, createdAt: r.created_at,
+    rollKind: r.roll_kind, rollRequest: r.roll_request, rollDice: r.roll_dice, rollResult: r.roll_result, rollRefId: r.roll_ref_id, photoId: r.photo_id ?? null, createdAt: r.created_at,
   };
 }
 
@@ -83,6 +84,14 @@ export class SupabaseChatRepo implements ChatPort {
     const { data, error } = await this.db.rpc('chat_create_conversation', { cid: campaignId, member_ids: memberIds });
     if (error) throw error;
     return String(data);
+  }
+
+  async sendPhoto(conversationId: string, authorId: string, photoId: string, body?: string): Promise<void> {
+    // El pie vacío se guarda como NULO, no como cadena vacía: «sin pie» y «pie en blanco» son lo mismo.
+    const pie = body?.trim() ? body.trim() : null;
+    const { error } = await this.db.from('chat_messages')
+      .insert({ conversation_id: conversationId, author_id: authorId, kind: 'photo', photo_id: photoId, body: pie });
+    if (error) throw error;
   }
 
   async sendText(conversationId: string, authorId: string, body: string): Promise<void> {

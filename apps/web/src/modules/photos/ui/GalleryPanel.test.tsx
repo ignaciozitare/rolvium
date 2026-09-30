@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders, screen, waitFor, within } from '../../../../tests/helpers/render';
+import { act, fireEvent, renderWithProviders, screen, waitFor, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { compressImage } from '@rolvium/ui';
 import { compressionLevelsRepo } from '@/shared/settings/container';
 import type { Photo, PhotoUsage } from '../domain/entities/Photo';
 import type { PhotosPort } from '../domain/ports/PhotosPort';
+import { decodePhotoDrag, PHOTO_DRAG_MIME } from '@/shared/lib/photoDrag';
 import { GalleryPanel } from './GalleryPanel';
 
 vi.mock('@/shared/settings/container', () => ({ compressionLevelsRepo: { load: vi.fn(), save: vi.fn() } }));
@@ -202,5 +203,114 @@ describe('GalleryPanel — renombrar, borrar y verla grande', () => {
     const hoja = await screen.findByRole('dialog', { name: 'El puente de Queens' });
     expect(within(hoja).getByRole('img', { name: 'Ver «El puente de Queens»' })).toHaveAttribute('src', 'https://x/ph-1.webp');
     expect(within(hoja).getByText('1024 × 1280')).toBeInTheDocument();
+  });
+});
+
+/**
+ * LOS CAMINOS DE ERROR — los tres fallos que cazó la revisión del 2026-09-27 vivían justo aquí: un aviso que
+ * no llegaba a pintarse y un diálogo que se reabría solo. Sin estas cuatro, los tres volverían sin que nadie
+ * se enterara, porque todo lo demás sigue verde.
+ */
+describe('GalleryPanel — cuando algo falla, se ve', () => {
+  it('si renombrar no se guarda, lo DICE y vuelve el nombre viejo', async () => {
+    const user = userEvent.setup();
+    paint(fakeRepo([foto()], { rename: vi.fn().mockRejectedValue(new Error('red')) }));
+    await abrirMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: 'Cambiarle el nombre' }));
+    const caja = await screen.findByRole('textbox');
+    await user.clear(caja);
+    await user.type(caja, 'El puente roto');
+    await user.click(screen.getByRole('button', { name: /Aceptar|OK|Confirm/i }));
+    // El nombre se pinta antes de guardar (va suelto), así que al fallar tiene que DESHACERSE, no quedarse.
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cambiar el nombre.');
+    await waitFor(() => expect(screen.getByText('El puente de Queens')).toBeInTheDocument());
+    expect(screen.queryByText('El puente roto')).toBeNull();
+  });
+
+  it('si borrar no se guarda, lo DICE y la foto sigue ahí', async () => {
+    const user = userEvent.setup();
+    paint(fakeRepo([foto()], { remove: vi.fn().mockRejectedValue(new Error('red')) }));
+    await abrirMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: 'Borrarla' }));
+    await screen.findByText('No está puesta en ningún sitio.');
+    await user.click(await screen.findByRole('button', { name: 'Borrarla' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido borrar.');
+    expect(screen.getByText('El puente de Queens')).toBeInTheDocument();
+  });
+
+  /** 🔑 El aviso de formato tiene que AGUANTAR la resincro del final de la subida. */
+  it('un lote mixto: lo que no es imagen se queda en la puerta y el aviso sigue cuando la buena termina', async () => {
+    const { repo, input } = paint(fakeRepo([]));
+    await screen.findByText('Todavía no hay fotos.');
+    // El `accept` del selector es un consejo: eligiendo «todos los ficheros» un PDF entra igual.
+    fireEvent.change(input(), {
+      target: { files: [new File(['%PDF-1.7'], 'reglas.pdf', { type: 'application/pdf' }), png('buena.png')] },
+    });
+    await waitFor(() => expect(repo.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(repo.create).mock.calls[0]![1]).toMatchObject({ name: 'buena' });
+    // El PDF no llega ni a la cola: no se comprime, no se sube y no ocupa sitio.
+    expect(screen.queryByText('reglas.pdf')).toBeNull();
+    expect(await screen.findByText('hecha')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Eso no es una imagen. Sólo PNG, JPG, WebP o GIF.');
+  });
+
+  it('si lo cancela mientras se mira dónde se usa, lo que llega tarde NO lo vuelve a abrir', async () => {
+    const user = userEvent.setup();
+    let contesta: (u: PhotoUsage) => void = () => {};
+    const repo = fakeRepo([foto()], { usage: vi.fn(() => new Promise<PhotoUsage>(res => { contesta = res; })) });
+    paint(repo);
+    await abrirMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: 'Borrarla' }));
+    const titulo = 'Borrar «El puente de Queens»';
+    expect(await screen.findByRole('heading', { name: titulo })).toBeInTheDocument();
+    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('heading', { name: titulo })).toBeNull();
+    // Aquí contesta la base, tarde: el aviso tiene que quedarse cerrado.
+    await act(async () => { contesta(SIN_USO); });
+    expect(screen.queryByRole('heading', { name: titulo })).toBeNull();
+    expect(repo.remove).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 📷 LLEVARLA A LA ESCENA ARRASTRÁNDOLA (H13, rebanada 4). Orden suya del 2026-09-24: «*asegurate que pueda
+ * arrastrar las fotos a la escena y no que solo sea con el boton*». Lo que sale de aquí lo recoge el mapa, y
+ * el contrato entre los dos vive en `shared/lib/photoDrag` — aquí se fija el lado de la galería.
+ */
+describe('GalleryPanel — arrastrarla a la escena', () => {
+  const arrastrar = (el: Element) => {
+    const datos: Record<string, string> = {};
+    const ev = new Event('dragstart', { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'dataTransfer', { value: { setData: (k: string, v: string) => { datos[k] = v; }, effectAllowed: '' } });
+    fireEvent(el, ev);
+    return datos;
+  };
+
+  it('la miniatura se coge con la mano, y viajan su id y su TAMAÑO', async () => {
+    paint();
+    const mini = await screen.findByRole('button', { name: 'Ver «El puente de Queens»' });
+    expect(mini).toHaveAttribute('draggable', 'true');
+    // El tamaño va con el id para que el mapa sepa la huella al soltar, sin ir a preguntar a la base.
+    expect(decodePhotoDrag(arrastrar(mini)[PHOTO_DRAG_MIME] ?? null)).toEqual({ id: 'ph-1', width: 1024, height: 1280 });
+  });
+
+  it('🔑 el NOMBRE no viaja: la fila de una foto puesta la lee el jugador y un nombre puede destripar', async () => {
+    paint();
+    const datos = arrastrar(await screen.findByRole('button', { name: 'Ver «El puente de Queens»' }));
+    expect(Object.keys(datos)).toEqual([PHOTO_DRAG_MIME]);
+    expect(datos[PHOTO_DRAG_MIME]).not.toContain('puente');
+  });
+
+  it('lo dice en pantalla, porque un arrastre no se ve venir', async () => {
+    paint();
+    expect(await screen.findByText('Arrástrala al mapa para ponerla en la escena.')).toBeInTheDocument();
+  });
+
+  it('pinchar la foto sigue abriéndola a lo grande: coger no rompe el clic', async () => {
+    const user = userEvent.setup();
+    paint();
+    await user.click(await screen.findByRole('button', { name: 'Ver «El puente de Queens»' }));
+    expect(await screen.findByRole('dialog', { name: 'El puente de Queens' })).toBeInTheDocument();
   });
 });

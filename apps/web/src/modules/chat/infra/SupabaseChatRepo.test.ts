@@ -89,6 +89,25 @@ describe('SupabaseChatRepo — writes and reads', () => {
     await new SupabaseChatRepo(m.client as unknown as SupabaseClient, campaigns([])).sendText('conv1', 'u1', 'hola');
     expect(m.insertSpy).toHaveBeenCalledWith({ conversation_id: 'conv1', author_id: 'u1', kind: 'text', body: 'hola' });
   });
+  /**
+   * LA FOTO POR EL CHAT (H13). El mensaje guarda QUÉ foto es, nunca su enlace: el fichero vive en un bucket
+   * privado y el enlace se firma aparte y caduca. El pie es opcional.
+   */
+  it('sendPhoto manda la foto, con su pie cuando lo hay', async () => {
+    const m = createSupabaseMock({ tables: { chat_messages: { data: null, error: null } } });
+    await new SupabaseChatRepo(m.client as unknown as SupabaseClient, campaigns([])).sendPhoto('conv1', 'u1', 'ph-1', 'Mira esto');
+    expect(m.insertSpy).toHaveBeenCalledWith({ conversation_id: 'conv1', author_id: 'u1', kind: 'photo', photo_id: 'ph-1', body: 'Mira esto' });
+  });
+
+  it('sin pie, el pie es NULO y no una cadena vacía: «sin pie» y «pie en blanco» son lo mismo', async () => {
+    const m = createSupabaseMock({ tables: { chat_messages: { data: null, error: null } } });
+    const repo = new SupabaseChatRepo(m.client as unknown as SupabaseClient, campaigns([]));
+    await repo.sendPhoto('conv1', 'u1', 'ph-1');
+    expect(m.insertSpy).toHaveBeenCalledWith(expect.objectContaining({ body: null }));
+    await repo.sendPhoto('conv1', 'u1', 'ph-1', '   ');
+    expect(m.insertSpy).toHaveBeenLastCalledWith(expect.objectContaining({ body: null }));
+  });
+
   it('markRead calls chat_mark_read with the conversation id', async () => {
     const m = createSupabaseMock();
     m.client['rpc'] = vi.fn().mockResolvedValue({ data: null, error: null });

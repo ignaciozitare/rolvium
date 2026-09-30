@@ -5,6 +5,7 @@ import type { ChatDirectoryEntry } from '../domain/entities/Chat';
 import type { ChatPort } from '../domain/ports/ChatPort';
 import { chatPort as defaultChat } from '../container';
 import { Directory } from './Directory';
+import type { PhotosPort } from '@/modules/photos';
 import { ConversationView } from './ConversationView';
 import './chat.css';
 
@@ -15,6 +16,10 @@ interface Props {
   myUserId: string;
   system: GameSystem | null;
   chat?: ChatPort;
+  /** ¿Es el director? Sólo él manda fotos por el chat (H13). */
+  isDm?: boolean;
+  /** La galería de la campaña: elegir la foto que se manda y firmar la que se ve. */
+  photos?: PhotosPort;
   /** Se pinchó la pastilla mientras se estaba en otra pestaña: abrir directo esa conversación. */
   pendingOpen?: { id: string; title: string } | null;
   onPendingOpenConsumed?: () => void;
@@ -25,7 +30,7 @@ interface Props {
 }
 
 /** SUSURROS (H8): directorio ⟷ conversación, dentro de la pestaña de la columna lateral (`SidePanel`). */
-export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat, pendingOpen, onPendingOpenConsumed, onRead, onOpenConversation }: Props): JSX.Element {
+export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat, pendingOpen, onPendingOpenConsumed, onRead, onOpenConversation, isDm = false, photos }: Props): JSX.Element {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<ChatDirectoryEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -57,7 +62,9 @@ export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat
   const back = () => { setView('directory'); reload(); };
 
   if (view !== 'directory') {
-    return <ConversationView campaignId={campaignId} conversationId={view.conversationId} title={view.title} myUserId={myUserId} system={system} onBack={back} chat={chat} {...(onRead ? { onRead } : {})} />;
+    // 🔑 `isDm` VIAJA HASTA AQUÍ. Sin esto el director no veía el clip en la conversación de la COLUMNA —sólo
+    // en las pastillas—, que es justo donde más se escribe. (🐞 revisión del 2026-09-28.)
+    return <ConversationView campaignId={campaignId} conversationId={view.conversationId} title={view.title} myUserId={myUserId} system={system} onBack={back} chat={chat} isDm={isDm} {...(photos ? { photos } : {})} {...(onRead ? { onRead } : {})} />;
   }
   if (status === 'error') return <p className="dc-log-error" role="alert">{t('chat.directory.error')}</p>;
   return <Directory entries={entries} onOpen={entry => { void openEntry(entry); }} onCreateGroup={ids => { void createGroup(ids); }} />;

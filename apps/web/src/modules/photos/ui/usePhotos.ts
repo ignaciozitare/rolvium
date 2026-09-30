@@ -55,11 +55,13 @@ export function usePhotos({ campaignId, repo = photosPort }: Options) {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const rows = await repo.list(campaignId);
       setPhotos(rows);
       setUrls(await repo.urlsFor(campaignId, rows.map(p => p.id)).catch(() => ({})));
+      // Sólo se limpia el aviso de CARGA: el de renombrar, borrar o formato tiene que sobrevivir a la
+      // resincro — si no, el fallo es mudo. (🐞 revisión del 2026-09-27.)
+      setError(prev => (prev === 'photos.error.load' ? null : prev));
     } catch {
       setError('photos.error.load');
     } finally {
@@ -75,26 +77,30 @@ export function usePhotos({ campaignId, repo = photosPort }: Options) {
    * SUBIR. Una a una a propósito, aunque se elijan diez: así cada una cuenta su propio estado y **un fichero
    * rechazado no se lleva a los demás** (spec § States & errors). Comprime en el navegador, como las texturas.
    */
-  const upload = useCallback(async (files: readonly File[], fallbackName: string) => {
-    if (!files.length) return;
+  const upload = useCallback(async (files: readonly File[], fallbackName: string): Promise<Photo[]> => {
+    if (!files.length) return [];
     const nuevos: Upload[] = files.map((f, i) => ({ key: `${Date.now()}-${i}-${f.name}`, fileName: f.name, state: 'compressing' }));
     setUploads(prev => [...prev, ...nuevos]);
     const patch = (key: string, next: Partial<Upload>) => setUploads(prev => prev.map(u => (u.key === key ? { ...u, ...next } : u)));
 
+    // Lo que SÍ ha entrado, en orden. Se devuelve para quien necesite la foto recién creada —el chat la manda
+    // al momento—; a quien sólo sube en lote no le estorba.
+    const creadas: Photo[] = [];
     for (const [i, file] of files.entries()) {
       const key = nuevos[i]!.key;
       try {
         const out = await compressImage(file, 'photo', level);
         patch(key, { state: 'uploading', before: out.originalBytes, after: out.bytes });
-        await repo.create(campaignId, {
+        creadas.push(await repo.create(campaignId, {
           name: nameFromFile(file.name, fallbackName), width: out.width, height: out.height, file: out.blob,
-        });
+        }));
         patch(key, { state: 'done' });
       } catch (e) {
         patch(key, { state: 'failed', error: errorKeyOf(e) });
       }
     }
     await reload();
+    return creadas;
   }, [campaignId, level, repo, reload]);
 
   /** Quitar una subida de la lista: ya está guardada, o el director ya ha leído por qué no entró. */

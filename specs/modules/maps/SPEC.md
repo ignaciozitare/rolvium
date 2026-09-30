@@ -185,7 +185,7 @@ the «Modelo de datos» sections further down, one per slice; this is the map of
 | `maps_lights` | Ambient lights | GM |
 | `maps_tokens` | Characters and creatures on the board | GM; players move their own |
 | `maps_props` · `maps_prop_packs` | The prop library, per user pack | GM with `manage_props` |
-| `maps_scene_props` | Props placed on a scene, with `z` and their blocking shape | GM |
+| `maps_scene_props` | Props placed on a scene, with `z` and their blocking shape — **and photos placed on it** (`photo_id`, H13): same table on purpose, so a photo moves, scales, rotates, stacks and undoes like any other piece | GM |
 | `maps_fog` | What each player has explored, **one row per scene and per user** | The API |
 
 ⚠️ Two things that bit hard and belong here:

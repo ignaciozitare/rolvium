@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PhotoDrag } from '@/shared/lib/photoDrag';
 import { useTranslation } from '@rolvium/i18n';
 import type { CatalogItem, GameSystem, RollRequest, SheetData } from '@rolvium/core';
 import { Modal, UserAvatar, useDialog } from '@rolvium/ui';
@@ -27,7 +28,9 @@ import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './Pro
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
 import { TextureUpload, type TextureUploadInput } from './TextureUpload';
-import { blockShapeOfUpload, dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, silhouetteOfAlpha, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
+import type { PhotoUrlSigner } from '../domain/ports/PhotoUrlSignerPort';
+import { usePhotoUrls } from '@/shared/hooks/usePhotoUrls';
+import { blockShapeOfUpload, dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, photoIdsVisibleTo, plantPhoto, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, silhouetteOfAlpha, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
@@ -124,6 +127,12 @@ interface Props {
   onOpenAttack?: (input: { sceneId: string | null; attackerTokenId: string; targetTokenId: string; attackerName: string; targetCharacterId: string; dice: number; request: RollRequest }) => Promise<unknown>;
   diceOpen?: boolean;
   repo?: MapsPort;
+  /**
+   * LA FIRMA DE LOS ENLACES de las fotos puestas (H13, rebanada 4). Sólo esto necesita la escena de la
+   * galería, y por eso llega como una puerta mínima y no como el módulo entero: `maps` no tiene que conocer
+   * `photos`. Quien enchufa el de verdad es la mesa. Sin él, una foto puesta simplemente no se pinta.
+   */
+  photos?: PhotoUrlSigner;
   vision?: VisionPort;
   /** Dónde tenía puesto el ojo el director. Es una prop para que un test pueda darle una memoria de mentira. */
   memory?: ViewMemoryPort;
@@ -139,7 +148,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, adventures, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, openSceneId = null, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
+export function SceneTab({ campaignId, adventures, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, openSceneId = null, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, photos, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -1010,6 +1019,31 @@ export function SceneTab({ campaignId, adventures, role, userId, system, canMana
     run(st.plantSceneProp(plantProp(stamp, at, live, plantLayerId, stampScale, stampRotation, topZ(st.sceneProps))));
     recordarReciente(stamp.id);
   };
+
+  // ── LAS FOTOS PUESTAS (H13, rebanada 4) ──────────────────────────────────
+  /**
+   * QUÉ FOTOS PUESTAS SE LE PUEDEN ENSEÑAR A QUIEN MIRA, y sus enlaces firmados: sin ellos no hay nada que
+   * pintar. El director las ve todas, incluidas las aparcadas al costado; el jugador, sólo las que tocan el
+   * área de juego — suyo, 2026-09-22: «*si las pongo al costado los jugadores no las ven solo el dm*».
+   * Se recalcula al moverlas, así que una foto **deja de verse en cuanto sale** y se ve en cuanto entra.
+   */
+  const idsFotosVisibles = useMemo(
+    () => (live ? photoIdsVisibleTo(st.sceneProps, live, isDm) : []),
+    [st.sceneProps, live, isDm],
+  );
+  const photoUrls = usePhotoUrls(campaignId, idsFotosVisibles, photos);
+  /**
+   * SOLTAR UNA FOTO EN EL MAPA. Cae **entera donde la sueltas** —ése es el punto que el dedo eligió— y nace
+   * como una pieza más: se mueve, se estira por las esquinas, se gira, se copia y se deshace con Ctrl+Z sin
+   * una línea de código propia, porque **es** una fila de `maps_scene_props`. Y se apila donde se apilan las
+   * piezas, que es debajo de las fichas: palabra suya del 2026-09-27, «*debajo*».
+   *
+   * Sólo el director: colocar es suyo (spec § Permissions), y la base lo vuelve a decir por su cuenta.
+   */
+  const soltarFoto = (foto: PhotoDrag, at: Point): void => {
+    if (!live) return;
+    run(st.plantSceneProp(plantPhoto(foto, at, live, live.grid.size, plantLayerId, topZ(st.sceneProps))));
+  };
   /**
    * SEMBRAR MUCHAS (§ 6.4, S/5): por donde pasa la mano cae otra cada `sowStepPx`, esparcida dentro del área
    * y con giro y tamaño al azar si están puestos. Se pintan ya (`sowPreview`) y se guardan TODAS al soltar,
@@ -1416,6 +1450,8 @@ export function SceneTab({ campaignId, adventures, role, userId, system, canMana
                 onRotateProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, rotation: b.rotation } })), 'maps.history.propsRotate'))}
                 stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
                 onPlantProp={plantar} sowing={plantMode === 'many'} onSow={sembrar} onSowEnd={acabarSiembra}
+                /* ── LAS FOTOS PUESTAS (H13, rebanada 4): lo que se pinta y lo que se suelta encima ── */
+                photoUrls={photoUrls} {...(isDm ? { onDropPhoto: soltarFoto } : {})}
                 sowRadiusPx={sow.areaCells * live.grid.size}
                 fogVeil={fogVeil}
                 maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}

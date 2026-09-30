@@ -363,7 +363,8 @@
     },
     "side": {
       "hide": "Ocultar el panel lateral",
-      "show": "Mostrar el panel lateral"
+      "show": "Mostrar el panel lateral",
+      "resize": "Cambiar el ancho del panel"
     }
   },
   "chat": {
@@ -403,6 +404,17 @@
       "minimize": "Minimizar la conversación con {{name}}",
       "close": "Cerrar la conversación con {{name}}",
       "unread": "{{n}} sin leer"
+    },
+    "photo": {
+      "attach": "Mandar una foto",
+      "fromComputer": "Subir una del ordenador",
+      "fromGallery": "De la galería",
+      "pickTitle": "Elige una foto",
+      "uploading": "Subiendo la foto…",
+      "sent": "Foto",
+      "deleted": "Foto borrada",
+      "empty": "Todavía no hay fotos.",
+      "emptyHint": "Sube una del ordenador y se guarda también en la galería de la campaña."
     }
   },
   "identity": {
@@ -1416,7 +1428,9 @@
         "label": "Objeto {{name}}",
         "selected": "Objeto {{name}}, cogido",
         "scale": "Estirar el objeto",
-        "rotate": "Girar el objeto"
+        "rotate": "Girar el objeto",
+        "photo": "Foto puesta",
+        "photoSelected": "Foto puesta, cogida"
       },
       "menu": {
         "order": "Orden de apilado",
@@ -1994,6 +2008,7 @@
       "tooBig": "Pesa más de 8 MB. Ésa no entra; las demás siguen.",
       "stillTooBig": "Aun comprimida sigue pesando demasiado.",
       "decode": "No se ha podido abrir esa imagen."
-    }
+    },
+    "dragHint": "Arrástrala al mapa para ponerla en la escena."
   }
 }

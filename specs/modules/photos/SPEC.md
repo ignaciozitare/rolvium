@@ -150,6 +150,9 @@ It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & l
 | Uploading | One or more files on their way | Each one with its progress, and how much it shrank («2,4 MB → 180 KB») |
 | File too big / wrong type | Over 8 MB, or not an image | The file is refused with the reason; the others keep going |
 | Upload failed | Network or permissions | The photo is marked failed with «Reintentar»; nothing is half-saved |
+| Rename failed | The database refuses, or the network drops | «No se ha podido cambiar el nombre.» stays until the GM closes it, and the old name comes back |
+| Delete failed | The database refuses, or the network drops | «No se ha podido borrar.» stays until the GM closes it, and the photo is still there |
+| Cancelling while «where is it used» is still in flight | The GM cancels before the database answers | Nothing: a late answer is dropped and the dialog stays closed |
 | Deleting a photo in use | Its menu → delete | The dialog listing where it is used, then confirm |
 | A deleted photo in an adventure or chat | After deleting it | «foto borrada» in its place |
 | Placing with no scene open | «A la escena» with no scene | The table goes to Escena and says there is no scene to place it in |
@@ -292,3 +295,60 @@ moved to touch it → yes; touching the edge exactly → no. A player's ordinary
 - **Its own compression level** («Fotos») rather than borrowing the background's, with numbers measured on a
   real photo before building.
 - **The photo keeps its proportions** when scaled from a corner.
+
+### Placing it in the scene — built 2026-09-28
+
+He said it plainly, seeing the gallery on screen with nothing to do: «*no me sirve de nada poder subir la foto
+y no poder arrastrarla a la escena como te pedi*». He was right — the library alone (slice 3) is a shelf with
+no door. What went in:
+
+- **A placed photo is a row of `maps_scene_props`**, not a new kind of thing. That one decision is what gives
+  it moving, resizing by the corners, rotating, copying, `Ctrl+Z` and the stacking order **for free**, and it
+  is also what puts it **under the tokens** without inventing a layer — his «*debajo*» of 2026-09-27.
+- **The row carries neither the name nor the link** (`name = ''`, `image_url = ''`, enforced by the database):
+  a player reads this row, and a photo's name can be a spoiler. What is painted comes from signing the file
+  separately, which is also why the link is not stored — it expires.
+- **Dragging carries the id and the natural size together**, so the map knows the footprint at the instant of
+  the drop instead of asking the database and having the photo appear late and elsewhere.
+- **It lands six grid cells across its longest side** (`PHOTO_SPAN_CELLS`), never distorted. Mine, not his:
+  on a normal grid (~70 px) that is ~420 px, which is the width a photo is read at everywhere else in the
+  tool. It is a starting size, not a rule — the corners change it and the row keeps it.
+- **The screen now enforces the play area too, not only the database.** His rule of 2026-09-22 — «*si las
+  pongo al costado los jugadores no las ven solo el dm*» — was already enforced at signing time, but a signed
+  link is a bearer pass valid for an hour, so a photo *dragged out* of the map kept showing to players, and a
+  photo *dragged in* was never asked for again and stayed invisible until a reload. The screen now runs the
+  **same separating-axis test as the database** (`rectTouchesPlayArea` mirrors `maps_rect_touches_play_area`,
+  down to «touching the edge exactly is outside») and returns links only for what may be shown *right now*.
+  The GM keeps seeing everything, including what is parked aside waiting for its moment.
+- **Still not built**: the menu's «A la escena» (the way in when the map is not on screen) and sending a photo
+  through the chat (slice 5). Nothing is drawn for them, because a button that does nothing is worse than no
+  button.
+
+🐞 **Two traps found by the tests, both worth remembering because they are the same shape** — an effect whose
+correctness depends on a combination nobody stated:
+
+- The signing effect first hung off the list of placed pieces, which changes identity on every frame of a drag.
+  It now hangs off the list of ids **by value**. That is a performance fix, not the safety net.
+- The safety net is that **the effect has no cleanup, and must not have one**. Adding the textbook
+  `return () => { alive = false }` would make placing a second photo cancel the first one's signature in
+  flight; since its id already counts as «asked for», it would never be asked for again and that photo would
+  never appear. A test pins exactly this, so the «obvious» cleanup cannot be added silently.
+
+### What failed — the review of 2026-09-27
+
+Three defects, all on the **error paths**, which is exactly what the thirteen tests written with the feature did
+not cover. Written down because the shape of the mistake repeats: state that a caller had just set was wiped by
+the resync that followed it.
+
+- **A failed rename or delete was SILENT.** `reload()` began with `setError(null)`, and because it runs to its
+  first `await` synchronously it erased the warning its own caller had just set. Fixed by clearing only the
+  *loading* warning, and only on success: `setError(prev => prev === 'photos.error.load' ? null : prev)`.
+- **The wrong-format warning erased itself** the moment a mixed batch finished, for the same reason. The irony
+  is that when *every* file was bad the warning survived, because the upload returned before the resync — it
+  held up precisely when it mattered least.
+- **Cancelling the delete dialog reopened it by itself** on a slow connection: the answer to «where is it used»
+  arrived late and called `setOpen` unconditionally. A late answer now only patches a dialog that is still open
+  on the same photo.
+
+Each one is pinned by a test in `GalleryPanel.test.tsx` § «cuando algo falla, se ve», and all four were checked
+against the unfixed code first: they failed there and pass here.

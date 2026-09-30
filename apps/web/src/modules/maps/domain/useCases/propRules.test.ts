@@ -7,6 +7,7 @@ import {
   propCorners, propPath, pushRecent, randomRotation, randomScale, restack, rotateHandleAt, rotationToward, scaleChanged,
   scaleFromCorner, scaleFromCornerAnchored, propsInRect, propPlace, scaleOfWidth, scatterIn, sectionsOf, sowStepPx, topZ, toPropFrame,
   groupBoxFromCorner, groupCorners, groupRotateHandleAt, propsBounds, rotatePropsBy, scalePropsTo,
+  PHOTO_SPAN_CELLS, photoFootprint, photoIdsOf, photoIdsVisibleTo, plantPhoto, rectTouchesPlayArea,
 } from './propRules';
 
 const OAK = PROP_OAK;
@@ -414,5 +415,203 @@ describe('la silueta de lo que se sube (§ 6.9)', () => {
     const planted = plantProp(OAK, { x: 10, y: 20 }, SCENE_WAREHOUSE);
     expect(planted.blockShape).toBe('rect');
     expect(planted.silhouette).toBeNull();
+  });
+});
+
+/**
+ * LA FOTO PUESTA EN LA ESCENA (H13, rebanada 4). Una foto puesta **es** una fila de `maps_scene_props`, que es
+ * lo que le regala moverse, estirarse, girarse, copiarse y deshacerse sin una línea propia — y lo que la deja
+ * DEBAJO DE LAS FICHAS, que es lo que él pidió el 2026-09-27 («*debajo*»).
+ *
+ * Las tres cosas que la base EXIGE de una foto puesta (`maps_scene_props_photo_shape`) se fijan aquí: sin
+ * nombre, sin enlace y sin estorbar. Si alguien las cambia, la inserción la rechaza Postgres, no un test.
+ */
+describe('plantPhoto — poner una foto en la escena', () => {
+  const G = SCENE_WAREHOUSE.grid.size;
+  const FOTO = { id: 'ph-1', width: 1024, height: 1280 };
+
+  it('nace donde se suelta, apuntando a su foto y SIN ser una pieza de la biblioteca', () => {
+    const puesta = plantPhoto(FOTO, { x: 250, y: 180 }, SCENE_WAREHOUSE, G);
+    expect(puesta.photoId).toBe('ph-1');
+    expect(puesta.propId).toBeNull();
+    expect(puesta).toMatchObject({ sceneId: SCENE_WAREHOUSE.id, campaignId: SCENE_WAREHOUSE.campaignId, x: 250, y: 180, rotation: 0 });
+  });
+
+  it('🔑 no se lleva NI EL NOMBRE NI EL ENLACE: esa fila la lee el jugador y un nombre puede destripar', () => {
+    const puesta = plantPhoto(FOTO, { x: 0, y: 0 }, SCENE_WAREHOUSE, G);
+    expect(puesta.name).toBe('');
+    expect(puesta.imageUrl).toBe('');
+  });
+
+  it('🔑 no estorba ni la vista ni el paso, y no lleva silueta', () => {
+    const puesta = plantPhoto(FOTO, { x: 0, y: 0 }, SCENE_WAREHOUSE, G);
+    expect(puesta.blocksSight).toBe(false);
+    expect(puesta.blocksMove).toBe(false);
+    expect(puesta.silhouette).toBeNull();
+  });
+
+  it('mide seis casillas por su lado mayor y NO se deforma', () => {
+    // SEIS es una decisión de producto, no un detalle: escrita en el spec y en el comentario de la constante.
+    expect(PHOTO_SPAN_CELLS).toBe(6);
+    const puesta = plantPhoto(FOTO, { x: 0, y: 0 }, SCENE_WAREHOUSE, G);
+    expect(puesta.height).toBe(PHOTO_SPAN_CELLS * G);
+    // 1024/1280 de un lado mayor de seis casillas: la proporción de la foto, clavada.
+    expect(puesta.width).toBe(Math.round(PHOTO_SPAN_CELLS * G * (1024 / 1280)));
+    expect(puesta.width / puesta.height).toBeCloseTo(1024 / 1280, 2);
+  });
+
+  it('una foto apaisada manda por el ancho, no por el alto', () => {
+    const puesta = plantPhoto({ id: 'ph-2', width: 1600, height: 900 }, { x: 0, y: 0 }, SCENE_WAREHOUSE, G);
+    expect(puesta.width).toBe(PHOTO_SPAN_CELLS * G);
+    expect(puesta.height).toBeLessThan(puesta.width);
+  });
+
+  it('se apila y se pone en la capa que se le diga, como cualquier pieza', () => {
+    const puesta = plantPhoto(FOTO, { x: 0, y: 0 }, SCENE_WAREHOUSE, G, 'ly-7', 42);
+    expect(puesta.layerId).toBe('ly-7');
+    expect(puesta.z).toBe(42);
+  });
+});
+
+describe('photoFootprint — la huella, sin deformar nunca', () => {
+  it('encoge y agranda hasta el lado pedido conservando la proporción', () => {
+    expect(photoFootprint(200, 100, 50)).toEqual({ width: 50, height: 25 });
+    expect(photoFootprint(200, 100, 400)).toEqual({ width: 400, height: 200 });
+  });
+
+  it('una foto sin medidas sale cuadrada en vez de desaparecer del mapa', () => {
+    expect(photoFootprint(0, 0, 120)).toEqual({ width: 120, height: 120 });
+  });
+
+  it('una foto larguísima no deja el lado corto en cero', () => {
+    expect(photoFootprint(10000, 1, 100).height).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('photoIdsOf — qué hay que firmar para poder pintar', () => {
+  const conFoto = (id: string, photoId: string | null): SceneProp => ({ ...SCENE_PROP_OAK, id, photoId });
+
+  it('saca los ids de foto, sin repetir y sin las piezas normales', () => {
+    expect(photoIdsOf([conFoto('a', 'ph-1'), conFoto('b', null), conFoto('c', 'ph-1'), conFoto('d', 'ph-2')]))
+      .toEqual(['ph-1', 'ph-2']);
+  });
+
+  it('sin fotos puestas no hay nada que firmar', () => {
+    expect(photoIdsOf([SCENE_PROP_OAK, SCENE_PROP_COLUMN])).toEqual([]);
+    expect(photoIdsOf([])).toEqual([]);
+  });
+});
+
+/**
+ * EL ÁREA DE JUEGO (H13, rebanada 4). Suyo, 2026-09-22: «*solo se tienen que ver las fotos dentro de la escena
+ * en el area de juego si las pongo al costado los jugadores no las ven solo el dm*».
+ *
+ * 🔑 Esta cuenta es **la misma que hace la base** en `maps_rect_touches_play_area`. Si las dos dejan de decir
+ * lo mismo, el director ve una cosa y el jugador otra — que es el fallo que esto existe para no tener.
+ */
+describe('rectTouchesPlayArea — qué toca el mapa y qué se queda al costado', () => {
+  const ESCENA = SCENE_WAREHOUSE; // 1080 × 675
+  const foto = (over: Partial<{ x: number; y: number; width: number; height: number; rotation: number }> = {}) =>
+    ({ x: 540, y: 337, width: 300, height: 200, rotation: 0, ...over });
+
+  it('en el centro del mapa, dentro', () => {
+    expect(rectTouchesPlayArea(foto(), ESCENA)).toBe(true);
+  });
+
+  it('asomando por el borde, dentro: lo que sobresale se recorta, no se esconde', () => {
+    expect(rectTouchesPlayArea(foto({ x: 1050 }), ESCENA)).toBe(true);
+    expect(rectTouchesPlayArea(foto({ y: -50 }), ESCENA)).toBe(true);
+  });
+
+  it('aparcada al costado, FUERA', () => {
+    expect(rectTouchesPlayArea(foto({ x: 1400 }), ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea(foto({ x: -400 }), ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea(foto({ y: 1200 }), ESCENA)).toBe(false);
+  });
+
+  it('tocar el borde justo NO cuenta como dentro', () => {
+    // Centro a media huella del borde: se tocan exactamente, y eso es fuera.
+    expect(rectTouchesPlayArea(foto({ x: 1080 + 150 }), ESCENA)).toBe(false);
+  });
+
+  it('girada, se mide la forma de verdad y no la caja que la envuelve', () => {
+    // Una foto larga y estrecha pasada la esquina: recta se queda fuera; girada 45° su punta sí alcanza el
+    // mapa. Si esto midiera la caja que la envuelve en vez de la forma, las dos darían lo mismo.
+    const casiFuera = { x: 1180, y: 775, width: 300, height: 40, rotation: 0 };
+    expect(rectTouchesPlayArea(casiFuera, ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea({ ...casiFuera, x: 1150, y: 700, rotation: 45 }, ESCENA)).toBe(true);
+  });
+
+  /**
+   * 🔴 LOS DOS EJES PROPIOS DE LA PIEZA, clavados. Estas tres están **pasada una esquina**: la caja que las
+   * envuelve sí pisa el mapa, pero la foto girada no lo toca. Sólo los dos ejes de la pieza lo distinguen, así
+   * que si alguien los quita —o quita uno— esto se pone rojo. Los tres valores están comprobados contra
+   * `maps_rect_touches_play_area` en la base (2026-09-28): las dos contestan `false`.
+   *
+   * Hacía falta porque la prueba de arriba NO lo distingue: sus dos casos los decide ya el eje del mapa, y
+   * pasaba igual de verde con la caja envolvente.
+   */
+  it('🔴 pasada una esquina, FUERA aunque su caja envolvente pise el mapa', () => {
+    expect(rectTouchesPlayArea({ x: 1186, y: 803, width: 472, height: 119, rotation: 108 }, ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea({ x: -111, y: 773, width: 283, height: 105, rotation: 31 }, ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea({ x: -202, y: -221, width: 513, height: 481, rotation: 146 }, ESCENA)).toBe(false);
+    // Éstas las separa el eje de LO LARGO de la foto, que es el único de los cuatro que las caza: si se quita
+    // ese eje, o se le cambia un signo, estas tres cambian de respuesta. Comprobadas contra la base.
+    expect(rectTouchesPlayArea({ x: 1100, y: 800, width: 185, height: 368, rotation: 241 }, ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea({ x: -38, y: 1016, width: 520, height: 643, rotation: 307 }, ESCENA)).toBe(false);
+    expect(rectTouchesPlayArea({ x: -262, y: 717, width: 418, height: 695, rotation: 42 }, ESCENA)).toBe(true);
+  });
+
+  /**
+   * 🔴 EL GIRO NO TIENE CUADRANTE BUENO. `cos` y `sin` entran **en valor absoluto** en los cuatro topes, porque
+   * ahí lo que se mide es cuánto ocupa, y ocupar no es negativo. Sin esos valores absolutos, un giro de más de
+   * 90° deja topes en negativo y la cuenta dice «fuera» de una foto que está **en medio del mapa**: al jugador
+   * le desaparecería una foto que el director ve puesta. Comprobadas contra la base (2026-09-28): `true`.
+   */
+  it('🔴 dentro es dentro en los cuatro cuadrantes, no sólo girando poco', () => {
+    expect(rectTouchesPlayArea({ x: 771, y: 372, width: 477, height: 369, rotation: 271 }, ESCENA)).toBe(true);
+    expect(rectTouchesPlayArea({ x: -188, y: 31, width: 327, height: 387, rotation: 210 }, ESCENA)).toBe(true);
+    expect(rectTouchesPlayArea({ x: 135, y: 413, width: 517, height: 232, rotation: 137 }, ESCENA)).toBe(true);
+  });
+
+  it('🔴 el borde justo tampoco cuenta cuando está girada', () => {
+    // El borde EXACTO para esta huella y este giro, con la misma cuenta que hace la función: tocarse es fuera.
+    // Se hace por los DOS lados, el de abajo y el de la derecha, porque cada uno lo decide un tope distinto.
+    const rad = (135 * Math.PI) / 180;
+    const c = Math.abs(Math.cos(rad)), s = Math.abs(Math.sin(rad));
+    expect(rectTouchesPlayArea({ x: 1080 + (150 * c + 100 * s), y: 337.5, width: 300, height: 200, rotation: 135 }, ESCENA)).toBe(false);
+    const rad15 = (15 * Math.PI) / 180;
+    const bordeAbajo = 675 + (150 * Math.abs(Math.sin(rad15)) + 100 * Math.abs(Math.cos(rad15)));
+    expect(rectTouchesPlayArea({ x: 540, y: bordeAbajo, width: 300, height: 200, rotation: 15 }, ESCENA)).toBe(false);
+  });
+
+  /**
+   * 🔴 EL ANCHO VA CON SU COSENO Y EL ALTO CON SU SENO, no al revés. Cruzarlos es el error de copia más fácil
+   * de cometer aquí y no se nota en una foto cuadrada ni a 0°/90°, pero con una foto alargada y girada cambia
+   * la respuesta en un rango ancho — no sólo en el borde. Comprobadas contra la base (2026-09-28).
+   */
+  it('🔴 no se cruzan el ancho y el alto en los topes', () => {
+    expect(rectTouchesPlayArea({ x: 1307, y: 761, width: 208, height: 483, rotation: 270 }, ESCENA)).toBe(true);
+    expect(rectTouchesPlayArea({ x: 1188, y: 451, width: 412, height: 38, rotation: 156 }, ESCENA)).toBe(true);
+    expect(rectTouchesPlayArea({ x: 1282, y: 692, width: 438, height: 372, rotation: 88 }, ESCENA)).toBe(false);
+  });
+});
+
+describe('photoIdsVisibleTo — el director las ve todas; el jugador, sólo las del mapa', () => {
+  const puesta = (id: string, photoId: string, x: number): SceneProp =>
+    ({ ...SCENE_PROP_OAK, id, propId: null, photoId, name: '', imageUrl: '', x, y: 337, width: 300, height: 200, rotation: 0 });
+  const DENTRO = puesta('sp-1', 'ph-dentro', 540);
+  const AL_COSTADO = puesta('sp-2', 'ph-costado', 1500);
+
+  it('el DIRECTOR ve también la que tiene aparcada al costado, esperando su momento', () => {
+    expect(photoIdsVisibleTo([DENTRO, AL_COSTADO], SCENE_WAREHOUSE, true)).toEqual(['ph-dentro', 'ph-costado']);
+  });
+
+  it('🔑 el JUGADOR sólo ve la que está en el mapa', () => {
+    expect(photoIdsVisibleTo([DENTRO, AL_COSTADO], SCENE_WAREHOUSE, false)).toEqual(['ph-dentro']);
+  });
+
+  it('las piezas normales no entran aquí: ésas no se firman', () => {
+    expect(photoIdsVisibleTo([SCENE_PROP_OAK, DENTRO], SCENE_WAREHOUSE, false)).toEqual(['ph-dentro']);
   });
 });

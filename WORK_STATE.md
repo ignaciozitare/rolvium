@@ -2,112 +2,107 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-27) — LA GALERÍA (H13) CONSTRUIDA · ⛔ 3 FALLOS POR ARREGLAR EN UN CHAT NUEVO
-> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Sin mergear.
+> # 📍 ESTADO (2026-09-28, noche) — FOTOS EN LA ESCENA Y EN EL CHAT + EL CARRIL Y EL SALTO DE LÍNEA
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Sin mergear. **Sin commitear todavía.**
 >
-> **FRASE PARA EL CHAT NUEVO**: «Rolvium: sigue con `feat/aventuras-segunda-vuelta`. Aplica los 3 arreglos de la
-> galería que están escritos en el bloque de arriba de WORK_STATE.md, con sus 4 pruebas, y pasa review.»
+> ## ⛔ LA LECCIÓN DEL DÍA, TRES VECES SEGUIDAS: EL FALLO NUNCA ESTUVO EN LA PIEZA, SINO EN EL CABLE
+> 1. Por la mañana: la GALERÍA estaba entera y verde, y **desenchufada** del mapa. Su queja: «*no me sirve de
+>    nada poder subir la foto y no poder arrastrarla a la escena como te pedi*».
+> 2. La revisión encontró que la línea que las junta (`TablePage`) **no tenía ni una prueba**: quitándola,
+>    2.361 pruebas seguían verdes y no se pintaba ni una foto.
+> 3. Por la noche, en la rebanada 5, **otras dos del mismo tipo**: `SusurrosPanel` declaraba `isDm` y no se lo
+>    pasaba a la conversación (el director se quedaba **sin clip en la columna, que es donde más se escribe**),
+>    y `TablePage` le daba la galería al carril sólo si se la inyectaban — en producción **toda foto recibida
+>    salía como «Foto borrada»**, que es lo peor: el fallo se leía como un dato, no como una avería.
 >
-> ## ⛔ LO PRIMERO: LOS 3 FALLOS (los cazó la revisión del 27-09; están CONFIRMADOS leyendo el código)
-> Los tres viven en los CAMINOS DE ERROR de la galería, que es justo lo que no cubren las 13 pruebas nuevas.
-> Son ~15 líneas en dos ficheros. **No se mergea nada sin esto.**
+> **REGLA QUE SALE DE AQUÍ: una prueba que inyecta el puerto a mano NO prueba el cable.** Para eso hace falta
+> montar la mesa **a secas, como el router**, doblando el contenedor. Hay dos pines que lo hacen
+> (`la-galeria-esta-enchufada-al-mapa` y `la-galeria-llega-sola-a-toda-la-mesa`) y **no se tocan**.
 >
-> ### 🐞 1 y 2 — renombrar y borrar fallan EN SILENCIO, y el aviso de formato se borra solo
-> **Causa única**: `reload()` en `apps/web/src/modules/photos/ui/usePhotos.ts` hace `setError(null)` como
-> segunda línea. Como `reload()` corre entero hasta su primer `await`, BORRA el aviso que acaba de poner quien
-> la llamó (`rename` y `remove` hacen `setError(...)` y luego `await reload()`), así que el `<p role="alert">`
-> no llega a pintarse nunca. Lo mismo con `photos.error.mime` de un lote mixto: `GalleryPanel.tsx:47` lo pone y
-> `ph.upload()` termina en `reload()`. (Ironía: si TODOS los ficheros son malos, `upload` vuelve antes de
-> `reload` y el aviso SÍ sobrevive — o sea, aguanta cuando menos falta hace.)
-> **ARREGLO** — en `usePhotos.ts`, quitar el `setError(null)` de arriba y limpiar sólo el de carga, al acertar:
-> ```ts
-> const reload = useCallback(async () => {
->   setLoading(true);
->   try {
->     const rows = await repo.list(campaignId);
->     setPhotos(rows);
->     setUrls(await repo.urlsFor(campaignId, rows.map(p => p.id)).catch(() => ({})));
->     // Sólo se limpia el aviso de CARGA: el de renombrar, borrar o formato tiene que sobrevivir a la
->     // resincro — si no, el fallo es mudo. (🐞 revisión del 2026-09-27.)
->     setError(prev => (prev === 'photos.error.load' ? null : prev));
->   } catch {
->     setError('photos.error.load');
->   } finally {
->     setLoading(false);
->   }
-> }, [campaignId, repo]);
-> ```
+> ## ✅ LO CONSTRUIDO HOY
+> ### La galería (los 3 fallos de la revisión del 27-09)
+> `reload()` ya no borra el aviso que acaba de poner quien la llamó —renombrar y borrar fallaban **en
+> silencio**— y el aviso de borrar ya no reaparece solo tras Cancelar. 4 pruebas, verificadas contra el código
+> sin arreglar.
 >
-> ### 🐞 3 — cancelar el aviso de borrar lo vuelve a ABRIR solo
-> `GalleryPanel.tsx`, `pedirBorrar`: el botón Cancelar está vivo mientras carga (sólo el rojo lleva
-> `disabled`), y cuando `ph.usage(photo)` contesta hace `setOpen({kind:'remove',…})` sin mirar si ya se cerró.
-> En una conexión lenta, el diálogo de BORRAR reaparece solo.
-> **ARREGLO** — lo que llega tarde no vuelve a abrir nada:
-> ```ts
-> const pedirBorrar = async (photo: Photo) => {
->   setOpen({ kind: 'remove', photo, usage: null });
->   // Si ya lo cerró (o abrió otro), lo que llega tarde NO vuelve a abrirlo solo.
->   const llega = (usage: PhotoUsage) =>
->     setOpen(o => (o?.kind === 'remove' && o.photo.id === photo.id ? { ...o, usage } : o));
->   try { llega(await ph.usage(photo)); }
->   catch { llega({ adventures: [], scenes: [], messages: -1 }); }
-> };
-> ```
+> ### Rebanada 4 · LAS FOTOS EN LA ESCENA
+> Se arrastra la miniatura al mapa y cae donde la sueltas. Se mueve, se estira, se gira, se copia, se deshace y
+> se quita **sin código propio**, porque una foto puesta ES una fila de `maps_scene_props` — y por eso queda
+> **debajo de las fichas** («*debajo*», 27-09). La fila **no lleva nombre ni enlace** (la base lo obliga): la
+> lee el jugador y un nombre destripa. Y **el área de juego se respeta también en pantalla**, con la misma
+> cuenta que la base (comprobado con 82.524 casos, 0 discrepancias salvo el último bit).
 >
-> ### Las 4 pruebas que faltan (nivel B, en `GalleryPanel.test.tsx`)
-> 1. `rename` rechaza → sale «No se ha podido cambiar el nombre.» y vuelve el nombre viejo.
-> 2. `remove` rechaza → sale «No se ha podido borrar.» y la foto sigue ahí.
-> 3. lote mixto (PDF + PNG) → el aviso de formato SIGUE en pantalla cuando el PNG termina.
-> 4. cancelar mientras `usage` está en vuelo → el Modal se queda cerrado.
+> ### Rebanada 5 · LAS FOTOS POR EL CHAT
+> **Clip (icono, no palabra)** en la fila de escribir, **sólo del director**, con los dos caminos de la lámina:
+> del ordenador (se comprime, **entra en la galería de la campaña** y se manda) y de la galería. El pie es lo
+> que estuviera escrito, en un solo gesto. **Borrada de la galería, el mensaje NO se rompe**: queda su hueco y
+> su pie. Y por lo mismo de «*no hay mucho lugar*», **ENVIAR también es icono** (se lo pregunté y dijo que sí).
 >
-> ## ✅ LO QUE SÍ ESTÁ HECHO Y VERDE (commiteado)
-> - **Nivel de compresión de FOTO**, medido el 27-09 con una imagen suya (caballero, 1122×1402, 2,68 MB PNG) en
->   Chromium con el mismo `canvas.toBlob` de producción, y **aprobado por él** («*si*»):
->   Ligero 1600/0,88 → 362 KB · **Equilibrado 1280/0,82 → 204 KB** · Máximo ahorro 1024/0,76 → 124 KB.
->   En `LEVELED_TARGETS.photo`, con dos pruebas que clavan los números. Cuarta columna «Fotos» en Ajustes.
-> - **LA GALERÍA**: `photos/ui/usePhotos.ts` + `GalleryPanel.tsx` + `photos.css`. Quinta pestaña del carril,
->   **sólo del director** (`isDm`). Ver · buscar · subir en lote (con cuánto adelgaza y los rechazos) ·
->   renombrar · verla a lo grande · borrar con «Se usa en…». **NO hay botones de «a la escena» ni «por el
->   chat»**: son las rebanadas 4 y 5 y no se pinta lo que no funciona.
-> - `bestiary/index.ts` exporta `SheetOverlay` (la hoja de pergamino) para reusarla sin copiarla.
-> - `specs/core/images/SPEC.md` REESCRITO a las nueve secciones en inglés (el auditor lo puso duro al tocar el
->   área). No se perdió nada.
-> - Pruebas: web **2.306** · core 171 · ui 81 · api 305 · functional 69 · smoke 12 · regression 2.225.
->   `typecheck`, `build:web` y `build:api` limpios. `npm run audit` **0 hard**.
-> - Revisión: **BLOQUEÓ** por los 3 fallos de arriba. Todo lo demás lo dio por bueno, incluidas las dos
->   decisiones que le pregunté: `SheetOverlay` por la puerta (no copiar) y la cola de subidas propia en vez de
->   reusar `LibraryUpload` (que es una VENTANA con selector de paquete y traicionaría la lámina aprobada).
+> ### El chat, además
+> - **Salto de línea**: era un `<input>`, donde un salto **no existe**. Ahora Enter manda y Opción+Enter (Mac),
+>   Control+Enter (Windows) y Mayúsculas+Enter saltan. 🐞 El cursor se restauraba un fotograma tarde y las
+>   letras salían desordenadas («Primera\ndasegun») si seguía escribiendo: ahora es síncrono.
+> - **Pastillas**: 248 → 340 → **442 px** (su «*un 30%*» sobre lo que ya veía).
 >
-> ## 📌 Deuda anotada por la revisión, NO tocada (decidir aparte)
-> - ⚠️ **`usage()` busca un bloque `image` que NO EXISTE todavía** en `RichBlock`
->   (`SupabasePhotosRepo.ts:67` usa `.contains('doc', { blocks: [{ type: 'image', photoId }] })`). Hoy esa rama
->   no encuentra nada, y `SupabasePhotosRepo.test.ts:121` fija la forma ADIVINADA, así que seguiría verde aunque
->   la de verdad se llame de otra manera. **Al construir la rebanada 4 hay que derivar el predicado del tipo
->   `RichBlock`** (o añadir ya la variante `image` con `photoId`). La honestidad del aviso de borrar depende de eso.
-> - **Los enlaces firmados caducan a la hora y nadie los vuelve a firmar**: en una mesa de más de una hora las
->   miniaturas se rompen en silencio hasta recargar. `reload` ya está expuesto; falta quien lo llame.
-> - `photos_photos.created_by` nunca se rellena (ni lo manda el repo ni hay `DEFAULT auth.uid()`): o default en
->   una migración, o fuera.
-> - `photos.title` («Galería») es una clave muerta en los dos idiomas: la pestaña usa `table.panel.gallery`.
-> - El copy EN de `photos.removeConsequence` y `photos.usageUnknown` lleva «foto borrada» en castellano dentro.
->   Cuando la rebanada 5 cree el hueco de verdad, eso tiene que ser su propia clave.
-> - `photos.usageMessages` no tiene singular: con 1 se lee «1 mensajes del chat». `@rolvium/i18n` no tiene
->   plurales y todo el repo hace igual, pero aquí canta.
-> - **`SheetOverlay` debería vivir en `@rolvium/ui` o `shared/ui`**, no en `bestiary`. Mover ahora sería
->   consolidación entre módulos sin que él lo pida.
-> - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
-> - `chat` y `core/images`… `core/images` ya está hecho; queda `chat` sin las nueve secciones (rebanada 5).
+> ### El carril lateral
+> Se arrastra por el borde izquierdo, entre **200 y 560 px**, con las flechas también, y **se recuerda en su
+> navegador**. Puerto + reglas + adaptador, como `ViewMemoryPort`. Nada de lo que haya en `localStorage` puede
+> dejar la mesa con un ancho roto.
 >
-> ## ⏭️ Después de los 3 arreglos
-> Rebanada **4** (fotos en la escena: arrastrar desde la galería, va **DEBAJO de las fichas** — orden suya del
-> 27-09) y **5** (fotos en el chat). Y antes del merge: **las 3 migraciones a producción por MCP**
+> ### Y un refactor que pedía CLAUDE.md
+> `usePlacedPhotos` (de `maps`) pasó a `shared/hooks/usePhotoUrls`: ahora lo usan la escena **y** el chat.
+>
+> ### Verde
+> web **2.416** (164 ficheros) · core 171 · ui 81 · api 305 · `typecheck`, `build:web` y `build:api` limpios ·
+> `npm run audit` **0 hard**. **Tres revisiones, las tres PASA.**
+>
+> ### 🪤 Trampas con prueba, para que nadie las «arregle»
+> - **`usePhotoUrls` NO lleva limpieza en su efecto.** La limpieza «de libro» haría que poner una segunda foto
+>   cancelase la firma en vuelo de la primera, que nunca se volvería a pedir: esa foto **no se pintaría jamás**.
+>   Un revisor lo sugirió como inofensivo; se midió y rompe.
+> - Colgar ese efecto de `idsKey` es **rendimiento**, no la red de seguridad.
+> - El cursor del chat se coloca en un `useLayoutEffect`, **nunca** en un `requestAnimationFrame`.
+>
+> ## 🔒 SUBIR ALGO QUE NO ES UNA FOTO — comprobado
+> Cuatro puertas: el selector filtra por tipo · se vuelve a mirar y se rechaza >8 MB **sin descodificar** · un
+> fichero que MIENTE (un PDF renombrado a `.png`) muere al abrirlo · tope de salida de 1,5 MB en los **tres**
+> caminos · y en el servidor, bucket privado con el mismo tope, 4 tipos y RLS de director. **Un extraño no mete
+> nada.**
+>
+> ## 📌 Deuda anotada, NO tocada
+> ### Decisiones suyas pendientes
+> - 🔴 **No hay tope de CUÁNTAS fotos por campaña.** ¿Máximo de fotos, o cuota en MB? **Falta su número.**
+> - 🔴 **El tipo, en el servidor, se cree la cabecera y no mira los bytes.** Sólo lo aprovecharía un
+>   DIRECTOR saltándose la pantalla, y el tamaño sí está cerrado.
+> ### Técnica
+> - **Los enlaces firmados caducan a la hora y nadie los vuelve a firmar**: en una mesa larga se rompen las
+>   miniaturas, las fotos puestas y las del chat hasta recargar. `reload` está expuesto; falta quien lo llame.
+> - **El tirador del carril**: sin `setPointerCapture` (que en un navegador de verdad no falla), soltar FUERA
+>   del tirador dejaría el arrastre armado. El arreglo es una línea (`if (e.buttons === 0) soltarBorde(e)`),
+>   pero obliga a que las pruebas manden `buttons: 1`. Decidido NO tocarlo por un caso inalcanzable.
+> - `photoIdsVisibleTo` no filtra por CAPA y la base sí: petición desperdiciada, no fuga.
+> - ⚠️ **`usage()` busca un bloque `image` que NO EXISTE todavía** en `RichBlock`, y su prueba fija la forma
+>   ADIVINADA. **Al construir el bloque de foto en una aventura hay que derivar el predicado del tipo.**
+> - El spec promete un **«Reintentar»** en una subida fallida que **no existe** en pantalla.
+> - `photos_photos.created_by` sin rellenar · `photos.title` clave muerta · `photos.usageMessages` sin singular ·
+>   **`SheetOverlay` debería vivir en `@rolvium/ui`**, no en `bestiary` · dos `PhotoUrlSigner` idénticos (a
+>   propósito: el dominio de `maps` no puede importar un fichero con React).
+> - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS. `chat` sigue sin las nueve
+>   secciones del spec.
+>
+> ## ⏭️ Siguiente paso concreto
+> 1. **«A la escena» en el menú de la foto** — el camino para cuando el mapa NO está en pantalla.
+> 2. **El bloque de foto dentro de una aventura** (y ahí hay que resolver el predicado de `usage()`).
+>
+> Y **antes de mergear a `main`**: las **3 migraciones a producción por MCP**
 > (`20260922120000_photos_biblioteca` · `20260922120100_photos_en_escena_y_chat` ·
 > `20260922120200_adventures_funciones_de_trigger_cerradas`), que siguen **sólo en local**.
 >
 > ## 💾 Y el `.pen` sigue SIN GUARDAR
 > Los dibujos de la galería (5 láminas) están en su editor pero **no en disco**: hacen falta su **Cmd+S** y un
-> commit de `rolvium.pen`. Antes de volver a dibujar: comparar `git hash-object rolvium.pen` con
-> `git rev-parse HEAD:rolvium.pen`.
+> commit de `rolvium.pen`. Pencil llevaba toda la tarde sin conectar (`CONNECTION_CLOSED`), así que lo de hoy
+> se construyó sin dibujar: el chat ya tenía lámina aprobada del 24-09 y el resto son ajustes de pantallas ya
+> aprobadas. Antes de volver a dibujar: comparar `git hash-object rolvium.pen` con `git rev-parse HEAD:rolvium.pen`.
 >
 > *(Lo de abajo es el estado anterior.)*
 >

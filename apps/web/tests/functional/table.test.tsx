@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderWithProviders, screen, waitFor, within } from '../helpers/render';
+import { fireEvent, renderWithProviders, screen, waitFor, within } from '../helpers/render';
+// jsdom no tiene `PointerEvent`: un `MouseEvent` con `pointerId` basta para los gestos (igual que en MapCanvas).
+class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
+(globalThis as unknown as { PointerEvent: unknown }).PointerEvent = FakePointerEvent;
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/shared/hooks/useAuth';
@@ -105,9 +108,9 @@ const fakeAdventuresRepo = (doc: RichDoc = ADVENTURE_DOC): AdventuresPort => ({
   create: vi.fn(), update: vi.fn(), saveDoc: vi.fn(), remove: vi.fn(),
 } as unknown as AdventuresPort);
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo(), photos = fakePhotosRepo(), path = '/table/c1') {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort(), adventures = fakeAdventuresRepo(), photos = fakePhotosRepo(), path = '/table/c1', layout?: { sideWidth: () => number | null; rememberSideWidth: (px: number) => void }) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} photos={photos} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} adventures={adventures} photos={photos} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} {...(layout ? { layout } : {})} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: [path] } } },
   );
   return { rolls, rollLog, maps, vision, bestiary, attacks, chat, adventures, photos };
@@ -548,7 +551,7 @@ describe('table: page', () => {
     // y lo que llegue mientras la lee EN LA COLUMNA no le deja la barrita en sangre con un contador de algo leído
     chat.push({ id: 'm-live', conversationId: 'conv-1', authorId: 'dm-1', authorName: 'Laura', authorAvatarUrl: null, kind: 'text',
       body: 'Escuchas un ruido detrás de ti.', characterId: null, characterName: null, systemId: null,
-      rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, createdAt: '2026-09-16T21:04:00Z' });
+      rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, photoId: null, createdAt: '2026-09-16T21:04:00Z' });
     await within(screen.getByRole('tabpanel')).findByText('Escuchas un ruido detrás de ti.');
     await waitFor(() => expect(screen.getByLabelText('Conversación con Laura').className).not.toContain('alert'));
     expect(within(screen.getByLabelText('Conversación con Laura')).queryByText('1')).not.toBeInTheDocument();
@@ -559,6 +562,55 @@ describe('table: page', () => {
     expect(screen.getByLabelText('Conversación con Laura')).toBeInTheDocument();
     await u.click(within(screen.getByLabelText('Conversación con Laura')).getByRole('button', { name: 'Cerrar la conversación con Laura' }));
     expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
+  });
+
+  /**
+   * 🐞 EL CLIP Y LA GALERÍA, ENCHUFADOS DE VERDAD EN EL CARRIL (revisión del 2026-09-28). Los dos fallos que
+   * esto pincha vivían en el CABLEADO, no en las piezas, así que las pruebas de `ConversationView` —que le
+   * pasan las dos cosas a mano— pasaban en verde con la mesa rota:
+   *
+   *   · `SusurrosPanel` no le pasaba `isDm` a la conversación, así que el director NO veía el clip en la
+   *     columna. Sólo lo veía en las pastillas, que es donde menos se escribe.
+   *   · `TablePage` sólo le daba la galería al carril si alguien se la inyectaba desde fuera, y el router
+   *     monta `<TablePage />` a secas: sin firmante, toda foto RECIBIDA salía como «Foto borrada».
+   *
+   * Por eso se prueba desde la mesa ENTERA y no desde la pieza: lo que se rompió es el cable.
+   */
+  it('🔑 SUSURROS: en el carril, el director tiene clip y una foto recibida SE VE', async () => {
+    const u = userEvent.setup();
+    const photos: PhotosPort = { ...fakePhotosRepo(), urlsFor: vi.fn().mockResolvedValue({ 'ph-1': 'https://x/ph-1.webp' }) };
+    const chat = fakeChatPort({
+      directory: [{ key: 'p-1', conversationId: 'conv-1', isGroup: false, title: 'Karen', role: 'player', memberCount: null, memberIds: ['p-1'], lastKind: null, lastBody: null, unreadCount: 0 }],
+      messages: { 'conv-1': [{
+        id: 'm-foto', conversationId: 'conv-1', authorId: 'dm-1', authorName: 'Laura', authorAvatarUrl: null, kind: 'photo',
+        body: 'Esto es lo que ves.', characterId: null, characterName: null, systemId: null,
+        rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, photoId: 'ph-1',
+        createdAt: '2026-09-28T21:04:00Z',
+      }] },
+    });
+    mount(GM, fakeTableRepo('dm'), undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, chat, undefined, photos);
+    await u.click(await screen.findByRole('tab', { name: /Susurros/ }));
+    const panel = screen.getByRole('tabpanel');
+    await u.click(await within(panel).findByText('Karen'));
+    // El clip es del director, y en la COLUMNA también.
+    expect(await within(panel).findByRole('button', { name: 'Mandar una foto' })).toBeInTheDocument();
+    // Y la galería llega hasta aquí: sin firmante esto sería «Foto borrada».
+    expect(await within(panel).findByRole('img', { name: 'Esto es lo que ves.' })).toHaveAttribute('src', 'https://x/ph-1.webp');
+    expect(within(panel).queryByText('Foto borrada')).toBeNull();
+  });
+
+  it('🔑 SUSURROS: un JUGADOR no tiene clip en el carril — mandar fotos es del director', async () => {
+    const u = userEvent.setup();
+    const chat = fakeChatPort({
+      directory: [{ key: 'dm-1', conversationId: 'conv-1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['dm-1'], lastKind: null, lastBody: null, unreadCount: 0 }],
+      messages: { 'conv-1': [] },
+    });
+    mount(PLAYER_USER, fakeTableRepo('player'), undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, chat);
+    await u.click(await screen.findByRole('tab', { name: /Susurros/ }));
+    const panel = screen.getByRole('tabpanel');
+    await u.click(await within(panel).findByText('Laura'));
+    await within(panel).findByText('Todavía no hay mensajes.');
+    expect(within(panel).queryByRole('button', { name: 'Mandar una foto' })).toBeNull();
   });
 });
 
@@ -595,6 +647,64 @@ describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
     await u.click(volver);
     expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ocultar el panel lateral' }).closest('.tb-side')).not.toHaveClass('folded');
+  });
+
+  /**
+   * ↔️ EL CARRIL SE ARRASTRA POR EL BORDE (suyo, 2026-09-28: «*la barra lateral donde esta el registro y eso
+   * deberia poder cambiarse el tamaño arrastrando el borde*»). Está a la DERECHA, así que tirar hacia la
+   * izquierda lo ensancha. El ancho se recuerda en ESTE navegador: es de su pantalla, no de la partida.
+   */
+  it('el panel lateral cambia de ancho arrastrando su borde, y se recuerda', async () => {
+    const memoria = { px: null as number | null };
+    const layout = { sideWidth: () => memoria.px, rememberSideWidth: (px: number) => { memoria.px = px; } };
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog([ROLL_FREE]),
+      fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), fakePhotosRepo(), '/table/c1', layout);
+    const tirador = await screen.findByTestId('tb-side-grip');
+    const carril = tirador.closest('.tb-side') as HTMLElement;
+    expect(carril).toHaveStyle({ width: '264px' });
+
+    // Tirando 80 px hacia la IZQUIERDA el carril gana esos 80 px.
+    fireEvent.pointerDown(tirador, { clientX: 500, pointerId: 1 });
+    fireEvent.pointerMove(tirador, { clientX: 420, pointerId: 1 });
+    expect(carril).toHaveStyle({ width: '344px' });
+    fireEvent.pointerUp(tirador, { clientX: 420, pointerId: 1 });
+    // Se apunta al SOLTAR, no en cada píxel del arrastre.
+    expect(memoria.px).toBe(344);
+  });
+
+  it('🔑 el carril no se puede estrechar hasta que no se lea, ni ensanchar hasta comerse la mesa', async () => {
+    const layout = { sideWidth: () => null, rememberSideWidth: () => {} };
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog([ROLL_FREE]),
+      fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), fakePhotosRepo(), '/table/c1', layout);
+    const tirador = await screen.findByTestId('tb-side-grip');
+    const carril = tirador.closest('.tb-side') as HTMLElement;
+
+    fireEvent.pointerDown(tirador, { clientX: 500, pointerId: 1 });
+    fireEvent.pointerMove(tirador, { clientX: 5000, pointerId: 1 });   // tirando a la derecha a lo bestia
+    expect(carril).toHaveStyle({ width: '200px' });
+    fireEvent.pointerMove(tirador, { clientX: -5000, pointerId: 1 });  // y a la izquierda
+    expect(carril).toHaveStyle({ width: '560px' });
+    fireEvent.pointerUp(tirador, { clientX: -5000, pointerId: 1 });
+  });
+
+  it('y también con las flechas, que un tirador de 6 px no se coge sin ratón', async () => {
+    const u = userEvent.setup();
+    const memoria = { px: null as number | null };
+    const layout = { sideWidth: () => memoria.px, rememberSideWidth: (px: number) => { memoria.px = px; } };
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog([ROLL_FREE]),
+      fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), fakePhotosRepo(), '/table/c1', layout);
+    const tirador = await screen.findByTestId('tb-side-grip');
+    tirador.focus();
+    await u.keyboard('{ArrowLeft}');
+    expect(tirador.closest('.tb-side')).toHaveStyle({ width: '280px' });
+    expect(memoria.px).toBe(280);
+  });
+
+  it('un ancho ya guardado manda desde el primer pintado', async () => {
+    const layout = { sideWidth: () => 420, rememberSideWidth: () => {} };
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog([ROLL_FREE]),
+      fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), fakeAttacks(), fakeRollRequests(), fakeChatPort(), fakeAdventuresRepo(), fakePhotosRepo(), '/table/c1', layout);
+    expect((await screen.findByTestId('tb-side-grip')).closest('.tb-side')).toHaveStyle({ width: '420px' });
   });
 
   it('la Reserva de Destino se sienta en la cabecera blanca, junto al nombre del sistema', async () => {

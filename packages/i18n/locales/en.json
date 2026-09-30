@@ -363,7 +363,8 @@
     },
     "side": {
       "hide": "Hide the side panel",
-      "show": "Show the side panel"
+      "show": "Show the side panel",
+      "resize": "Resize the panel"
     }
   },
   "chat": {
@@ -403,6 +404,17 @@
       "minimize": "Minimise the conversation with {{name}}",
       "close": "Close the conversation with {{name}}",
       "unread": "{{n}} unread"
+    },
+    "photo": {
+      "attach": "Send a photo",
+      "fromComputer": "Upload one from the computer",
+      "fromGallery": "From the gallery",
+      "pickTitle": "Choose a photo",
+      "uploading": "Uploading the photo…",
+      "sent": "Photo",
+      "deleted": "Photo deleted",
+      "empty": "No photos yet.",
+      "emptyHint": "Upload one from the computer and it is also kept in the campaign gallery."
     }
   },
   "identity": {
@@ -1416,7 +1428,9 @@
         "label": "Object {{name}}",
         "selected": "Object {{name}}, selected",
         "scale": "Resize the object",
-        "rotate": "Rotate the object"
+        "rotate": "Rotate the object",
+        "photo": "Placed photo",
+        "photoSelected": "Placed photo, selected"
       },
       "menu": {
         "order": "Stacking order",
@@ -1994,6 +2008,7 @@
       "tooBig": "It weighs more than 8 MB. That one does not go in; the others carry on.",
       "stillTooBig": "Even compressed it is still too heavy.",
       "decode": "That image could not be opened."
-    }
+    },
+    "dragHint": "Drag it onto the map to place it in the scene."
   }
 }

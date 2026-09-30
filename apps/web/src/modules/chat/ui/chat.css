@@ -37,15 +37,52 @@
 .ch-message-head{display:flex;align-items:baseline;gap:8px;}
 .ch-message-author{font-size:var(--fs-xs);font-weight:700;color:var(--sys-blood);}
 .ch-message-time{font-size:var(--fs-2xs);color:var(--sys-ink-dim);}
-.ch-message-text{margin:0;font-size:var(--fs-sm);line-height:var(--lh-normal);color:var(--sys-ink);}
+/* `pre-wrap`: sin esto los saltos de línea que él escribe se guardan pero NO se ven — el navegador los
+   colapsa a un espacio, y parecería que el salto no se ha guardado. */
+.ch-message-text{margin:0;font-size:var(--fs-sm);line-height:var(--lh-normal);color:var(--sys-ink);
+  white-space:pre-wrap;overflow-wrap:anywhere;}
 .ch-conversation-note{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
-.ch-composer{position:relative;display:flex;align-items:center;gap:6px;}
-.ch-composer-input{flex:1 1 auto;background:var(--sys-paper-hi);}
-.ch-composer-input input{width:100%;box-sizing:border-box;padding:8px 10px;font-family:inherit;font-size:var(--fs-sm);background:none;border:none;color:var(--sys-ink);}
-.ch-composer-input input::placeholder{color:var(--sys-ink-dim);}
+/* `flex-end`: con la caja crecida, los botones se quedan abajo, a la altura de la última línea. */
+.ch-composer{position:relative;display:flex;align-items:flex-end;gap:6px;}
+.ch-composer-input{flex:1 1 auto;min-width:0;background:var(--sys-paper-hi);}
+.ch-composer-input textarea{display:block;width:100%;box-sizing:border-box;padding:8px 10px;font-family:inherit;
+  font-size:var(--fs-sm);line-height:var(--lh-normal);background:none;border:none;color:var(--sys-ink);
+  resize:none;overflow-y:auto;}
+.ch-composer-input textarea:focus{outline:none;}
+.ch-composer-input textarea::placeholder{color:var(--sys-ink-dim);}
+/* EL CLIP (H13): hermano del dado, misma pinta. Icono y no palabra — en esta fila no hay sitio para una. */
+.ch-clip{background:none;border:1px solid var(--sys-line);padding:6px;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
+.ch-clip:hover,.ch-clip[aria-expanded="true"]{background:var(--sys-paper-lo);color:var(--sys-ink);}
+.ch-catch{position:fixed;inset:0;z-index:41;background:none;}
+.ch-clip-menu{position:absolute;bottom:38px;right:0;z-index:42;display:flex;flex-direction:column;min-width:196px;
+  padding:4px;background:var(--sys-paper-hi);border:1px solid var(--sys-ink);box-shadow:var(--sys-card-shadow);}
+.ch-clip-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border:none;background:none;cursor:pointer;
+  color:var(--sys-ink);font-family:var(--sys-font-body);font-size:var(--fs-xs);text-align:left;}
+.ch-clip-item:hover{background:color-mix(in srgb,var(--sys-blood) 12%,transparent);color:var(--sys-blood);}
+.ch-clip-item .material-symbols-outlined{font-size:var(--icon-xs);}
+
+/* La foto dentro de un mensaje: al ancho de la burbuja y sin pasarse de alto. */
+.ch-message-photo{display:block;max-width:100%;max-height:260px;object-fit:contain;background:var(--sys-paper-lo);cursor:zoom-in;}
+.ch-message-gone{margin:0;padding:10px 12px;background:var(--sys-paper-lo);color:var(--sys-ink-dim);
+  font-family:var(--sys-font-body);font-size:var(--fs-xs);font-style:italic;}
+
+/* Elegir una foto para mandarla: el aviso va dentro de un `Modal`, que es chrome de PLATAFORMA. */
+.ch-picker{display:flex;flex-direction:column;gap:10px;}
+.ch-picker-state{margin:0;padding:10px 0;font-size:var(--fs-sm);color:var(--tx2);}
+.ch-picker-error{margin:0;padding:6px 8px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--tx);font-size:var(--fs-sm);}
+.ch-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:52vh;overflow-y:auto;}
+.ch-picker-cell{display:flex;flex-direction:column;gap:3px;padding:0;border:none;background:none;cursor:pointer;min-width:0;}
+.ch-picker-cell img{width:100%;aspect-ratio:3/2;object-fit:cover;background:var(--sf2);}
+.ch-picker-cell .material-symbols-outlined{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:3/2;background:var(--sf2);color:var(--tx3);}
+.ch-picker-cell:hover img{outline:2px solid var(--red);}
+.ch-picker-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-2xs);color:var(--tx2);text-align:left;}
+
 .ch-roll-btn{background:none;border:1px solid var(--sys-line);padding:6px;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
 .ch-roll-btn[aria-expanded="true"]{background:var(--sys-paper-lo);color:var(--sys-ink);}
-.ch-send{font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;cursor:pointer;background:var(--sys-blood);border:none;color:var(--sys-paper-hi);}
+/* ENVIAR es un ICONO, no una palabra (suyo, 2026-09-28: «*no hay mucho lugar*»). Sigue en sangre, que es el
+   color de lo que HACE algo; el rótulo va en `aria-label`, así que no se pierde para quien no ve el icono. */
+.ch-send{display:inline-flex;align-items:center;justify-content:center;padding:6px;cursor:pointer;
+  background:var(--sys-blood);border:none;color:var(--sys-paper-hi);line-height:0;}
 .ch-send:disabled{opacity:.5;cursor:default;}
 
 /* Tirar en privado: mismo lenguaje visual que .dc-roller, sin visibilidad ni modificador. */
@@ -74,7 +111,9 @@
    vuelta al eje transversal, así que aquí «start» ES abajo. Con `flex-end` —que es lo que parece correcto—
    una pastilla desplegada levantaba a las barritas de al lado hasta su altura, que es justo lo que él vio en
    pantalla el 16-09. No lo «arregles» al revés: hay un test de regresión que lo sujeta. */
-.ch-pill{flex:0 0 auto;width:min(248px,86vw);display:flex;flex-direction:column;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+/* Más anchas (suyo, 2026-09-28). Nacieron a 248, se subieron a 340, y viéndolas pidió «*un 30%*» más:
+   340 × 1,3 = 442. A 248 no cabía una frase sin partirse tres veces. */
+.ch-pill{flex:0 0 auto;width:min(442px,92vw);display:flex;flex-direction:column;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
 .ch-pill.open{height:min(360px,60vh);}
 .ch-pill.alert{background:var(--sys-blood);}
 .ch-pill-head{display:flex;align-items:center;gap:2px;padding:6px 8px 6px 10px;}

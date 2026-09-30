@@ -72,7 +72,7 @@ export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log,
           {tab === 'log'
             ? <RollLog campaignId={campaignId} system={system} {...(log ? { log } : {})} />
             : tab === 'chat'
-              ? <SusurrosPanel campaignId={campaignId} myUserId={myUserId} system={system} {...(chat ? { chat } : {})} pendingOpen={pendingChatOpen ?? null} {...(onPendingChatOpenConsumed ? { onPendingOpenConsumed: onPendingChatOpenConsumed } : {})} {...(onChatRead ? { onRead: onChatRead } : {})} {...(onChatOpen ? { onOpenConversation: onChatOpen } : {})} />
+              ? <SusurrosPanel campaignId={campaignId} myUserId={myUserId} system={system} isDm={isDm} {...(photos ? { photos } : {})} {...(chat ? { chat } : {})} pendingOpen={pendingChatOpen ?? null} {...(onPendingChatOpenConsumed ? { onPendingOpenConsumed: onPendingChatOpenConsumed } : {})} {...(onChatRead ? { onRead: onChatRead } : {})} {...(onChatOpen ? { onOpenConversation: onChatOpen } : {})} />
               : tab === 'gallery'
                 ? <GalleryPanel campaignId={campaignId} {...(photos ? { repo: photos } : {})} />
                 : <JournalPanel kind={tab === 'notes' ? 'notes' : 'logbook'} campaignId={campaignId} myUserId={myUserId} {...(journal ? { journal } : {})} />}

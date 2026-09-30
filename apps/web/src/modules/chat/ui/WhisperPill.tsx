@@ -1,6 +1,7 @@
 import { useTranslation } from '@rolvium/i18n';
 import { UserAvatar } from '@rolvium/ui';
 import type { GameSystem } from '@rolvium/core';
+import type { PhotosPort } from '@/modules/photos';
 import type { ChatPort } from '../domain/ports/ChatPort';
 import { ConversationView } from './ConversationView';
 
@@ -18,6 +19,10 @@ interface Props {
   onClose: () => void;
   onRead: () => void;
   chat?: ChatPort;
+  /** ¿Es el director? Sólo él manda fotos por el chat (H13). */
+  isDm?: boolean;
+  /** La galería de la campaña: elegir la foto que se manda y firmar la que se ve. */
+  photos?: PhotosPort;
 }
 
 /**
@@ -35,7 +40,7 @@ interface Props {
  * Por dentro no reinventa nada: el cuerpo es el MISMO `ConversationView` de la columna, con `hideHead` porque
  * aquí la cabecera la pone la pastilla.
  */
-export function WhisperPill({ campaignId, conversationId, title, myUserId, system, open, unread, onToggle, onClose, onRead, chat }: Props): JSX.Element {
+export function WhisperPill({ campaignId, conversationId, title, myUserId, system, open, unread, onToggle, onClose, onRead, chat, isDm = false, photos }: Props): JSX.Element {
   const { t } = useTranslation();
   const alert = !open && unread > 0;
   return (
@@ -57,7 +62,7 @@ export function WhisperPill({ campaignId, conversationId, title, myUserId, syste
       {open && (
         <div className="ch-pill-body">
           <ConversationView campaignId={campaignId} conversationId={conversationId} title={title} myUserId={myUserId}
-            system={system} hideHead onBack={onClose} onRead={onRead} {...(chat ? { chat } : {})} />
+            system={system} hideHead onBack={onClose} onRead={onRead} isDm={isDm} {...(photos ? { photos } : {})} {...(chat ? { chat } : {})} />
         </div>
       )}
     </section>

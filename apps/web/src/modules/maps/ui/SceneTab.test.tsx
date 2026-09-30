@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../../../tests/helpers/render';
+import { cleanup, renderWithProviders, screen, waitFor, within, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { compressImage } from '@rolvium/ui';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_PROP_PHOTO, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR, type PropCategory } from '../domain/entities/Scene';
+import { encodePhotoDrag, PHOTO_DRAG_MIME } from '@/shared/lib/photoDrag';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 import type { ToolbarOrder } from '../domain/useCases/toolbarRules';
@@ -3222,5 +3223,112 @@ describe('<SceneTab> · el carril por aventuras', () => {
     expect(screen.getByRole('button', { name: 'Elegir la aventura: Dos' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: `Ver escena ${SCENE_TUNNELS.name}` })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: `Ver escena ${SCENE_WAREHOUSE.name}` })).toBeNull();
+  });
+});
+
+/**
+ * 📷 ARRASTRAR UNA FOTO DE LA GALERÍA A LA ESCENA (H13, rebanada 4).
+ *
+ * Su queja del 2026-09-28, y tenía razón: «*no me sirve de nada poder subir la foto y no poder arrastrarla a
+ * la escena como te pedi*». La galería (rebanada 3) estaba, y esto no. Lo que se prueba aquí es el camino
+ * entero de verdad: se suelta en el mapa → se guarda una fila → se ve pintada con su enlace firmado.
+ *
+ * Una foto puesta ES una fila de `maps_scene_props`, así que hereda mover, estirar, girar, deshacer y —lo que
+ * él pidió el 27-09— quedarse DEBAJO DE LAS FICHAS.
+ */
+describe('<SceneTab> la foto que se arrastra a la escena', () => {
+  const FOTO = { id: 'ph-1', width: 1024, height: 1280 };
+  const firmante = () => ({ urlsFor: vi.fn(async (_c: string, ids: readonly string[]) => Object.fromEntries(ids.map(id => [id, `https://x/${id}.webp`]))) });
+
+  const montar = (role: 'dm' | 'player', repo = seed(), photos = firmante()) => {
+    renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio}
+      members={MEMBERS} activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])}
+      repo={repo} vision={fakeVisionPort()} canManageTextures canManageProps memory={fakeViewMemory()}
+      canOrderToolbar={false} toolbarOrderPort={fakeToolbarOrder()} photos={photos} />);
+    return { repo, photos };
+  };
+
+  const soltar = (el: Element, x: number, y: number, foto = FOTO) => {
+    const ev = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: x, clientY: y });
+    Object.defineProperty(ev, 'dataTransfer', { value: { types: [PHOTO_DRAG_MIME], getData: () => encodePhotoDrag(foto) } });
+    fireEvent(el, ev);
+  };
+
+  it('🔑 soltarla en el mapa la GUARDA en la escena, donde cayó y sin nombre ni enlace', async () => {
+    const { repo } = montar('dm');
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    soltar(canvas(), 300, 240);
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(1));
+    const puesta = repo.sceneProps[0]!;
+    expect(puesta).toMatchObject({ photoId: 'ph-1', propId: null, name: '', imageUrl: '', x: 300, y: 240, sceneId: 'sc-1', campaignId: 'c1' });
+    // Seis casillas por el lado mayor, sin deformarla.
+    expect(puesta.height).toBe(6 * G);
+    expect(puesta.width).toBe(Math.round(6 * G * (1024 / 1280)));
+  });
+
+  it('y se VE: se le firma el enlace y se pinta en el mapa', async () => {
+    const { photos } = montar('dm');
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    soltar(canvas(), 300, 240);
+    const puesta = await screen.findByRole('img', { name: 'Foto puesta' });
+    expect(puesta.querySelector('image')).toHaveAttribute('href', 'https://x/ph-1.webp');
+    expect(photos.urlsFor).toHaveBeenCalledWith('c1', ['ph-1']);
+  });
+
+  it('🔑 queda DEBAJO de las fichas — palabra suya del 27-09: «debajo»', async () => {
+    montar('dm');
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    soltar(canvas(), 300, 240);
+    await screen.findByRole('img', { name: 'Foto puesta' });
+    const capas = [...canvas().querySelectorAll('.mp-layer-props, .mp-layer-tokens')].map(g => g.getAttribute('class'));
+    // La capa de las piezas se pinta ANTES que la de las fichas, así que una foto nunca tapa a un personaje.
+    expect(capas[0]).toContain('mp-layer-props');
+    // Y la foto está DENTRO de esa capa, no en un `<g>` suyo por encima: si no, el orden no diría nada.
+    expect(canvas().querySelector('.mp-layer-props [data-photo-id="ph-1"]')).not.toBeNull();
+  });
+
+  /** Ser una pieza más le regala esto sin una línea propia: se coge con Seleccionar y Suprimir la quita. */
+  it('se coge y se quita de la escena con Suprimir, como cualquier pieza', async () => {
+    const { repo } = montar('dm');
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    soltar(canvas(), 300, 240);
+    await screen.findByRole('img', { name: 'Foto puesta' });
+    // Se coge pinchándola en el mapa, donde está su centro.
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 240, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('img', { name: 'Foto puesta, cogida' });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(0));
+    // Y la foto sigue en la galería: quitarla de la escena NO la borra (spec § Rules & limits).
+    expect(repo.sceneProps).toHaveLength(0);
+  });
+
+  /**
+   * 🔑 «*solo se tienen que ver las fotos dentro de la escena en el area de juego si las pongo al costado los
+   * jugadores no las ven solo el dm*» (suyo, 2026-09-22). La base se niega a firmarle al jugador el fichero de
+   * una foto que está fuera; aquí se comprueba que la pantalla dice lo mismo y no le pide siquiera la firma.
+   */
+  it('🔑 una foto aparcada AL COSTADO: el director la ve, y al jugador ni se le pide', async () => {
+    const alCostado = { ...SCENE_PROP_PHOTO, id: 'sp-lado', x: 1500, y: 337, width: 300, height: 200, rotation: 0 };
+    const conFoto = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [], walls: [], sceneProps: [alCostado] });
+
+    const { photos: suyas } = montar('dm', conFoto());
+    await waitFor(() => expect(suyas.urlsFor).toHaveBeenCalledWith('c1', ['ph-1']));
+    expect(await screen.findByRole('img', { name: 'Foto puesta' })).toBeInTheDocument();
+    cleanup();
+
+    const { photos: delJugador } = montar('player', conFoto());
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    await new Promise(r => setTimeout(r, 0));
+    expect(delJugador.urlsFor).not.toHaveBeenCalled();
+    expect(screen.queryByRole('img', { name: 'Foto puesta' })).toBeNull();
+  });
+
+  it('un JUGADOR no puede poner fotos en la escena: colocar es del director', async () => {
+    const { repo } = montar('player');
+    await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    soltar(canvas(), 300, 240);
+    await new Promise(r => setTimeout(r, 0));
+    expect(repo.sceneProps).toHaveLength(0);
   });
 });

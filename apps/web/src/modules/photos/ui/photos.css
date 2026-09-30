@@ -7,6 +7,9 @@
 .ph-panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .ph-note { margin: 0; font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic;
   color: var(--sys-ink-dim); }
+/* El aviso de que se arrastra: la misma voz que `.ph-note`, sin gritar. */
+.ph-hint { margin: 0; font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  color: var(--sys-ink-dim); }
 .ph-state { margin: 0; padding: 10px 0; font-family: var(--sys-font-body); font-size: var(--fs-xs);
   color: var(--sys-ink-soft); }
 .ph-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 8px;
@@ -53,8 +56,10 @@
 /* La rejilla: dos por fila, la imagen manda y el nombre debajo. */
 .ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; }
 .ph-cell { position: relative; display: flex; flex-direction: column; gap: 3px; margin: 0; min-width: 0; }
+/* Se coge y se lleva al mapa: el puntero lo dice antes de que lo intente. */
 .ph-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 3 / 2;
-  padding: 0; border: none; background: var(--sys-paper-lo); cursor: pointer; overflow: hidden; }
+  padding: 0; border: none; background: var(--sys-paper-lo); cursor: grab; overflow: hidden; }
+.ph-thumb:active { cursor: grabbing; }
 .ph-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .ph-thumb .material-symbols-outlined { font-size: var(--icon-md); color: var(--sys-ink-dim); }
 .ph-more { position: absolute; top: 4px; right: 4px; display: inline-flex; padding: 1px 2px; border: none;

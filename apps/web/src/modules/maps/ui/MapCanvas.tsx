@@ -11,6 +11,7 @@ import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, fogFrame, Gri
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { propsGeometry, roomMoveSegments } from '@rolvium/core';
+import { decodePhotoDrag, isPhotoDrag, PHOTO_DRAG_MIME, type PhotoDrag } from '@/shared/lib/photoDrag';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 import { groupBoxFromCorner, groupCorners, groupRotateHandleAt, hitProp, paintOrderProps, PROP_CORNERS, propCorners, propsBounds, propsInRect, rotatePropsBy, rotateHandleAt, rotationToward, scaleFromCornerAnchored, scalePropsTo, type PropCorner } from '../domain/useCases/propRules';
 
@@ -252,6 +253,18 @@ interface Props {
    * las esquinas (manteniendo la proporción) y se giran por el tirador de arriba (§ 6.5).
    */
   sceneProps?: SceneProp[];
+  /**
+   * LOS ENLACES FIRMADOS de las fotos puestas (H13, rebanada 4), por `photoId`. Una foto no lleva su enlace en
+   * la fila —el bucket es privado y la firma caduca—, así que lo que se pinta sale de aquí. Sin enlace la foto
+   * no se pinta: es lo que le pasa a un jugador con una foto que la base no le deja leer.
+   */
+  photoUrls?: Record<string, string>;
+  /**
+   * SE HA SOLTADO UNA FOTO encima del mapa, con el punto de escena donde cayó. Orden suya, 2026-09-24:
+   * «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea con el boton*».
+   * Soltarla FUERA del marco del mapa no llega aquí: un arrastre que no aterriza no es un error (spec § Rules).
+   */
+  onDropPhoto?: (photo: PhotoDrag, at: Point) => void;
   selectedPropId?: string | null;
   onSelectProp?: (id: string | null) => void;
   /**
@@ -1708,7 +1721,24 @@ export function MapCanvas(p: Props): JSX.Element {
   return (
     <>
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
-      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={onRightClick}>
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={onRightClick}
+      /*
+       * ARRASTRAR UNA FOTO HASTA AQUÍ (H13, rebanada 4). `dragover` tiene que cortar el gesto o el navegador
+       * no deja soltar; durante `dragover` sólo se pueden mirar los TIPOS, nunca el contenido, así que la
+       * decisión de aceptar se toma con eso. Fuera de este marco no hay `onDrop` que valga: soltar al lado
+       * del mapa no hace nada, y no es un error.
+       */
+      onDragOver={e => { if (p.onDropPhoto && isPhotoDrag(e.dataTransfer?.types)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
+      onDrop={e => {
+        if (!p.onDropPhoto) return;
+        const foto = decodePhotoDrag(e.dataTransfer?.getData(PHOTO_DRAG_MIME));
+        if (!foto) return;
+        const at = toScene(e);
+        // Un punto que no es un número guardaría la fila rota y la foto no aparecería en ninguna parte.
+        if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return;
+        e.preventDefault();
+        p.onDropPhoto(foto, at);
+      }}>
       <defs>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
         {/*
@@ -1726,14 +1756,32 @@ export function MapCanvas(p: Props): JSX.Element {
             * porque la huella ya sale del tamaño natural por UNA escala: la proporción la garantiza el dato.
             */}
           <g className="mp-layer-props" data-testid="mp-props">
-            {propsShown.map(sp => (
+            {propsShown.map(sp => {
+              /*
+               * UNA FOTO PUESTA (H13) no lleva enlace en su fila: se le firma aparte y llega por `photoUrls`.
+               * Mientras no haya firma no se pinta nada —ni un hueco ni un roto—, que es exactamente lo que
+               * tiene que ver un jugador al que la base no le deja leer esa foto.
+               */
+              const href = sp.photoId ? p.photoUrls?.[sp.photoId] : sp.imageUrl;
+              if (!href) return null;
+              /*
+               * Una foto no se anuncia por su nombre: el nombre NO viaja en la fila porque puede destripar, y
+               * aquí hay jugadores mirando. Lleva su propio par de rótulos en vez de colarse por el del objeto,
+               * que diría «Objeto Foto».
+               */
+              const rotulo = sp.photoId
+                ? t(esCogida(sp.id) ? 'maps.props.canvas.photoSelected' : 'maps.props.canvas.photo')
+                : t(esCogida(sp.id) ? 'maps.props.canvas.selected' : 'maps.props.canvas.label', { name: sp.name });
+              return (
               <g key={sp.id} className={`mp-prop ${esCogida(sp.id) ? 'selected' : ''} ${dmSight && p.tool === 'select' ? 'movable' : ''}`}
                 transform={`translate(${sp.x} ${sp.y}) rotate(${sp.rotation})`} data-prop-id={sp.id} role="img"
-                aria-label={t(esCogida(sp.id) ? 'maps.props.canvas.selected' : 'maps.props.canvas.label', { name: sp.name })}>
-                <image href={sp.imageUrl} x={-sp.width / 2} y={-sp.height / 2} width={sp.width} height={sp.height} preserveAspectRatio="none" />
+                {...(sp.photoId ? { 'data-photo-id': sp.photoId } : {})}
+                aria-label={rotulo}>
+                <image href={href} x={-sp.width / 2} y={-sp.height / 2} width={sp.width} height={sp.height} preserveAspectRatio="none" />
                 {esCogida(sp.id) && <rect className="mp-prop-frame" x={-sp.width / 2} y={-sp.height / 2} width={sp.width} height={sp.height} data-testid="mp-prop-frame" />}
               </g>
-            ))}
+              );
+            })}
           </g>
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
