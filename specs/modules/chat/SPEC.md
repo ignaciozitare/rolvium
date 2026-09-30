@@ -104,7 +104,7 @@ words**, because «*no hay mucho lugar*».
 | Any campaign member | Open the tab, read the directory, start a 1:1 or a group, write, roll privately |
 | The GM of the campaign | All of the above, **plus sending photos** (`is_campaign_dm` on the conversation's campaign) |
 | A participant | Read **only** the conversations they belong to, and mark **their own** row as read |
-| A platform admin | **Nothing extra.** On purpose, and unlike other tables of the project: not even an admin reads someone else's conversation. He asked expressly for private to mean private |
+| A platform admin | **Nothing extra on the messages.** On purpose, and unlike other tables of the project: not even an admin reads someone else's conversation. He asked expressly for private to mean private. ⚠️ One exception, and it is deliberate: the **file** of a photo sent in a conversation IS reachable by an admin (`photos_can_read_object` allows `is_admin`, for support), so «not even an admin» holds for what is written, not for a picture |
 | Anyone else | Nothing. No policy is granted `TO anon` |
 
 No role key from the permission engine gates this: belonging to the conversation is the permission.

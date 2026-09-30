@@ -1992,7 +1992,7 @@
     "usageNone": "No está puesta en ningún sitio.",
     "usageMessages": "{{n}} mensajes del chat",
     "usageUnknown": "No he podido mirar dónde se usa. Si la borras, desaparecerá de las escenas y donde estuviera escrita quedará «foto borrada».",
-    "removeConsequence": "Al borrarla desaparece de la escena. En la aventura y en el chat queda «foto borrada» en su sitio: ni el texto ni el mensaje se rompen.",
+    "removeConsequence": "Al borrarla desaparece de la escena. En el chat queda «foto borrada» en su sitio: el mensaje no se rompe.",
     "up": {
       "compressing": "comprimiendo…",
       "uploading": "subiendo…",

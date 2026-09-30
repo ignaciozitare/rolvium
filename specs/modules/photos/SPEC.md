@@ -5,7 +5,9 @@
 > they are the evidence for why something is the way it is.
 >
 > Closed with him on 2026-09-22 («*si*»), the day v0.15.0 (Notas · Bitácora · Aventuras) reached production.
-> Not built yet: it is steps 3 to 5 of the branch `feat/aventuras-segunda-vuelta` (see § Decisions, the order).
+> **Built on 2026-09-27/28** (steps 3 to 5 of the branch `feat/aventuras-segunda-vuelta`; see § Decisions):
+> the library, the photo in the scene and the photo in the chat. ⏳ Everything still missing is listed, and
+> marked where it is read, in § Out of scope — the photo block inside an adventure above all.
 
 ## Purpose
 
@@ -45,9 +47,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 - **Drag it onto the scene** (2026-09-24, «*asegurate que pueda arrastrar las fotos a la escena y no que solo
   sea con el boton*»): grab the photo in the grid and drop it on the map. **It lands where it is dropped.** This
   is the everyday gesture, and it works whenever the Escena tab is showing — the rail sits right beside the map.
-- **Or send it to the scene from its menu** («A la escena»), which arms it and clicks where it goes, the same
-  gesture as «Colocar» from the Bestiary. If the GM is on another tab, the table switches to Escena. **The
-  button stays**: it is the way in when the map is not on screen. Dragging does not replace it.
+- ⏳ **NOT BUILT** — **Or send it to the scene from its menu** («A la escena»), which arms it and clicks where
+  it goes, the same gesture as «Colocar» from the Bestiary. If the GM is on another tab, the table switches to
+  Escena. **The button stays**: it is the way in when the map is not on screen. Dragging does not replace it.
 - **Send it through the chat**, to a conversation (one-to-one or group), from the library or from the chat
   itself.
 
@@ -149,14 +151,14 @@ It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & l
 | Searching with no result | The search matches nothing | «Ninguna foto se llama así» and the search stays |
 | Uploading | One or more files on their way | Each one with its progress, and how much it shrank («2,4 MB → 180 KB») |
 | File too big / wrong type | Over 8 MB, or not an image | The file is refused with the reason; the others keep going |
-| Upload failed | Network or permissions | The photo is marked failed with «Reintentar»; nothing is half-saved |
+| Upload failed | Network or permissions | The photo is marked failed with the reason; nothing is half-saved. ⏳ The «Reintentar» this table used to promise is **not built**: today it can only be dismissed |
 | Rename failed | The database refuses, or the network drops | «No se ha podido cambiar el nombre.» stays until the GM closes it, and the old name comes back |
 | Delete failed | The database refuses, or the network drops | «No se ha podido borrar.» stays until the GM closes it, and the photo is still there |
 | Cancelling while «where is it used» is still in flight | The GM cancels before the database answers | Nothing: a late answer is dropped and the dialog stays closed |
 | Deleting a photo in use | Its menu → delete | The dialog listing where it is used, then confirm |
 | A deleted photo in an adventure or chat | After deleting it | «foto borrada» in its place |
-| Placing with no scene open | «A la escena» with no scene | The table goes to Escena and says there is no scene to place it in |
-| Dragging with no scene open | The map is not there to drop on | There is nothing to drop onto, so nothing happens; the button is the way in, and it explains itself |
+| Placing with no scene open ⏳ | «A la escena» with no scene | NOT BUILT (the button does not exist): the table would go to Escena and say there is no scene to place it in |
+| Dragging with no scene open | The map is not there to drop on | There is nothing to drop onto, so nothing happens. ⏳ The button that would be the way in is not built, so today there is simply no way in from another tab |
 | Dropping it outside the map | The drag ends on the chrome around the map | Nothing is placed and nothing is said: a drag that does not land is not a mistake |
 | A broken part | The library throws while painting | The side rail's net (`core/errors`): the rail falls, not the table |
 | A player who somehow reaches it | Direct URL / id | Nothing: for them the row does not exist |
@@ -333,9 +335,10 @@ no door. What went in:
   **same separating-axis test as the database** (`rectTouchesPlayArea` mirrors `maps_rect_touches_play_area`,
   down to «touching the edge exactly is outside») and returns links only for what may be shown *right now*.
   The GM keeps seeing everything, including what is parked aside waiting for its moment.
-- **Still not built**: the menu's «A la escena» (the way in when the map is not on screen) and sending a photo
-  through the chat (slice 5). Nothing is drawn for them, because a button that does nothing is worse than no
-  button.
+- **Sending a photo through the chat (slice 5) was built two days later, on 2026-09-28**, when he said he had
+  no way to do it. **Still not built**: the menu's «A la escena» (the way in when the map is not on screen)
+  and the photo block inside an adventure. Neither is drawn into the screen, because a button that does
+  nothing is worse than no button.
 
 🐞 **Two traps found by the tests, both worth remembering because they are the same shape** — an effect whose
 correctness depends on a combination nobody stated:

@@ -1992,7 +1992,7 @@
     "usageNone": "It is not placed anywhere.",
     "usageMessages": "{{n}} chat messages",
     "usageUnknown": "I could not check where it is used. If you delete it, it will vanish from the scenes and leave «foto borrada» wherever it was written.",
-    "removeConsequence": "Deleting it removes it from the scene. In the adventure and the chat a «foto borrada» placeholder stays in its place: neither the text nor the message breaks.",
+    "removeConsequence": "Deleting it removes it from the scene. In the chat a «foto borrada» placeholder stays in its place: the message does not break.",
     "up": {
       "compressing": "compressing…",
       "uploading": "uploading…",

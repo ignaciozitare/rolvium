@@ -41,9 +41,10 @@ cannot, not even by asking for one by its id — see § Permissions.
   campaign's Bestiary and the row takes its **name and photo** and stays **linked** to it. Clicking a linked
   row lets the GM **see its card** or **roll for it** — the same card and the same «Tirar por una criatura» as
   the Bestiary tab. Placing it on the map from here is NOT part of it (he chose «b», not «c»).
-- **Insert a photo** (2026-09-22) from the editor bar: upload one from disk or pick one from the campaign's
-  photo library (`specs/modules/photos/SPEC.md`). It is shown at the width of the text and clicking it shows it
-  bigger. An uploaded one goes into the library; removing it from the text does not delete it there.
+- ⏳ **NOT BUILT** — **Insert a photo** (agreed 2026-09-22) from the editor bar: upload one from disk or pick
+  one from the campaign's photo library (`specs/modules/photos/SPEC.md`). It is shown at the width of the text
+  and clicking it shows it bigger. An uploaded one goes into the library; removing it from the text does not
+  delete it there. **The plate is drawn and approved; the code is not written** — see § Out of scope.
 - **Press «Índice»** and get a navigation panel beside the text: every **H1** with its **H2s** nested under it.
 - **Link a scene** from the text: a chip that opens it at the table — **for the GM only**: opening is not
   activating, the players stay where they are. From the separate window, the chip opens the table in a new
@@ -150,8 +151,8 @@ trap, same test to pin it.
   the Bestiary, the row keeps its name and simply loses the link (and the photo that came from the entry) — the
   same principle as `sceneRef`'s `label`. The link is `npcId`, the hole left on every row since 2026-08-19. The
   picker offers exactly what the campaign's Bestiary tab lists (the manual's blocks and the GM's own entries).
-- **Photos in an adventure** follow the rules of `specs/modules/photos/SPEC.md`: never shown to players from
-  here; a deleted photo leaves «foto borrada» in its place.
+- ⏳ **Photos in an adventure** (when built) follow the rules of `specs/modules/photos/SPEC.md`: never shown to
+  players from here; a deleted photo leaves «foto borrada» in its place.
 - Deleting an adventure **does not delete its scenes**: it asks first where they go, or it is archived.
 - The document is **single-author at a time** in v1: no concurrent editing, no CRDT. It saves with a delay, and
   a save that would overwrite someone else's is refused and reported (comparing `updated_at`).
@@ -320,6 +321,17 @@ only way in, and it drops what it does not understand instead of breaking the sc
 - Import / export.
 - Sharing the adventure with the players, or publishing a piece of it into the Bitácora (named as future in
   `journal` H9, and still future).
+
+**Not out of scope, but NOT BUILT YET** (2026-09-30) — written here because § What the user can do described it
+as if it shipped, and someone rebuilding the tool from this document would have built a button that does not
+exist:
+
+- **The photo block inside the document.** `RichTextEditor` exposes `features: { tables, sceneRef, bestiary }`
+  and has **no image block**; `image` is not a `RichBlock` type anywhere in `packages/core`. The plate is drawn
+  and approved (`rolvium.pen` § 4 · `Fotos/En una aventura · el bloque de foto`), the code is not written.
+  ⚠️ Whoever builds it must fix `usage()` first: `SupabasePhotosRepo.ts` asks the database for a block of type
+  `image` carrying a `photoId` that **does not exist yet**, and its test pins the guessed shape, so it stays
+  green even if the real block ends up named differently. The honesty of «Se usa en…» depends on that.
 
 ## Decisions
 
