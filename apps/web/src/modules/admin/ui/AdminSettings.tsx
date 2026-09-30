@@ -14,7 +14,7 @@ type TabId = (typeof TABS)[number]['id'];
 
 const LEVELS: readonly CompressionLevel[] = ['light', 'balanced', 'max'];
 /** Los tres destinos con nivel. Avatar y token van fijos, sin nivel (spec `specs/core/images/SPEC.md`). */
-const KINDS: readonly (keyof CompressionLevels)[] = ['texture', 'prop', 'background'];
+const KINDS: readonly (keyof CompressionLevels)[] = ['texture', 'prop', 'background', 'photo'];
 
 export function AdminSettings({ compressionLevels }: { compressionLevels: CompressionLevelsPort }): JSX.Element {
   const { t } = useTranslation();
@@ -91,6 +91,7 @@ export function AdminSettings({ compressionLevels }: { compressionLevels: Compre
                   ))}
                 </div>
                 {kind === 'background' && <span className="rv-hint">{t('admin.compression.backgroundNote')}</span>}
+                {kind === 'photo' && <span className="rv-hint">{t('admin.compression.photoNote')}</span>}
               </div>
             ))}
             {err && <span className="rv-err" role="alert">{err}</span>}

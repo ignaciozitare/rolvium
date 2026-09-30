@@ -4,6 +4,7 @@ import type { GameSystem } from '@rolvium/core';
 import type { ChatPort } from '../domain/ports/ChatPort';
 import type { SoundPort } from '../domain/ports/SoundPort';
 import { chatPort as defaultChat, whisperSound as defaultSound } from '../container';
+import type { PhotosPort } from '@/modules/photos';
 import { WhisperPill } from './WhisperPill';
 
 /** Cuántas pastillas caben a la vez. La cuarta cierra la más vieja: más no entran sin tapar la mesa. */
@@ -21,6 +22,10 @@ interface Props {
   myUserId: string;
   system: GameSystem | null;
   chat?: ChatPort;
+  /** ¿Es el director? Sólo él manda fotos por el chat (H13). */
+  isDm?: boolean;
+  /** La galería de la campaña: elegir la foto que se manda y firmar la que se ve. */
+  photos?: PhotosPort;
   sound?: SoundPort;
   /** «Abre esta conversación como pastilla» — lo manda el directorio de la columna a través de `TablePage`. */
   requestOpen?: { id: string; title: string } | null;
@@ -53,7 +58,7 @@ interface Props {
  *   · Y si la estás leyendo EN LA COLUMNA, su barrita tampoco coge contador: mirar es mirar, dé igual dónde.
  *   · Lo tuyo nunca suena ni te pone contador.
  */
-export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultChat, sound = defaultSound, requestOpen, onRequestOpenConsumed, onUnreadChange, readInColumn = null }: Props): JSX.Element | null {
+export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultChat, sound = defaultSound, requestOpen, onRequestOpenConsumed, onUnreadChange, readInColumn = null, isDm = false, photos }: Props): JSX.Element | null {
   const { t } = useTranslation();
   const [pills, setPills] = useState<Pill[]>([]);
   /* Espejo en un ref: el oyente de tiempo real necesita saber si la pastilla YA existe *antes* de tocar el
@@ -152,6 +157,7 @@ export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultCha
     <div className="ch-dock" aria-label={t('chat.pill.dock')}>
       {pills.map(p => (
         <WhisperPill key={p.conversationId} campaignId={campaignId} conversationId={p.conversationId} title={p.title}
+          isDm={isDm} {...(photos ? { photos } : {})}
           myUserId={myUserId} system={system} open={p.open} unread={p.unread}
           onToggle={() => toggle(p.conversationId)} onClose={() => close(p.conversationId)} onRead={() => read(p.conversationId)}
           {...(chat ? { chat } : {})} />

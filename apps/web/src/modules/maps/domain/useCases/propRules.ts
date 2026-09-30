@@ -73,7 +73,7 @@ export function plantProp(
 ): NewSceneProp {
   const { width, height } = footprintOf(prop, scale);
   return {
-    sceneId: scene.id, campaignId: scene.campaignId, layerId, propId: prop.id,
+    sceneId: scene.id, campaignId: scene.campaignId, layerId, propId: prop.id, photoId: null,
     imageUrl: prop.imageUrl, name: prop.name,
     x: at.x, y: at.y, width, height, rotation: normDeg(rotation), z,
     blocksSight: prop.defaultBlocksSight, blocksMove: prop.defaultBlocksMove,
@@ -90,6 +90,122 @@ export function plantProp(
      */
     silhouette: prop.defaultSilhouette,
   };
+}
+
+/**
+ * CUÁNTO MIDE UNA FOTO RECIÉN PUESTA, en casillas de la escena por su lado mayor (H13, rebanada 4).
+ *
+ * Seis: lo bastante para leerse de un vistazo sobre el mapa sin tapar media escena, y en una rejilla normal
+ * (~70 px) deja la foto a ~420 px, que es el tamaño al que se mira una foto en el resto de la herramienta
+ * (~600 px de ancho de texto, 760 px la hoja grande). No es sagrado: se estira por las esquinas como
+ * cualquier pieza, y ese tamaño ya se guarda en la fila.
+ */
+export const PHOTO_SPAN_CELLS = 6;
+
+/**
+ * PONER UNA FOTO EN LA ESCENA (H13, rebanada 4) — su casa es la misma que la de una pieza plantada, porque una
+ * foto puesta **es** una fila de `maps_scene_props`: así se mueve, se estira, se gira, se copia, se deshace y
+ * se apila con lo que ya existe, sin inventar una capa nueva. Su orden en la pila también es el de las piezas,
+ * que es **debajo de las fichas** — palabra suya, 2026-09-27: «*debajo*».
+ *
+ * Tres diferencias con `plantProp`, y las tres las exige la base (`maps_scene_props_photo_shape`):
+ *  - **no copia el nombre ni el enlace** (`''`): esta fila la lee el jugador y el nombre puede destripar;
+ *  - **no estorba** ni la vista ni el paso: la visión del servidor no tiene nada que saber de una foto;
+ *  - **no lleva silueta**, que es cosa de las piezas recortadas.
+ *
+ * Toma las medidas sueltas y no la entidad `Photo` a propósito: `maps` no tiene por qué conocer el módulo de
+ * fotos para saber colocar un rectángulo.
+ */
+export function plantPhoto(
+  photo: { id: string; width: number; height: number },
+  at: { x: number; y: number },
+  scene: Pick<Scene, 'id' | 'campaignId'>,
+  cellPx: number,
+  layerId: string | null = null,
+  z = 0,
+): NewSceneProp {
+  const { width, height } = photoFootprint(photo.width, photo.height, PHOTO_SPAN_CELLS * cellPx);
+  return {
+    sceneId: scene.id, campaignId: scene.campaignId, layerId, propId: null, photoId: photo.id,
+    imageUrl: '', name: '',
+    x: at.x, y: at.y, width, height, rotation: 0, z,
+    blocksSight: false, blocksMove: false, blockShape: 'rect',
+    blockW: width, blockH: height, blockDx: 0, blockDy: 0,
+    silhouette: null,
+  };
+}
+
+/**
+ * La huella de una foto: su lado mayor a `span`, **sin deformarla nunca**. Una foto sin medidas (0) se queda
+ * cuadrada en `span` en vez de dividir por cero y desaparecer del mapa.
+ */
+export function photoFootprint(naturalW: number, naturalH: number, span: number): { width: number; height: number } {
+  const longest = Math.max(naturalW, naturalH);
+  if (longest <= 0) return { width: span, height: span };
+  const k = span / longest;
+  return { width: Math.max(1, Math.round(naturalW * k)), height: Math.max(1, Math.round(naturalH * k)) };
+}
+
+/** Los ids de foto de lo que hay puesto en la escena, sin repetir: es lo que hay que firmar para pintarlo. */
+export function photoIdsOf(props: readonly SceneProp[]): string[] {
+  return [...new Set(props.map(sp => sp.photoId).filter((id): id is string => id !== null))];
+}
+
+/**
+ * ¿TOCA ESTE RECTÁNGULO EL ÁREA DE JUEGO? Es **la misma cuenta, término a término, que hace la base** en
+ * `maps_rect_touches_play_area` (`20260922120100_photos_en_escena_y_chat.sql`), y tiene que seguir siéndolo: si
+ * la pantalla y la base contestaran distinto, el director vería una cosa y el jugador otra.
+ *
+ * Comprobado contra la función de la base el 2026-09-28: la misma respuesta en 4.028 casos al azar y en 44.800
+ * colocados a entre 1 px y 1e-9 px del borde exacto por cada uno de los cuatro ejes. «Byte a byte» sería decir
+ * de más: `radians()` de Postgres y `grados * PI / 180` de JS no comparten el último bit, así que las dos
+ * pueden discrepar a distancia de un último bit del borde. Ahí da igual hacia dónde caiga — las dos maneras de
+ * discrepar acaban en que la foto no se pinta, nunca en que se le enseñe a quien no debe.
+ *
+ * La pieza se guarda por su CENTRO, su huella y su giro, que es como la pinta el lienzo. El área de juego es el
+ * rectángulo del mapa, `0..width × 0..height`. Prueba del eje separador con los cuatro ejes que importan —los
+ * dos del mapa y los dos de la pieza—, no con la caja que envuelve a la pieza: una foto girada junto a una
+ * esquina, fuera de verdad, no se le enseña a nadie. **Tocar el borde justo NO cuenta como dentro.**
+ */
+export function rectTouchesPlayArea(
+  rect: Pick<SceneProp, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+  scene: Pick<Scene, 'width' | 'height'>,
+): boolean {
+  const rad = (rect.rotation * Math.PI) / 180;
+  const c = Math.abs(Math.cos(rad));
+  const s = Math.abs(Math.sin(rad));
+  const hw = rect.width / 2;
+  const hh = rect.height / 2;
+  const sw = scene.width / 2;
+  const sh = scene.height / 2;
+  const dx = sw - rect.x;
+  const dy = sh - rect.y;
+  // Los dos ejes del mapa y los dos de la pieza. Con `cos`/`sin` en valor absoluto los cuatro salen de dos.
+  const cs = Math.cos(rad);
+  const sn = Math.sin(rad);
+  return Math.abs(dx) < sw + (hw * c + hh * s)
+    && Math.abs(dy) < sh + (hw * s + hh * c)
+    && Math.abs(dx * cs + dy * sn) < hw + (sw * c + sh * s)
+    && Math.abs(dy * cs - dx * sn) < hh + (sw * s + sh * c);
+}
+
+/**
+ * QUÉ FOTOS SE LE PUEDEN ENSEÑAR A QUIEN MIRA (H13, rebanada 4). Suyo, 2026-09-22: «*solo se tienen que ver
+ * las fotos dentro de la escena en el area de juego si las pongo al costado los jugadores no las ven solo el
+ * dm*».
+ *
+ * El director las ve todas, incluidas las que tiene aparcadas al costado esperando su momento. Al jugador sólo
+ * las que TOCAN el área de juego — y no es sólo cosa de la pantalla: la base se niega a firmarle el fichero de
+ * una foto que está fuera. Aquí se calcula lo mismo para no pedir lo que no va a llegar, **y para dejar de
+ * pintar en cuanto sale**: un enlace ya firmado sigue valiendo una hora, así que sin esto una foto retirada
+ * del mapa se le seguiría viendo.
+ */
+export function photoIdsVisibleTo(
+  props: readonly SceneProp[],
+  scene: Pick<Scene, 'width' | 'height'>,
+  isDm: boolean,
+): string[] {
+  return photoIdsOf(isDm ? props : props.filter(sp => rectTouchesPlayArea(sp, scene)));
 }
 
 /**

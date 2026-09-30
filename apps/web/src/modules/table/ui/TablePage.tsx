@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties, useCallback } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
@@ -37,6 +37,10 @@ import { SafeRegion } from '@/shared/ui/SafeRegion';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { AdventuresTab, adventuresPort as defaultAdventures, type AdventuresPort } from '@/modules/adventures';
 import type { JournalPort } from '@/modules/journal';
+import { photosPort, type PhotosPort } from '@/modules/photos';
+import type { LayoutMemoryPort } from '../domain/ports/LayoutMemoryPort';
+import { clampSideWidth, SIDE_WIDTH_DEFAULT, SIDE_WIDTH_MAX, SIDE_WIDTH_MIN, SIDE_WIDTH_STEP } from '../domain/useCases/layoutRules';
+import { tableLayout as defaultLayout } from '../container';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
@@ -45,7 +49,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, toolbarOrder }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; toolbarOrder?: ToolbarOrderPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, chat = defaultChat, maps, vision, bestiary, adventures, journal, photos, toolbarOrder, layout = defaultLayout }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; chat?: ChatPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort; adventures?: AdventuresPort; journal?: JournalPort; photos?: PhotosPort; toolbarOrder?: ToolbarOrderPort; layout?: LayoutMemoryPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -63,6 +67,47 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const [pillRequest, setPillRequest] = useState<{ id: string; title: string } | null>(null);
   /** El panel lateral se pliega para dejarle el ancho al mapa (dueño, 2026-08-31). Mismo gesto que la reserva de la cabecera. */
   const [sideOpen, setSideOpen] = useState(true);
+  /**
+   * EL ANCHO DEL CARRIL, que se arrastra por su borde (suyo, 2026-09-28: «*la barra lateral donde esta el
+   * registro y eso deberia poder cambiarse el tamaño arrastrando el borde*»). Se recuerda en ESTE navegador:
+   * es una preferencia de su pantalla, no de la partida — en un portátil y en un monitor grande no quiere lo
+   * mismo, y nadie más tiene por qué heredarlo.
+   */
+  const [sideW, setSideW] = useState(() => layout.sideWidth() ?? SIDE_WIDTH_DEFAULT);
+  const arrastre = useRef<{ x: number; w: number } | null>(null);
+  /**
+   * El carril está a la DERECHA, así que tirar hacia la izquierda lo ensancha: de ahí el `inicio.x - e.clientX`.
+   * Se captura el puntero para que el gesto siga vivo aunque el dedo se salga del tirador, que es lo que pasa
+   * siempre en cuanto se coge carrerilla.
+   */
+  const anchoDesde = (clientX: number): number => clampSideWidth((arrastre.current?.w ?? sideW) + ((arrastre.current?.x ?? clientX) - clientX));
+  const cogerBorde = (e: React.PointerEvent<HTMLDivElement>): void => {
+    arrastre.current = { x: e.clientX, w: sideW };
+    // La captura es una COMODIDAD (que el gesto sobreviva a salirse del tirador), no un requisito: si el
+    // navegador no la da, tirar del borde tiene que seguir funcionando igual.
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
+  };
+  const moverBorde = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (!arrastre.current) return;
+    setSideW(anchoDesde(e.clientX));
+  };
+  const soltarBorde = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (!arrastre.current) return;
+    const final = anchoDesde(e.clientX);
+    arrastre.current = null;
+    setSideW(final);
+    // Se apunta al SOLTAR, no en cada píxel: arrastrar no tiene por qué escribir cien veces en el disco.
+    layout.rememberSideWidth(final);
+  };
+  /** Con las flechas también, que un tirador de 6 px no se coge con cualquier mano ni con ninguna sin ratón. */
+  const tecleaBorde = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const paso = e.key === 'ArrowLeft' ? SIDE_WIDTH_STEP : e.key === 'ArrowRight' ? -SIDE_WIDTH_STEP : 0;
+    if (!paso) return;
+    e.preventDefault();
+    const final = clampSideWidth(sideW + paso);
+    setSideW(final);
+    layout.rememberSideWidth(final);
+  };
   /** The shared-resource bar floats over the tab and can be folded away: on the scene it was eating map. */
   const [resOpen, setResOpen] = useState(true);
   /** Sheet the DM opened from «El grupo» (null = my own). */
@@ -159,7 +204,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const sysT = (key: string) => { const dict = ((system.locales[locale] ?? system.locales.es) ?? {}) as Record<string, unknown>; const v = key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), dict); return typeof v === 'string' ? v : key; };
 
   return (
-    <div className="tb-root" data-system={system.id} style={themeStyle}>
+    <div className="tb-root" data-system={system.id}
+      /* Las pastillas del chat se colocan con `--tb-side-w`: si no se actualiza, al ensanchar el carril se
+         meterían debajo. Plegado manda el CSS, que ya lo pone a 24 px. */
+      style={{ ...themeStyle, ...(sideOpen ? { '--tb-side-w': `${sideW}px` } as React.CSSProperties : {}) }}>
       {/* Rolvium bar (platform chrome, stays in platform theme) */}
       <div className="tb-rvbar">
         <div className="tb-rvbar-left">
@@ -234,6 +282,9 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
               */}
             {tab === 'scene' && <Scene adventuresPort={adventures ?? defaultAdventures} campaignId={campaign.id} openSceneId={openScene} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+              /* H13 · rebanada 4 — la escena sólo necesita FIRMAR el enlace de una foto puesta; aquí es donde
+                 la galería y el mapa se conocen, que es lo que hace de esta pantalla la mesa. */
+              photos={photos ?? photosPort}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
@@ -242,11 +293,22 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
                 activa —abrir ≠ activar, su regla de `maps`—: los jugadores se quedan donde estaban (4.º QA, 22-09). */}
             {/* El puerto se inyecta como el del Bestiario: sin esto la pestaña iría contra Supabase en cuanto
                 un test la abriera, y no se podía probar. */}
-            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
+            {/* El sistema y las tiradas entran igual que en el Bestiario: son lo que deja elegir una criatura
+                en una fila de PNJ/encuentro, ver su ficha y tirar por ella (su «b» del 2026-09-22). */}
+            {tab === 'adventures' && <AdventuresTab campaignId={campaign.id} system={system} {...(maps ? { maps } : {})} {...(adventures ? { adventures } : {})}
+              {...(bestiary ? { bestiary } : {})}
+              onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenScene={sceneId => { setOpenScene(sceneId); setTab('scene'); }} />}
             </SafeRegion>
           </main>
-          <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>
+          <aside className={`tb-side ${sideOpen ? '' : 'folded'}`} style={sideOpen ? { width: sideW } : undefined}>
+            {sideOpen && (
+              <div className="tb-side-grip" role="separator" aria-orientation="vertical" tabIndex={0}
+                data-testid="tb-side-grip" aria-label={t('table.side.resize')}
+                aria-valuenow={sideW} aria-valuemin={SIDE_WIDTH_MIN} aria-valuemax={SIDE_WIDTH_MAX}
+                onPointerDown={cogerBorde} onPointerMove={moverBorde} onPointerUp={soltarBorde}
+                onPointerCancel={soltarBorde} onKeyDown={tecleaBorde} />
+            )}
             <button type="button" className="tb-side-fold" aria-expanded={sideOpen}
               aria-label={sideOpen ? t('table.side.hide') : t('table.side.show')} onClick={() => setSideOpen(o => !o)}>
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
@@ -258,7 +320,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {sideOpen && <SafeRegion label="table:side">
               <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} {...(journal ? { journal } : {})}
                 myUserId={user.id} chatUnread={chatUnread}
-                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />
+                onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat}
+                /* La galería va SIEMPRE, como a la escena y a las pastillas: sin firmante, una foto recibida
+                   en el carril salía como «foto borrada», porque su enlace no se firma nunca. */
+                isDm={role === 'dm'} photos={photos ?? photosPort} />
             </SafeRegion>}
           </aside>
         </div>
@@ -288,7 +353,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           Viven aquí, fuera de las pestañas, por el mismo motivo que los avisos de arriba: un susurro se lee y
           se contesta esté el jugador donde esté, incluso con la columna plegada o en otra pestaña.
         */}
-        <WhisperWatcher campaignId={campaign.id} myUserId={user.id} system={system} chat={chat}
+        <WhisperWatcher campaignId={campaign.id} myUserId={user.id} system={system} chat={chat} isDm={role === 'dm'} photos={photos ?? photosPort}
                         requestOpen={pillRequest} onRequestOpenConsumed={() => setPillRequest(null)}
                         onUnreadChange={setChatUnread} readInColumn={chatRead} />
       </div>

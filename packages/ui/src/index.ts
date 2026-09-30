@@ -82,6 +82,6 @@ export { pickImageFile } from './lib/pickImageFile';
 
 // ── Editor de texto enriquecido (Notas · Bitácora · Aventuras) ────────────────
 export { RichTextEditor }                 from './components/richtext/RichTextEditor';
-export type { RichTextEditorProps, RichTextEditorLabels } from './components/richtext/RichTextEditor';
+export type { RichTextEditorProps, RichTextEditorLabels, NpcLook } from './components/richtext/RichTextEditor';
 export { DocIndexPanel }                  from './components/richtext/DocIndexPanel';
 export type { DocIndexPanelProps }        from './components/richtext/DocIndexPanel';

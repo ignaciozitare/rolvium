@@ -601,7 +601,7 @@ describe('SupabaseMapsRepo — lo plantado en la escena', () => {
     const m2 = createSupabaseMock({ tables: { maps_scene_props: { data: SCENE_PROP_ROW, error: null } } });
     const repo2 = new SupabaseMapsRepo(m2.client as unknown as SupabaseClient);
     await repo2.addSceneProp({
-      sceneId: 'sc-1', campaignId: 'c1', layerId: 'ly-7', propId: 'pr-1', imageUrl: 'https://x/oak.webp', name: 'Roble',
+      sceneId: 'sc-1', campaignId: 'c1', layerId: 'ly-7', propId: 'pr-1', photoId: null, imageUrl: 'https://x/oak.webp', name: 'Roble',
       x: 120, y: 340, width: 300, height: 450, rotation: 0, z: 3, blocksSight: true, blocksMove: false,
       blockShape: 'circle', blockW: 450, blockH: 450, blockDx: 0, blockDy: 0, silhouette: null,
     });
@@ -612,6 +612,31 @@ describe('SupabaseMapsRepo — lo plantado en la escena', () => {
 
     await repo2.removeSceneProp('sp-1');
     expect(m2.deleteSpy).toHaveBeenCalled();
+  });
+
+  /**
+   * UNA FOTO PUESTA (H13, rebanada 4): la misma tabla, con `photo_id` y SIN nombre ni enlace — lo exige la base
+   * (`maps_scene_props_photo_shape`), porque esta fila la lee el jugador y un nombre puede destripar.
+   */
+  it('una FOTO puesta viaja por `photo_id`, y vuelve con él', async () => {
+    const m = createSupabaseMock({ tables: { maps_scene_props: { data: { ...SCENE_PROP_ROW, prop_id: null, photo_id: 'ph-1', name: '', image_url: '' }, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const puesta = await repo.addSceneProp({
+      sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: null, photoId: 'ph-1', imageUrl: '', name: '',
+      x: 300, y: 240, width: 336, height: 420, rotation: 0, z: 2, blocksSight: false, blocksMove: false,
+      blockShape: 'rect', blockW: 336, blockH: 420, blockDx: 0, blockDy: 0, silhouette: null,
+    });
+    expect(m.insertSpy).toHaveBeenCalledWith(expect.objectContaining({ photo_id: 'ph-1', prop_id: null, name: '', image_url: '' }));
+    expect(puesta.photoId).toBe('ph-1');
+    expect(puesta.propId).toBeNull();
+  });
+
+  /** Una fila ANTERIOR a la columna no trae `photo_id`: eso es una pieza normal, no una foto sin id. */
+  it('una fila vieja, sin la columna, sigue siendo una pieza normal', async () => {
+    const { photo_id: _fuera, ...vieja } = { ...SCENE_PROP_ROW, photo_id: undefined };
+    const m = createSupabaseMock({ tables: { maps_scene_props: { data: [vieja], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    expect((await repo.listSceneProps('sc-1'))[0]!.photoId).toBeNull();
   });
 });
 

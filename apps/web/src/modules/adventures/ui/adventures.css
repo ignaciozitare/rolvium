@@ -26,6 +26,13 @@
   background:transparent;color:var(--sys-ink-soft);font-family:var(--sys-font-body);font-size:var(--fs-xs);}
 .av-rail-scene:hover{color:var(--sys-blood);}
 .av-rail-scene .material-symbols-outlined{font-size:var(--icon-xs);}
+/* EL ÁRBOL (2026-09-22): las escenas de la abierta cuelgan de su aventura, con la guía a la izquierda como el
+   índice; «+ ESCENA» al final, en sangre. */
+.av-rail-node{display:flex;flex-direction:column;gap:1px;}
+.av-rail-chev{font-size:var(--icon-xs);color:var(--sys-ink-dim);}
+.av-rail-item.on .av-rail-chev{color:var(--sys-paper-hi);}
+.av-rail-scenes{list-style:none;margin:0 0 4px;padding:2px 0 4px 12px;display:flex;flex-direction:column;gap:1px;border-left:1px solid var(--sys-line);}
+.av-rail-scene-add{color:var(--sys-blood);font-size:var(--fs-2xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 
 /* ── El documento ──────────────────────────────────────────────────────────── */
 .av-doc{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;}
@@ -60,6 +67,11 @@
 .av-picklist button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 9px;border:none;
   background:transparent;color:var(--tx);font-size:var(--fs-sm);cursor:pointer;}
 .av-picklist button:hover{background:var(--sf3);}
+/* La lista del Bestiario, con la foto de cada criatura: es como la reconoce de un vistazo, igual que en el
+   catálogo. El modal es chrome de plataforma, así que aquí mandan los tokens de la app, no `--sys-*`. */
+.av-npclist{max-height:min(420px,60vh);overflow-y:auto;}
+.av-npclist .material-symbols-outlined{font-size:var(--icon-sm);color:var(--tx3);}
+.av-npcpic{flex:none;width:24px;height:24px;border-radius:50%;object-fit:cover;}
 
 /* La ventana aparte: el cuaderno con aire alrededor, sobre el papel del sistema. */
 .av-window{padding:16px;}
@@ -122,3 +134,11 @@
 .av-rail-fold:hover{color:var(--sys-ink);}
 .av-rail-fold .material-symbols-outlined{font-size:var(--icon-sm);}
 .av-rail.folded{width:34px;align-items:center;padding:8px 0;background:var(--sys-paper-hi);}
+
+/* ── Tirar por una criatura elegida del Bestiario (2026-09-22) ──────────────
+   El desplegable es EL DEL BESTIARIO (`.bs-pop`, que se coloca `absolute` dentro de lo que lo contiene).
+   Allí cuelga de la ficha del catálogo; aquí la fila es una línea de texto de la que no se puede colgar
+   nada, así que se le da un sitio propio centrado sobre el documento — el mismo camino que `.bs-atk` sobre
+   la escena. Sólo esta caja: el aspecto sigue siendo el del Bestiario, sin una copia. */
+.av-npcroll { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(372px, 92vw); z-index: 40; }

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Modal, OptionGroup, Tooltip, useDialog } from '@rolvium/ui';
+import type { GameSystem } from '@rolvium/core';
 import type { MapsPort, Scene } from '@/modules/maps';
 import { mapsRepo as defaultMaps } from '@/modules/maps';
+import type { BestiaryPort } from '@/modules/bestiary';
 import { adventuresPort as defaultAdventures } from '../container';
 import type { Adventure, AdventurePatch, AdventureStatus } from '../domain/entities/Adventure';
 import type { AdventuresPort } from '../domain/ports/AdventuresPort';
@@ -10,6 +12,7 @@ import {
   canRemoveAdventure, moveInOrder, nextSortOrder, runningPatches, sceneDestinations, type OrderMove,
 } from '../domain/useCases/adventureRules';
 import { AdventureDocument } from './AdventureDocument';
+import { AdventureNpcs, type AdventureNpcsApi } from './AdventureNpcs';
 import { RailMenu, type MenuRow } from './RailMenu';
 import { useAdventureDoc } from './useAdventureDoc';
 import './adventures.css';
@@ -30,8 +33,17 @@ interface Props {
   campaignId: string;
   /** Abrir una escena en la mesa: lo hace `TablePage`, que se la abre al director SIN activarla (abrir ≠ activar). */
   onOpenScene: (sceneId: string) => void;
+  /**
+   * EL BESTIARIO EN LAS FILAS (2026-09-22). Los dos van juntos: con el sistema y el puerto de tiradas, las
+   * tablas de PNJ/encuentro se pueden elegir del Bestiario, ver su ficha y tirar por ellas. Sin ellos la
+   * pestaña funciona exactamente igual que hasta hoy, con las tablas escritas a mano — por eso son
+   * opcionales: lo que falta entonces es la función ENTERA y a la vista, no un botón mudo.
+   */
+  system?: GameSystem | undefined;
+  onRoll?: React.ComponentProps<typeof AdventureNpcs>['onRoll'] | undefined;
   adventures?: AdventuresPort;
   maps?: MapsPort;
+  bestiary?: BestiaryPort;
 }
 
 /**
@@ -46,7 +58,7 @@ interface Props {
  * El director ORGANIZA, no sólo escribe (lo que paró el QA el 2026-09-20): marca cuál está en curso, ordena,
  * archiva y borra aventuras, y crea, renombra, ordena y cambia de aventura sus escenas.
  */
-export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdventures, maps = defaultMaps }: Props): JSX.Element {
+export function AdventuresTab({ campaignId, onOpenScene, system, onRoll, adventures = defaultAdventures, maps = defaultMaps, bestiary }: Props): JSX.Element {
   const { t } = useTranslation();
   const dialog = useDialog();
   /** TODAS, también las archivadas: el carril las enseña aparte, y borrar necesita saber cuántas quedan. */
@@ -264,33 +276,90 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
   const menuAdventure = menu?.kind === 'adventure' ? shown.find(a => a.id === menu.id) : undefined;
   const menuScene = menu?.kind === 'scene' ? mine.find(s => s.id === menu.id) : undefined;
 
+  /**
+   * LAS ESCENAS DE LA ABIERTA, colgando de su aventura (suyo, 2026-09-22: «*las escenas deverian desplegarse
+   * debajo de su aventura padre no abajo del todo, si tengo 8 aventuras tendria 8 items de aventura y debajo las
+   * escenas de una de ellas*»). Sólo la abierta se despliega; las demás son una fila cada una.
+   */
+  const scenesOfOpen = (a: Adventure) => (
+    <ul className="av-rail-scenes" aria-label={t('adventures.scenesUnder', { title: a.title })}>
+      {mine.length === 0 && <li className="av-rail-empty">{t('adventures.noScenes')}</li>}
+      {mine.map(scene => (
+        <li key={scene.id} className="av-rail-row">
+          <button type="button" className="av-rail-scene" onClick={() => onOpenScene(scene.id)}>
+            <span className="material-symbols-outlined" aria-hidden="true">map</span>
+            {scene.name}
+          </button>
+          <button
+            type="button" ref={kebabRef(`scene:${scene.id}`)} className="av-kebab"
+            aria-haspopup="menu" aria-expanded={menu?.kind === 'scene' && menu.id === scene.id}
+            aria-label={t('adventures.sceneMenu.for', { name: scene.name })} onClick={() => toggleMenu('scene', scene.id)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+        </li>
+      ))}
+      <li>
+        <button type="button" className="av-rail-scene av-rail-scene-add" onClick={() => { void createScene(); }} aria-label={t('adventures.newScene')}>
+          <span className="material-symbols-outlined" aria-hidden="true">add</span>
+          {t('adventures.addScene')}
+        </button>
+      </li>
+    </ul>
+  );
+
   const adventureItem = (a: Adventure, lead: JSX.Element) => {
     const on = a.id === openId;
     const key = `adventure:${a.id}`;
     return (
-      <li key={a.id} className="av-rail-row">
-        <button
-          type="button" className={`av-rail-item${on ? ' on' : ''}${a.status === 'archived' ? ' archived' : ''}`}
-          aria-current={on} onClick={() => setOpenId(a.id)}
-        >
-          {lead}
-          <span className="av-rail-text">
-            <span className="av-rail-title">{a.title}</span>
-            <span className="av-rail-sub">{t(`adventures.status.${a.status}`)} · {sceneCountText(t, countOf(a.id))}</span>
-          </span>
-        </button>
-        <button
-          type="button" ref={kebabRef(key)} className={`av-kebab${on ? ' on' : ''}`}
-          aria-haspopup="menu" aria-expanded={menu?.kind === 'adventure' && menu.id === a.id}
-          aria-label={t('adventures.menu.for', { title: a.title })} onClick={() => toggleMenu('adventure', a.id)}
-        >
-          <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-        </button>
+      <li key={a.id} className="av-rail-node">
+        <div className="av-rail-row">
+          <button
+            type="button" className={`av-rail-item${on ? ' on' : ''}${a.status === 'archived' ? ' archived' : ''}`}
+            aria-current={on} aria-expanded={on} onClick={() => setOpenId(a.id)}
+          >
+            <span className="material-symbols-outlined av-rail-chev" aria-hidden="true">{on ? 'keyboard_arrow_down' : 'chevron_right'}</span>
+            {lead}
+            <span className="av-rail-text">
+              <span className="av-rail-title">{a.title}</span>
+              <span className="av-rail-sub">{t(`adventures.status.${a.status}`)} · {sceneCountText(t, countOf(a.id))}</span>
+            </span>
+          </button>
+          <button
+            type="button" ref={kebabRef(key)} className={`av-kebab${on ? ' on' : ''}`}
+            aria-haspopup="menu" aria-expanded={menu?.kind === 'adventure' && menu.id === a.id}
+            aria-label={t('adventures.menu.for', { title: a.title })} onClick={() => toggleMenu('adventure', a.id)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+        </div>
+        {on && scenesOfOpen(a)}
       </li>
     );
   };
 
   const fold = (folded: boolean) => { setMenu(null); setRailFolded(folded); };
+
+  /**
+   * EL CUADERNO. Se monta una sola vez y se pinta con o sin Bestiario: envuelto en `AdventureNpcs` cuando la
+   * mesa da el sistema y las tiradas (filas elegidas del Bestiario, su ficha y tirar por ellas), o a secas si
+   * no — y entonces las tablas se escriben a mano, como siempre.
+   */
+  const notebook = (open: Adventure, npc?: AdventureNpcsApi) => (
+    <AdventureDocument
+      // El estado lo manda el carril: si un cambio no entra, el carril vuelve a lo que hay de verdad y la
+      // cabecera con él.
+      adventure={openRow ? { ...open, status: openRow.status } : open}
+      doc={doc.doc} onChange={doc.edit}
+      // También en la lista del carril: si no, al abrir otra volvía a salir el título viejo.
+      onRename={title => { doc.rename(title); setAll(rows => rows.map(a => (a.id === openId ? { ...a, title } : a))); }}
+      save={doc.save} savedAt={doc.savedAt} onReload={doc.reload} onForceSave={doc.flush}
+      scenes={mine.map(s => ({ id: s.id, name: s.name }))} onOpenScene={onOpenScene}
+      onOpenApart={() => window.open(`/adventures/${open.id}`, '_blank', 'noopener')}
+      onStatusChange={next => { if (openId) setAdventureStatus(openId, next); }}
+      {...(npc ? { npcs: npc.npcs, npcLook: npc.look, onOpenNpc: npc.openNpc, onRollNpc: npc.rollNpc } : {})}
+    />
+  );
 
   return (
     <div className="av-tab">
@@ -333,33 +402,6 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
             )}
           </>
         )}
-
-        <div className="av-rail-head">
-          <span className="av-rail-label">{t('adventures.scenesOf')}</span>
-          {openId && (
-            <button type="button" className="av-rail-add" onClick={() => { void createScene(); }} aria-label={t('adventures.newScene')}>
-              <span className="material-symbols-outlined" aria-hidden="true">add</span>
-            </button>
-          )}
-        </div>
-        <ul className="av-rail-list">
-          {mine.length === 0 && <li className="av-rail-empty">{t('adventures.noScenes')}</li>}
-          {mine.map(scene => (
-            <li key={scene.id} className="av-rail-row">
-              <button type="button" className="av-rail-scene" onClick={() => onOpenScene(scene.id)}>
-                <span className="material-symbols-outlined" aria-hidden="true">map</span>
-                {scene.name}
-              </button>
-              <button
-                type="button" ref={kebabRef(`scene:${scene.id}`)} className="av-kebab"
-                aria-haspopup="menu" aria-expanded={menu?.kind === 'scene' && menu.id === scene.id}
-                aria-label={t('adventures.sceneMenu.for', { name: scene.name })} onClick={() => toggleMenu('scene', scene.id)}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-              </button>
-            </li>
-          ))}
-        </ul>
       </nav>
       )}
 
@@ -374,18 +416,13 @@ export function AdventuresTab({ campaignId, onOpenScene, adventures = defaultAdv
         ? <p className="av-state">{t('adventures.noneActive')}</p>
         : doc.load === 'ready' && doc.adventure
           ? (
-            <AdventureDocument
-              // El estado lo manda el carril: si un cambio no entra, el carril vuelve a lo que hay de verdad y la
-              // cabecera con él.
-              adventure={openRow ? { ...doc.adventure, status: openRow.status } : doc.adventure}
-              doc={doc.doc} onChange={doc.edit}
-              // También en la lista del carril: si no, al abrir otra volvía a salir el título viejo.
-              onRename={title => { doc.rename(title); setAll(rows => rows.map(a => (a.id === openId ? { ...a, title } : a))); }}
-              save={doc.save} savedAt={doc.savedAt} onReload={doc.reload} onForceSave={doc.flush}
-              scenes={mine.map(s => ({ id: s.id, name: s.name }))} onOpenScene={onOpenScene}
-              onOpenApart={() => window.open(`/adventures/${doc.adventure?.id ?? ''}`, '_blank', 'noopener')}
-              onStatusChange={next => { if (openId) setAdventureStatus(openId, next); }}
-            />
+            system && onRoll
+              ? (
+                <AdventureNpcs campaignId={campaignId} system={system} onRoll={onRoll} {...(bestiary ? { repo: bestiary } : {})}>
+                  {npc => notebook(doc.adventure!, npc)}
+                </AdventureNpcs>
+              )
+              : notebook(doc.adventure)
           )
           : <p className="av-state">{doc.load === 'loading' ? t('common.loading') : t('adventures.loadError')}</p>}
 

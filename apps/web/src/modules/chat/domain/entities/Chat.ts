@@ -1,7 +1,7 @@
 import type { RollRequest, RollResult, RolledDice } from '@rolvium/core';
 
 export type ChatMemberRole = 'dm' | 'player';
-export type ChatMessageKind = 'text' | 'roll' | 'roll_ref';
+export type ChatMessageKind = 'text' | 'roll' | 'roll_ref' | 'photo';
 
 /** One row of `chat_messages`, joined for display (author/character name from Supabase). */
 export interface ChatMessage {
@@ -22,6 +22,12 @@ export interface ChatMessage {
   rollResult: RollResult | null;
   /** Only for `kind = 'roll_ref'`: the referenced `dice_rolls.id` — the message never copies the result. */
   rollRefId: string | null;
+  /**
+   * Sólo en `kind = 'photo'` (H13): qué foto de la galería se mandó. **`null` significa «foto borrada»**, no
+   * «sin foto»: al borrarla de la galería la base pone esto a nulo y el mensaje se queda entero, con su hueco
+   * y su pie — un mensaje viejo no se rompe porque se limpie la galería. El `body` es el pie, opcional.
+   */
+  photoId: string | null;
   createdAt: string;
 }
 

@@ -119,7 +119,7 @@ export function UIKit(): JSX.Element {
       </section>
       <section><h3 style={{ marginBottom: 8 }}>RichTextEditor / DocIndexPanel (Notas · Bitácora · Aventuras — un solo editor, themed by --sys-*)</h3>
         <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>
-          {"import { RichTextEditor, DocIndexPanel } from '@rolvium/ui'"} · {'<RichTextEditor doc onChange labels readOnly features={{tables,sceneRef}} onPickScene onOpenScene />'} · {'<DocIndexPanel entries={buildDocIndex(doc)} onJump onClose labels currentId />'}
+          {"import { RichTextEditor, DocIndexPanel } from '@rolvium/ui'"} · {'<RichTextEditor doc onChange labels readOnly features={{tables,sceneRef,bestiary}} onPickScene onOpenScene onPickNpc onOpenNpc onRollNpc npcLook />'} · {'<DocIndexPanel entries={buildDocIndex(doc)} onJump onClose labels currentId />'}
         </p>
         <div style={{ ...sysVars, display: 'flex', gap: 12, padding: 24, background: 'var(--sys-bg)', fontFamily: 'var(--sys-font-body)' } as React.CSSProperties}>
           {kitIndex && (

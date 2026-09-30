@@ -4,6 +4,7 @@ import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER
 import type { Tool } from '../domain/useCases/mapRules';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { DOOR_BAR_PX, doorPatternId } from '../domain/useCases/mapRules';
+import { encodePhotoDrag, PHOTO_DRAG_MIME } from '@/shared/lib/photoDrag';
 import { MapCanvas } from './MapCanvas';
 import { FOG_FEATHER, lightFeather } from './canvasLayers';
 import * as roomStyles from '../domain/useCases/roomStyles';
@@ -3059,5 +3060,90 @@ describe('<MapCanvas> las piezas plantadas', () => {
     up(svg);
     expect(cb.onSowEnd).toHaveBeenCalled();
     expect(cb.onPlantProp).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 📷 LAS FOTOS PUESTAS (H13, rebanada 4). Una foto puesta es una pieza más de la escena —se mueve, se estira y
+ * se gira con lo que ya había—, pero se pinta distinto: su fila NO lleva enlace (el bucket es privado y la
+ * firma caduca), así que lo que se ve sale de `photoUrls`. Y **sin firma no se pinta**, que es exactamente lo
+ * que le pasa a un jugador con una foto que la base no le deja leer.
+ */
+describe('<MapCanvas> las fotos puestas en la escena', () => {
+  const FOTO = { ...SCENE_PROP_OAK, id: 'sp-ph', propId: null, photoId: 'ph-1', imageUrl: '', name: '', x: 200, y: 150, width: 300, height: 375 };
+  const ARRASTRE = { id: 'ph-1', width: 1024, height: 1280 };
+  /*
+   * Un `drop` de verdad ES un evento de ratón: trae `clientX`/`clientY`, que es de donde sale el punto de la
+   * escena. `fireEvent.drop` no los pone (jsdom no tiene `DragEvent`), así que el evento se arma a mano — si
+   * no, la prueba diría que la foto cae en el sitio correcto sin haber mirado ninguna coordenada.
+   */
+  const soltar = (el: Element, x: number, y: number, raw: string | null = encodePhotoDrag(ARRASTRE), tipos = [PHOTO_DRAG_MIME]) => {
+    const ev = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: x, clientY: y });
+    Object.defineProperty(ev, 'dataTransfer', { value: { types: tipos, getData: () => raw } });
+    fireEvent(el, ev);
+    return ev;
+  };
+
+  it('se pinta con el enlace FIRMADO, no con el de la fila — que está vacío a propósito', () => {
+    mount({ sceneProps: [FOTO], photoUrls: { 'ph-1': 'https://x/firmado.webp' }, isDm: true });
+    const puesta = screen.getByRole('img', { name: 'Foto puesta' });
+    expect(puesta.querySelector('image')).toHaveAttribute('href', 'https://x/firmado.webp');
+    expect(puesta).toHaveAttribute('data-photo-id', 'ph-1');
+  });
+
+  it('🔑 sin firma NO se pinta nada: ni un hueco ni una imagen rota', () => {
+    mount({ sceneProps: [FOTO], photoUrls: {}, isDm: true });
+    expect(screen.queryByRole('img', { name: 'Foto puesta' })).toBeNull();
+    expect(document.querySelector('[data-photo-id]')).toBeNull();
+  });
+
+  it('no se anuncia por su nombre, que no viaja en la fila porque puede destripar', () => {
+    mount({ sceneProps: [FOTO], photoUrls: { 'ph-1': 'https://x/f.webp' }, isDm: true, selectedPropId: 'sp-ph' });
+    expect(screen.getByRole('img', { name: 'Foto puesta, cogida' })).toBeInTheDocument();
+  });
+
+  it('las piezas normales se siguen pintando con SU enlace, sin firmar nada', () => {
+    mount({ sceneProps: [SCENE_PROP_OAK], photoUrls: {}, isDm: true });
+    expect(screen.getByRole('img', { name: /Roble/ }).querySelector('image')).toHaveAttribute('href', SCENE_PROP_OAK.imageUrl);
+  });
+
+  it('soltarla en el mapa la planta DONDE CAYÓ', () => {
+    const onDropPhoto = vi.fn();
+    const { svg } = mount({ isDm: true, onDropPhoto });
+    soltar(svg, 340, 260);
+    expect(onDropPhoto).toHaveBeenCalledWith(ARRASTRE, { x: 340, y: 260 });
+  });
+
+  it('un arrastre que NO es una foto no planta nada', () => {
+    const onDropPhoto = vi.fn();
+    const { svg } = mount({ isDm: true, onDropPhoto });
+    soltar(svg, 10, 10, 'basura', ['text/plain']);
+    soltar(svg, 10, 10, null);
+    soltar(svg, 10, 10, '{"id":""}');
+    expect(onDropPhoto).not.toHaveBeenCalled();
+  });
+
+  /** Un punto que no es un número plantaría la foto en la nada y la fila se guardaría rota. Mejor no plantar. */
+  it('si el gesto llega sin coordenadas, no planta nada', () => {
+    const onDropPhoto = vi.fn();
+    const { svg } = mount({ isDm: true, onDropPhoto });
+    const ev = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'dataTransfer', { value: { types: [PHOTO_DRAG_MIME], getData: () => encodePhotoDrag(ARRASTRE) } });
+    fireEvent(svg, ev);
+    expect(onDropPhoto).not.toHaveBeenCalled();
+  });
+
+  /** Sin `preventDefault` en `dragover` el navegador NO deja soltar: el gesto moriría sin decir por qué. */
+  it('acepta el gesto mientras vuela una foto, y sólo entonces', () => {
+    const { svg } = mount({ isDm: true, onDropPhoto: vi.fn() });
+    const conFoto = new Event('dragover', { bubbles: true, cancelable: true });
+    Object.defineProperty(conFoto, 'dataTransfer', { value: { types: [PHOTO_DRAG_MIME] } });
+    fireEvent(svg, conFoto);
+    expect(conFoto.defaultPrevented).toBe(true);
+
+    const conOtraCosa = new Event('dragover', { bubbles: true, cancelable: true });
+    Object.defineProperty(conOtraCosa, 'dataTransfer', { value: { types: ['text/plain'] } });
+    fireEvent(svg, conOtraCosa);
+    expect(conOtraCosa.defaultPrevented).toBe(false);
   });
 });

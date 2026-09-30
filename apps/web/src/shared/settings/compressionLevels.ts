@@ -1,7 +1,7 @@
 import type { CompressionLevel } from '@rolvium/ui';
 
 /**
- * El nivel de compresión de imágenes, uno por tipo (textura · objeto · fondo), que elige un admin en Ajustes
+ * El nivel de compresión de imágenes, uno por tipo (textura · objeto · fondo · foto), que elige un admin en Ajustes
  * (spec: `specs/core/images/SPEC.md`). Cambiarlo no reconvierte nada retroactivo: sólo afecta a lo que se suba
  * después. Avatar y token no tienen nivel — van fijos por `IMAGE_TARGETS`.
  */
@@ -9,9 +9,11 @@ export interface CompressionLevels {
   texture: CompressionLevel;
   prop: CompressionLevel;
   background: CompressionLevel;
+  /** La foto de la galería (H13, 2026-09-27). Sin valor guardado cae en «Equilibrado», como las demás. */
+  photo: CompressionLevel;
 }
 
-export const DEFAULT_COMPRESSION_LEVELS: CompressionLevels = { texture: 'balanced', prop: 'balanced', background: 'balanced' };
+export const DEFAULT_COMPRESSION_LEVELS: CompressionLevels = { texture: 'balanced', prop: 'balanced', background: 'balanced', photo: 'balanced' };
 
 /** La clave del ajuste de plataforma donde vive (`app_settings.key`). */
 export const COMPRESSION_LEVELS_KEY = 'images.compression_levels';
@@ -28,5 +30,5 @@ export function parseCompressionLevels(value: unknown): CompressionLevels {
     const raw = v[key];
     return (VALID_LEVELS as readonly string[]).includes(raw as string) ? (raw as CompressionLevel) : DEFAULT_COMPRESSION_LEVELS[key];
   };
-  return { texture: pick('texture'), prop: pick('prop'), background: pick('background') };
+  return { texture: pick('texture'), prop: pick('prop'), background: pick('background'), photo: pick('photo') };
 }

@@ -140,7 +140,6 @@ export function ScenesMenu(p: Props): JSX.Element {
                 aria-label={`${t('maps.scenes.pickAdventure')}: ${shownAdventure?.title ?? ''}`} onClick={() => abrir(ADVENTURE_MENU)}
                 ref={el => { if (el) kebabs.current.set(ADVENTURE_MENU, el); else kebabs.current.delete(ADVENTURE_MENU); }}
               >
-                <span className="mp-rail-adv-label">{t('maps.scenes.adventure')}</span>
                 <span className="mp-rail-adv-row">
                   <span className="mp-rail-adv-n">{shownAdventure ? advs.indexOf(shownAdventure) + 1 : ''}</span>
                   <span className="mp-rail-adv-title">{shownAdventure?.title ?? ''}</span>

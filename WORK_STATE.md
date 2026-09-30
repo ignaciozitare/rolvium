@@ -2,6 +2,242 @@
 
 ## 🎯 Current task
 
+> # 📍 ESTADO (2026-09-28, noche) — FOTOS EN LA ESCENA Y EN EL CHAT + EL CARRIL Y EL SALTO DE LÍNEA
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Commiteado, sin mergear.
+> ## 🚀 30-09: él pidió «*subelo todo a prod*» (dos veces) y «*si, bloquea*» para la deriva de spec.
+> QA **bloqueó** por `specs/modules/chat/SPEC.md` (le faltaban 6 de las 9 secciones) y encontró 5 derivas
+> reales de documentación. Todas corregidas: el spec del chat reescrito entero a las nueve secciones en
+> inglés, el carril que se arrastra metido en el spec de `table` (que aún decía «272 px» como un hecho),
+> el índice `specs/SPEC.md` (decía «sin construir» de `photos` y de la 2.ª vuelta de `adventures`) y
+> `ARCHITECTURE.md` (decía «no UI yet» de `photos`, y no mencionaba `usePhotoUrls` ni `photoDrag`).
+> La SEGUNDA pasada de QA bloqueó otra vez, y con razón: **seis frases de spec que no se cumplían** —
+> «A la escena», el «Reintentar» y el bloque de foto de la aventura se leían como entregados, y el spec de
+> `adventures` **no lo avisaba en ningún sitio**. Todas marcadas ⏳ donde se leen, no sólo en § Out of scope.
+> También se corrigió el copy `photos.removeConsequence`, que le prometía al usuario «en la aventura»
+> algo que todavía no puede pasar.
+>
+> ## ⛔ LA LECCIÓN DEL DÍA, TRES VECES SEGUIDAS: EL FALLO NUNCA ESTUVO EN LA PIEZA, SINO EN EL CABLE
+> 1. Por la mañana: la GALERÍA estaba entera y verde, y **desenchufada** del mapa. Su queja: «*no me sirve de
+>    nada poder subir la foto y no poder arrastrarla a la escena como te pedi*».
+> 2. La revisión encontró que la línea que las junta (`TablePage`) **no tenía ni una prueba**: quitándola,
+>    2.361 pruebas seguían verdes y no se pintaba ni una foto.
+> 3. Por la noche, en la rebanada 5, **otras dos del mismo tipo**: `SusurrosPanel` declaraba `isDm` y no se lo
+>    pasaba a la conversación (el director se quedaba **sin clip en la columna, que es donde más se escribe**),
+>    y `TablePage` le daba la galería al carril sólo si se la inyectaban — en producción **toda foto recibida
+>    salía como «Foto borrada»**, que es lo peor: el fallo se leía como un dato, no como una avería.
+>
+> **REGLA QUE SALE DE AQUÍ: una prueba que inyecta el puerto a mano NO prueba el cable.** Para eso hace falta
+> montar la mesa **a secas, como el router**, doblando el contenedor. Hay dos pines que lo hacen
+> (`la-galeria-esta-enchufada-al-mapa` y `la-galeria-llega-sola-a-toda-la-mesa`) y **no se tocan**.
+>
+> ## ✅ LO CONSTRUIDO HOY
+> ### La galería (los 3 fallos de la revisión del 27-09)
+> `reload()` ya no borra el aviso que acaba de poner quien la llamó —renombrar y borrar fallaban **en
+> silencio**— y el aviso de borrar ya no reaparece solo tras Cancelar. 4 pruebas, verificadas contra el código
+> sin arreglar.
+>
+> ### Rebanada 4 · LAS FOTOS EN LA ESCENA
+> Se arrastra la miniatura al mapa y cae donde la sueltas. Se mueve, se estira, se gira, se copia, se deshace y
+> se quita **sin código propio**, porque una foto puesta ES una fila de `maps_scene_props` — y por eso queda
+> **debajo de las fichas** («*debajo*», 27-09). La fila **no lleva nombre ni enlace** (la base lo obliga): la
+> lee el jugador y un nombre destripa. Y **el área de juego se respeta también en pantalla**, con la misma
+> cuenta que la base (comprobado con 82.524 casos, 0 discrepancias salvo el último bit).
+>
+> ### Rebanada 5 · LAS FOTOS POR EL CHAT
+> **Clip (icono, no palabra)** en la fila de escribir, **sólo del director**, con los dos caminos de la lámina:
+> del ordenador (se comprime, **entra en la galería de la campaña** y se manda) y de la galería. El pie es lo
+> que estuviera escrito, en un solo gesto. **Borrada de la galería, el mensaje NO se rompe**: queda su hueco y
+> su pie. Y por lo mismo de «*no hay mucho lugar*», **ENVIAR también es icono** (se lo pregunté y dijo que sí).
+>
+> ### El chat, además
+> - **Salto de línea**: era un `<input>`, donde un salto **no existe**. Ahora Enter manda y Opción+Enter (Mac),
+>   Control+Enter (Windows) y Mayúsculas+Enter saltan. 🐞 El cursor se restauraba un fotograma tarde y las
+>   letras salían desordenadas («Primera\ndasegun») si seguía escribiendo: ahora es síncrono.
+> - **Pastillas**: 248 → 340 → **442 px** (su «*un 30%*» sobre lo que ya veía).
+>
+> ### El carril lateral
+> Se arrastra por el borde izquierdo, entre **200 y 560 px**, con las flechas también, y **se recuerda en su
+> navegador**. Puerto + reglas + adaptador, como `ViewMemoryPort`. Nada de lo que haya en `localStorage` puede
+> dejar la mesa con un ancho roto.
+>
+> ### Y un refactor que pedía CLAUDE.md
+> `usePlacedPhotos` (de `maps`) pasó a `shared/hooks/usePhotoUrls`: ahora lo usan la escena **y** el chat.
+>
+> ### Verde
+> web **2.416** (164 ficheros) · core 171 · ui 81 · api 305 · `typecheck`, `build:web` y `build:api` limpios ·
+> `npm run audit` **0 hard**. **Tres revisiones, las tres PASA.**
+>
+> ### 🪤 Trampas con prueba, para que nadie las «arregle»
+> - **`usePhotoUrls` NO lleva limpieza en su efecto.** La limpieza «de libro» haría que poner una segunda foto
+>   cancelase la firma en vuelo de la primera, que nunca se volvería a pedir: esa foto **no se pintaría jamás**.
+>   Un revisor lo sugirió como inofensivo; se midió y rompe.
+> - Colgar ese efecto de `idsKey` es **rendimiento**, no la red de seguridad.
+> - El cursor del chat se coloca en un `useLayoutEffect`, **nunca** en un `requestAnimationFrame`.
+>
+> ## 🔒 SUBIR ALGO QUE NO ES UNA FOTO — comprobado
+> Cuatro puertas: el selector filtra por tipo · se vuelve a mirar y se rechaza >8 MB **sin descodificar** · un
+> fichero que MIENTE (un PDF renombrado a `.png`) muere al abrirlo · tope de salida de 1,5 MB en los **tres**
+> caminos · y en el servidor, bucket privado con el mismo tope, 4 tipos y RLS de director. **Un extraño no mete
+> nada.**
+>
+> ## 📌 Deuda anotada, NO tocada
+> ### Decisiones suyas pendientes
+> - 🔴 **No hay tope de CUÁNTAS fotos por campaña.** ¿Máximo de fotos, o cuota en MB? **Falta su número.**
+> - 🔴 **El tipo, en el servidor, se cree la cabecera y no mira los bytes.** Sólo lo aprovecharía un
+>   DIRECTOR saltándose la pantalla, y el tamaño sí está cerrado.
+> ### Técnica
+> - **Los enlaces firmados caducan a la hora y nadie los vuelve a firmar**: en una mesa larga se rompen las
+>   miniaturas, las fotos puestas y las del chat hasta recargar. `reload` está expuesto; falta quien lo llame.
+> - **El tirador del carril**: sin `setPointerCapture` (que en un navegador de verdad no falla), soltar FUERA
+>   del tirador dejaría el arrastre armado. El arreglo es una línea (`if (e.buttons === 0) soltarBorde(e)`),
+>   pero obliga a que las pruebas manden `buttons: 1`. Decidido NO tocarlo por un caso inalcanzable.
+> - `photoIdsVisibleTo` no filtra por CAPA y la base sí: petición desperdiciada, no fuga.
+> - ⚠️ **`usage()` busca un bloque `image` que NO EXISTE todavía** en `RichBlock`, y su prueba fija la forma
+>   ADIVINADA. **Al construir el bloque de foto en una aventura hay que derivar el predicado del tipo.**
+> - El spec promete un **«Reintentar»** en una subida fallida que **no existe** en pantalla.
+> - `photos_photos.created_by` sin rellenar · `photos.title` clave muerta · `photos.usageMessages` sin singular ·
+>   **`SheetOverlay` debería vivir en `@rolvium/ui`**, no en `bestiary` · dos `PhotoUrlSigner` idénticos (a
+>   propósito: el dominio de `maps` no puede importar un fichero con React).
+> - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS. `chat` sigue sin las nueve
+>   secciones del spec.
+>
+> ## ⏭️ Siguiente paso concreto
+> 1. **«A la escena» en el menú de la foto** — el camino para cuando el mapa NO está en pantalla.
+> 2. **El bloque de foto dentro de una aventura** (y ahí hay que resolver el predicado de `usage()`).
+>
+> Y **antes de mergear a `main`**: las **3 migraciones a producción por MCP**
+> (`20260922120000_photos_biblioteca` · `20260922120100_photos_en_escena_y_chat` ·
+> `20260922120200_adventures_funciones_de_trigger_cerradas`), que siguen **sólo en local**.
+>
+> ## 💾 Y el `.pen` sigue SIN GUARDAR
+> Los dibujos de la galería (5 láminas) están en su editor pero **no en disco**: hacen falta su **Cmd+S** y un
+> commit de `rolvium.pen`. Pencil llevaba toda la tarde sin conectar (`CONNECTION_CLOSED`), así que lo de hoy
+> se construyó sin dibujar: el chat ya tenía lámina aprobada del 24-09 y el resto son ajustes de pantallas ya
+> aprobadas. Antes de volver a dibujar: comparar `git hash-object rolvium.pen` con `git rev-parse HEAD:rolvium.pen`.
+>
+> *(Lo de abajo es el estado anterior.)*
+>
+> # 📍 ESTADO (2026-09-22, noche) — AVENTURAS 2.ª VUELTA + LA BIBLIOTECA DE FOTOS
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Spec ✅ · DBA ✅ · Scaffold ✅ · Diseño ronda A ✅
+> ## ✅ PUNTO 2 CONSTRUIDO Y REVISADO. Sin mergear: quedan los puntos 3, 4 y 5 de su orden.
+>
+> ### Lo que pidió al ver v0.15.0 (sus frases, literales, en los specs)
+> `specs/modules/adventures/SPEC.md` § Decisions «His, 2026-09-22» y `specs/modules/photos/SPEC.md` § Decisions.
+> **Orden acordado** («*vale*»), todo en esta rama y sin mergear a medias:
+> 1. ✅ **HECHO** (`74b062c`): carril en ÁRBOL (las escenas cuelgan de su aventura, sólo la abierta desplegada, su
+>    «+ ESCENA» dentro) · AVENTURAS justo antes de ESCENA · el desplegable de la Escena sin la palabra «AVENTURA».
+> 2. ✅ **HECHO**: filas de PNJ/encuentro **elegidas del Bestiario**, su opción «**b**». Detalle abajo.
+> 3. ⏳ **EN CURSO**: la BIBLIOTECA DE FOTOS (módulo `photos`, H13): pestaña del carril lateral sólo del director.
+>    **Diseño dibujado, pendiente de que LO MIRE ÉL** (ver abajo). Sin código todavía.
+> 4. ⏳ Fotos en la escena (fila de `maps_scene_props` con `photo_id`).
+> 5. ⏳ Fotos en el chat (`chat_messages.kind='photo'`).
+>
+> ### El punto 2, tal y como quedó
+> La primera celda de cada fila de PNJ/encuentro lleva **el botón del libro** (`menu_book`). Suelta, elige del
+> Bestiario y la fila se queda con **nombre + foto + eslabón**. Ya enlazada, el mismo botón abre un menú
+> pequeño dentro del editor: **Ver su ficha · Tirar por él · Quitar el enlace**. La ficha y la tirada son LAS
+> DEL BESTIARIO, sin una sola copia. **Colocar en la escena NO entra** (era su «c», descartada), y hay pruebas
+> que lo fijan. Funciona igual en la pestaña de la mesa y en la ventana aparte.
+>
+> - `packages/core`: `setRowNpc(doc, bloque, fila, npcId|null)`. **No toca las celdas**: el nombre escrito es
+>   del documento, así que borrar la entrada del Bestiario deja la fila con su nombre y sin enlace.
+> - `packages/ui` (el editor COMPARTIDO con Notas y Bitácora): `features.bestiary` + `onPickNpc` / `onOpenNpc` /
+>   `onRollNpc` / `npcLook`. **El editor no conoce el Bestiario**: pregunta y avisa; quien contesta es
+>   `adventures/ui/AdventureNpcs.tsx`, que reutiliza `EntrySheetModal`, `NpcSheetModal` y `CreatureRollPopover`.
+> - 🚪 **Puertas nuevas de módulo**: `apps/web/src/modules/bestiary/index.ts` y `.../dice/index.ts`. Los
+>   consumidores viejos (TablePage, SceneTab, pruebas) **NO se han migrado** a propósito: se cierran poco a poco,
+>   como manda CLAUDE.md. `module-index` bajó de 108 a 106 avisos.
+> - ⚠️ En la **ventana aparte** el cuaderno ahora espera a SABER si hay sistema antes de pintarse: si llegaba
+>   tarde, React desmontaba y volvía a montar el documento entero (cursor e índice por los suelos). Si la
+>   campaña no contesta, la aventura se lee igual, sin Bestiario.
+> - 🐞 Una prueba vieja de `SceneTab` fallaba 1 de cada 3 veces con la suite entera en paralelo (daba el lienzo
+>   por pintado). Arreglada con una línea: esperarlo.
+>
+> ### Verde, comprobado (2026-09-22)
+> Web **2.288** (tres pasadas seguidas), core 171, ui 79, api 305, plenilunio 141, functional 67, smoke 12.
+> `npm run typecheck` limpio · `build:web` y `build:api` limpios · `npm run audit` **0 hard** (147 avisos).
+> Subagente de revisión: **pasado sin un solo arreglo**.
+>
+> ### Deuda anotada, NO tocada (para decidir aparte)
+> - `packages/ui` y `packages/core` tienen `typecheck` y **nadie lo llama**: el de la raíz es sólo web + api. Con
+>   él saldría un error PREEXISTENTE en `packages/ui/src/components/Sheet.tsx:531`
+>   (`exactOptionalPropertyTypes`, commit `4e29ee7`, ya en `main`). Arreglarlo primero, y luego añadirlo a la raíz.
+> - El hook de QA salta con `git merge-base` (sólo lectura) porque busca `git merge` sin límite de palabra.
+> - Una fila cuya entrada se borró del Bestiario conserva su `npcId` viejo en el JSON hasta que se vuelva a
+>   elegir. Es el precio de no reescribir el documento, y está escrito en el spec.
+> - Del merge anterior: el reintento de la Escena tras abrir desde AVENTURAS.
+> - `chat` y `core/images` no tienen las nueve secciones: el auditor los hará DUROS al tocarlos (puntos 3-5).
+>
+> ### Sus dos órdenes del 2026-09-24
+> - «*cambia fotos por galeria*» → la pestaña se llama **GALERÍA**. El módulo del código sigue siendo `photos`.
+> - «*asegurate que pueda arrastrar las fotos a la escena y no que solo sea con el boton*» → **arrastrar la foto
+>   de la galería y soltarla en el mapa**, además del botón «A la escena», que se queda (hace falta cuando no
+>   tienes el mapa delante). ⚠️ **La mesa NO sabe hoy recibir nada arrastrado**: todo se coloca armando y
+>   pinchando (`armEncounter`), y el único arrastrar-y-soltar que existe es DENTRO de la biblioteca de objetos
+>   (reordenar y meter ficheros). Es un gesto nuevo sobre el mapa, no una reutilización.
+>
+> ### El punto 3, dónde está (2026-09-24)
+> - **Lámina dibujada en `rolvium.pen`**: `Fotos/Biblioteca · el carril · sólo el director  ←  NUEVO 23-09`
+>   (`aZnl0`), en **§ 4 · LA MESA**, a la derecha de la fila del Bestiario, con marco y cartel magenta.
+>   **Cinco** columnas: VACÍA · CON FOTOS · SUBIENDO (cuánto adelgaza) · EL MENÚ DE UNA FOTO ·
+>   **ARRASTRARLA A LA ESCENA**. **Aprobada por él el 24-09** («*esta bien*»).
+> - ✅ **EL DISEÑO ESTÁ COMPLETO** (24-09). Ya no queda ni un ⏳ en § Screens del spec. Las otras cuatro láminas:
+>   · § 4 · `Fotos/Borrar una foto que se usa · y LA FOTO A LO GRANDE` (`oO15P`) — el «Se usa en…» y la hoja
+>     de pergamino, la misma del Bestiario.
+>   · § 4 · `Fotos/En una aventura · el bloque de foto` (`NKHzx`) — el botón de la barra con «Subir una del
+>     ordenador / De la galería», la foto al ancho del texto y el hueco «foto borrada».
+>   · § 4 · `Fotos/En el chat · mandarla y verla` (`df9F8`) — el clip (sólo el director), el mensaje con foto
+>     y la pastilla.
+>   · § 6 · `Fotos/En la escena · puesta, cogida y al lado` (`oNZA6`) — tiradores, giro, la de al lado, y el
+>     menú del botón derecho.
+>   · § 14 · `Admin/Ajustes · compresión con FOTOS` (`V6AM3n`) — la cuarta columna, en claro y en oscuro.
+> - ✅ **CONTESTADO el 27-09**: una foto soltada en el mapa va **«debajo»** de las fichas. No cuesta nada —
+>   es justo donde ya se pintan los objetos plantados (`mp-layer-props`: encima del suelo y las salas, debajo
+>   de los muros, de lo dibujado a mano y de las fichas). Una foto NUNCA tapa a un personaje. Sin magenta ya.
+> - ✅ **COMPRESIÓN MEDIDA (27-09)** con una imagen suya de verdad —un caballero, 1122×1402, **2,68 MB PNG**—
+>   en Chromium de verdad, con el mismo `canvas.toBlob('image/webp', q)` de producción. Niveles PROPUESTOS,
+>   **a la espera de que él los apruebe**:
+>   | Nivel | Lado máx. · calidad | Queda en | Pesa | Ahorra |
+>   |---|---|---|---|---|
+>   | Ligero | 1600 px · 0,88 | 1122×1402 (sin reducir) | 362 KB | 87 % |
+>   | **Equilibrado (propuesto por defecto)** | 1280 px · 0,82 | 1024×1280 | 204 KB | 93 % |
+>   | Máximo ahorro | 1024 px · 0,76 | 819×1024 | 124 KB | 95 % |
+>   Comparación 1:1 de la cara y del grabado del peto en `scratchpad/foto/comparacion.png`. Lectura honesta:
+>   Ligero es indistinguible; Equilibrado aguanta la cara y ablanda un pelo el grabado fino; Máximo ahorro se
+>   nota en el detalle fino **si se amplía por encima de su tamaño** — a lo que se mira de verdad (ancho del
+>   texto ~600 px, la vista grande 760 px) los tres van sobrados.
+>   Cuando los apruebe: añadir `photo` a `LEVELED_TARGETS` en `packages/ui/src/lib/compressImage.ts` y la
+>   tabla a `specs/core/images/SPEC.md` y a `specs/modules/photos/SPEC.md`.
+> - 🚧 **Falta su visto bueno a esos tres números** y su **Cmd+S** del `.pen`. Nada más bloquea construir.
+> - ✅ **Ya se ve.** Lo de ayer (láminas vacías en `TakeScreenshot` y `Export`) era pasajero: el MCP tardó en
+>   pintar lo recién insertado. **La API buena del `execute` es** `Insert · Copy · Replace · Move · Delete ·
+>   Update · SetVariables · GetVariables · Get · Print · Generate · TakeScreenshot · Export · FindEmptySpace`
+>   (se saca con `throw new Error(Object.getOwnPropertyNames(globalThis)…)`). `Print` devuelve datos;
+>   `Export([id], "png", carpeta)` deja el PNG en disco y se puede mirar. **`TakeScreenshot` sólo pinta bien lo
+>   que está en el viewport; `Export` no.** Ojo: los nodos metidos por `descendants` NO los ve `Get(visitor)`.
+> - **Banco de compresión listo** (`scratchpad/medir.mjs`): Chromium de verdad, el mismo
+>   `canvas.toBlob('image/webp', q)` de producción, barre lado máximo × calidad y deja los WebP para mirarlos.
+>   Probado con `fondo.png` (3,35 MB): ahorra 95-100 %, pero **es papel liso y no dice nada de una foto**.
+>   Su biblioteca local no sirve de muestra: los 168 fondos ya están comprimidos (WebP, máx. 871 KB).
+>   **Hace falta UNA FOTO SUYA de verdad**, sin comprimir, de las que pondría en una aventura.
+>
+> ### Antes de construir las fotos (puntos 3-5)
+> - **Enseñarle el antes/después de compresión con una foto real**, como con las texturas.
+> - **Que él bautice la pestaña de la biblioteca** (no inventarle el nombre). En la lámina va **propuesta**
+>   como «FOTOS», con el cartel magenta al lado para que la cambie.
+> - **Las 3 migraciones de esta rama siguen SÓLO EN LOCAL**: `20260922120000_photos_biblioteca`,
+>   `20260922120100_photos_en_escena_y_chat`, `20260922120200_adventures_funciones_de_trigger_cerradas`.
+>   Van a producción por MCP, una a una, ANTES del merge a `main`.
+>
+> ### ⚠️ Dos cosas del `.pen` que hay que saber
+> - **Las marcas magenta de «REVISAR» ya están borradas en su editor, pero NO en disco**: se van con su próximo
+>   Cmd+S. Si no guarda, el commit `8095643` las conserva y no pasa nada.
+> - **Un `git checkout`/merge que toque `rolvium.pen` deja su editor con la versión VIEJA y al cerrar la pisa**
+>   (pasó dos veces el 22-09; se recuperó con `git checkout -- rolvium.pen`). Antes de dibujar: comparar
+>   `git hash-object rolvium.pen` con `git rev-parse HEAD:rolvium.pen`.
+>
+> *(Lo de abajo es el estado anterior, ya en producción.)*
+>
 > # 📍 ESTADO (2026-09-22, tarde) — NOTAS · BITÁCORA · AVENTURAS **EN PRODUCCIÓN (v0.15.0)**
 > ## ✅ 5.º QA · ✅ 4 migraciones en producción · ✅ mergeado a `main` (`ccd7e1a`) · ✅ Vercel READY · ✅ 200/200
 >

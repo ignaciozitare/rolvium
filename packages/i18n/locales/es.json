@@ -133,7 +133,9 @@
       "texture": "Texturas",
       "prop": "Objetos",
       "background": "Fondos",
+      "photo": "Fotos",
       "backgroundNote": "Nunca pierde resolución — sólo cambia el formato.",
+      "photoNote": "Las de la galería de una campaña. Medido con una foto real: de 2,7 MB a 204 KB en Equilibrado.",
       "saveNote": "Los cambios se guardan al elegir un nivel.",
       "saveError": "No se pudo guardar el nivel.",
       "level": {
@@ -339,7 +341,8 @@
       "log": "Registro",
       "chat": "Susurros",
       "notes": "Notas",
-      "journal": "Bitácora"
+      "journal": "Bitácora",
+      "gallery": "Galería"
     },
     "logEmpty": "Pulsa TIRAR en una característica, o usa el lanzador libre.",
     "resource": {
@@ -360,7 +363,8 @@
     },
     "side": {
       "hide": "Ocultar el panel lateral",
-      "show": "Mostrar el panel lateral"
+      "show": "Mostrar el panel lateral",
+      "resize": "Cambiar el ancho del panel"
     }
   },
   "chat": {
@@ -400,6 +404,17 @@
       "minimize": "Minimizar la conversación con {{name}}",
       "close": "Cerrar la conversación con {{name}}",
       "unread": "{{n}} sin leer"
+    },
+    "photo": {
+      "attach": "Mandar una foto",
+      "fromComputer": "Subir una del ordenador",
+      "fromGallery": "De la galería",
+      "pickTitle": "Elige una foto",
+      "uploading": "Subiendo la foto…",
+      "sent": "Foto",
+      "deleted": "Foto borrada",
+      "empty": "Todavía no hay fotos.",
+      "emptyHint": "Sube una del ordenador y se guarda también en la galería de la campaña."
     }
   },
   "identity": {
@@ -806,7 +821,6 @@
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
       "expand": "Desplegar escenas",
-      "adventure": "Aventura",
       "pickAdventure": "Elegir la aventura",
       "showScenesOf": "Mostrar las escenas de"
     },
@@ -1414,7 +1428,9 @@
         "label": "Objeto {{name}}",
         "selected": "Objeto {{name}}, cogido",
         "scale": "Estirar el objeto",
-        "rotate": "Girar el objeto"
+        "rotate": "Girar el objeto",
+        "photo": "Foto puesta",
+        "photoSelected": "Foto puesta, cogida"
       },
       "menu": {
         "order": "Orden de apilado",
@@ -1871,7 +1887,8 @@
     "rail": "Aventuras de la campaña",
     "new": "Nueva aventura",
     "newTitle": "Aventura {{n}}",
-    "scenesOf": "Escenas de esta aventura",
+    "scenesUnder": "Escenas de «{{title}}»",
+    "addScene": "Escena",
     "noScenes": "Esta aventura todavía no tiene escenas.",
     "sceneCount": "{{n}} escenas",
     "loadError": "No se han podido abrir las aventuras.",
@@ -1941,6 +1958,57 @@
       "confirmMove": "Mover y borrar"
     },
     "foldRail": "Plegar aventuras",
-    "unfoldRail": "Desplegar aventuras"
+    "unfoldRail": "Desplegar aventuras",
+    "npc": {
+      "pick": "Elegir del Bestiario",
+      "pickTitle": "¿A quién pongo en esta fila?",
+      "none": "El Bestiario de esta campaña todavía no tiene nada.",
+      "menu": "Del Bestiario",
+      "linked": "Del Bestiario",
+      "sheet": "Ver su ficha",
+      "roll": "Tirar por él",
+      "unlink": "Quitar el enlace"
+    }
+  },
+  "photos": {
+    "title": "Galería",
+    "onlyYou": "Sólo tú las ves. Las fotos son de esta campaña, de ninguna otra.",
+    "search": "Buscar una foto…",
+    "upload": "Subir fotos",
+    "uploading": "Subiendo",
+    "unnamed": "Foto",
+    "empty": "Todavía no hay fotos.",
+    "emptyHint": "Pulsa «Subir fotos» para traer las primeras.",
+    "noMatch": "Ninguna foto se llama así.",
+    "see": "Ver «{{name}}»",
+    "seeBig": "Verla más grande",
+    "menu": "Opciones de «{{name}}»",
+    "rename": "Cambiarle el nombre",
+    "renamePrompt": "¿Cómo se llama?",
+    "remove": "Borrarla",
+    "removeTitle": "Borrar «{{name}}»",
+    "removeLead": "No se borra a la ligera: primero te digo dónde está puesta.",
+    "usedIn": "Se usa en",
+    "usageNone": "No está puesta en ningún sitio.",
+    "usageMessages": "{{n}} mensajes del chat",
+    "usageUnknown": "No he podido mirar dónde se usa. Si la borras, desaparecerá de las escenas y donde estuviera escrita quedará «foto borrada».",
+    "removeConsequence": "Al borrarla desaparece de la escena. En el chat queda «foto borrada» en su sitio: el mensaje no se rompe.",
+    "up": {
+      "compressing": "comprimiendo…",
+      "uploading": "subiendo…",
+      "done": "hecha",
+      "failed": "no ha entrado"
+    },
+    "error": {
+      "load": "No se ha podido abrir la galería.",
+      "rename": "No se ha podido cambiar el nombre.",
+      "remove": "No se ha podido borrar.",
+      "upload": "No se ha podido subir.",
+      "mime": "Eso no es una imagen. Sólo PNG, JPG, WebP o GIF.",
+      "tooBig": "Pesa más de 8 MB. Ésa no entra; las demás siguen.",
+      "stillTooBig": "Aun comprimida sigue pesando demasiado.",
+      "decode": "No se ha podido abrir esa imagen."
+    },
+    "dragHint": "Arrástrala al mapa para ponerla en la escena."
   }
 }

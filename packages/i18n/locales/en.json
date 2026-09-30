@@ -133,7 +133,9 @@
       "texture": "Textures",
       "prop": "Objects",
       "background": "Backgrounds",
+      "photo": "Photos",
       "backgroundNote": "Never loses resolution — only the format changes.",
+      "photoNote": "A campaign's gallery. Measured on a real photo: 2.7 MB down to 204 KB on Balanced.",
       "saveNote": "Changes are saved as soon as you pick a level.",
       "saveError": "The level could not be saved.",
       "level": {
@@ -339,7 +341,8 @@
       "log": "Log",
       "chat": "Whispers",
       "notes": "Notes",
-      "journal": "Journal"
+      "journal": "Journal",
+      "gallery": "Gallery"
     },
     "logEmpty": "Press ROLL on a stat, or use the free roller.",
     "resource": {
@@ -360,7 +363,8 @@
     },
     "side": {
       "hide": "Hide the side panel",
-      "show": "Show the side panel"
+      "show": "Show the side panel",
+      "resize": "Resize the panel"
     }
   },
   "chat": {
@@ -400,6 +404,17 @@
       "minimize": "Minimise the conversation with {{name}}",
       "close": "Close the conversation with {{name}}",
       "unread": "{{n}} unread"
+    },
+    "photo": {
+      "attach": "Send a photo",
+      "fromComputer": "Upload one from the computer",
+      "fromGallery": "From the gallery",
+      "pickTitle": "Choose a photo",
+      "uploading": "Uploading the photo…",
+      "sent": "Photo",
+      "deleted": "Photo deleted",
+      "empty": "No photos yet.",
+      "emptyHint": "Upload one from the computer and it is also kept in the campaign gallery."
     }
   },
   "identity": {
@@ -806,7 +821,6 @@
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
       "expand": "Expand scenes",
-      "adventure": "Adventure",
       "pickAdventure": "Choose the adventure",
       "showScenesOf": "Show the scenes of"
     },
@@ -1414,7 +1428,9 @@
         "label": "Object {{name}}",
         "selected": "Object {{name}}, selected",
         "scale": "Resize the object",
-        "rotate": "Rotate the object"
+        "rotate": "Rotate the object",
+        "photo": "Placed photo",
+        "photoSelected": "Placed photo, selected"
       },
       "menu": {
         "order": "Stacking order",
@@ -1871,7 +1887,8 @@
     "rail": "Adventures of this campaign",
     "new": "New adventure",
     "newTitle": "Adventure {{n}}",
-    "scenesOf": "Scenes of this adventure",
+    "scenesUnder": "Scenes of “{{title}}”",
+    "addScene": "Scene",
     "noScenes": "This adventure has no scenes yet.",
     "sceneCount": "{{n}} scenes",
     "loadError": "The adventures could not be opened.",
@@ -1941,6 +1958,57 @@
       "confirmMove": "Move and delete"
     },
     "foldRail": "Fold adventures",
-    "unfoldRail": "Unfold adventures"
+    "unfoldRail": "Unfold adventures",
+    "npc": {
+      "pick": "Pick from the Bestiary",
+      "pickTitle": "Who goes in this row?",
+      "none": "This campaign's Bestiary is still empty.",
+      "menu": "From the Bestiary",
+      "linked": "From the Bestiary",
+      "sheet": "See its card",
+      "roll": "Roll for it",
+      "unlink": "Remove the link"
+    }
+  },
+  "photos": {
+    "title": "Gallery",
+    "onlyYou": "Only you see them. These photos belong to this campaign and no other.",
+    "search": "Search a photo…",
+    "upload": "Upload photos",
+    "uploading": "Uploading",
+    "unnamed": "Photo",
+    "empty": "No photos yet.",
+    "emptyHint": "Press «Upload photos» to bring the first ones.",
+    "noMatch": "No photo is called that.",
+    "see": "See «{{name}}»",
+    "seeBig": "See it bigger",
+    "menu": "Options for «{{name}}»",
+    "rename": "Rename it",
+    "renamePrompt": "What is it called?",
+    "remove": "Delete it",
+    "removeTitle": "Delete «{{name}}»",
+    "removeLead": "Not deleted lightly: first, where it is used.",
+    "usedIn": "Used in",
+    "usageNone": "It is not placed anywhere.",
+    "usageMessages": "{{n}} chat messages",
+    "usageUnknown": "I could not check where it is used. If you delete it, it will vanish from the scenes and leave «foto borrada» wherever it was written.",
+    "removeConsequence": "Deleting it removes it from the scene. In the chat a «foto borrada» placeholder stays in its place: the message does not break.",
+    "up": {
+      "compressing": "compressing…",
+      "uploading": "uploading…",
+      "done": "done",
+      "failed": "did not go in"
+    },
+    "error": {
+      "load": "The gallery could not be opened.",
+      "rename": "It could not be renamed.",
+      "remove": "It could not be deleted.",
+      "upload": "It could not be uploaded.",
+      "mime": "That is not an image. Only PNG, JPG, WebP or GIF.",
+      "tooBig": "It weighs more than 8 MB. That one does not go in; the others carry on.",
+      "stillTooBig": "Even compressed it is still too heavy.",
+      "decode": "That image could not be opened."
+    },
+    "dragHint": "Drag it onto the map to place it in the scene."
   }
 }

@@ -8,7 +8,7 @@ import { WhisperPill } from './WhisperPill';
 const MSG: ChatMessage = {
   id: 'm1', conversationId: 'conv1', authorId: 'laura', authorName: 'Laura', authorAvatarUrl: null, kind: 'text',
   body: 'Escuchas un ruido detrás de ti.', characterId: null, characterName: null, systemId: null,
-  rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, createdAt: '2026-09-16T21:04:00Z',
+  rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, photoId: null, createdAt: '2026-09-16T21:04:00Z',
 };
 
 function mount(over: Partial<Parameters<typeof WhisperPill>[0]> = {}) {

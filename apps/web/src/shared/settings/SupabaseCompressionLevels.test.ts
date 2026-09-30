@@ -12,9 +12,9 @@ const q = (m: ReturnType<typeof createSupabaseMock>, i = 0) => (m.client.from as
 /** El nivel de compresión por tipo: una fila de `app_settings` que leen todos y escribe sólo el admin (por RLS). */
 describe('SupabaseCompressionLevels', () => {
   it('load: lee la fila `images.compression_levels` de app_settings y la sanea', async () => {
-    const m = createSupabaseMock({ tables: { app_settings: { data: { value: { texture: 'max', prop: 'nope', background: 'light' } }, error: null } } });
+    const m = createSupabaseMock({ tables: { app_settings: { data: { value: { texture: 'max', prop: 'nope', background: 'light', photo: 'max' } }, error: null } } });
     const repo = new SupabaseCompressionLevels(m.client as unknown as SupabaseClient);
-    expect(await repo.load()).toEqual({ texture: 'max', prop: 'balanced', background: 'light' });
+    expect(await repo.load()).toEqual({ texture: 'max', prop: 'balanced', background: 'light', photo: 'max' });
     expect(m.fromSpy).toHaveBeenCalledWith('app_settings');
     expect(q(m)['eq']).toHaveBeenCalledWith('key', 'images.compression_levels');
     expect(q(m)['maybeSingle']).toHaveBeenCalled();
@@ -30,14 +30,14 @@ describe('SupabaseCompressionLevels', () => {
   it('save: upsert por clave con los tres niveles y quién los tocó; sin permiso (error de la base) lanza', async () => {
     const m = createSupabaseMock({ tables: { app_settings: { data: null, error: null } } });
     const repo = new SupabaseCompressionLevels(withSession(m.client) as unknown as SupabaseClient);
-    await repo.save({ texture: 'light', prop: 'balanced', background: 'max' });
+    await repo.save({ texture: 'light', prop: 'balanced', background: 'max', photo: 'light' });
     expect(m.upsertSpy).toHaveBeenCalledWith(
-      { key: 'images.compression_levels', value: { texture: 'light', prop: 'balanced', background: 'max' }, updated_by: 'u-admin' },
+      { key: 'images.compression_levels', value: { texture: 'light', prop: 'balanced', background: 'max', photo: 'light' }, updated_by: 'u-admin' },
       { onConflict: 'key' },
     );
     const denied = createSupabaseMock({ tables: { app_settings: { data: null, error: new Error('new row violates row-level security policy') } } });
     await expect(
-      new SupabaseCompressionLevels(withSession(denied.client) as unknown as SupabaseClient).save({ texture: 'balanced', prop: 'balanced', background: 'balanced' }),
+      new SupabaseCompressionLevels(withSession(denied.client) as unknown as SupabaseClient).save({ texture: 'balanced', prop: 'balanced', background: 'balanced', photo: 'balanced' }),
     ).rejects.toThrow(/row-level security/);
   });
 });

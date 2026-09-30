@@ -23,16 +23,28 @@ cannot, not even by asking for one by its id — see § Permissions.
 ## What the user can do
 
 **The GM**
-- **Open the AVENTURAS tab** of the table, next to BESTIARIO. Only they have it.
+- **Open the AVENTURAS tab** of the table. Only they have it. It sits **right before ESCENA** in the tab bar
+  (his order, 2026-09-22 — it used to sit after BESTIARIO).
 - **See the adventures of the campaign** in the rail, numbered in their order, with their state (draft ·
   running · done) and how many scenes each one has. The archived ones wait folded underneath, in
   «ARCHIVADAS · n»; unfolded, they open and read like the others.
+- **See the scenes UNDER their adventure**, as a tree: each adventure is one row, and only the open one unfolds
+  its scenes right beneath it — with 8 adventures, 8 rows and the scenes of one of them. Opening another
+  adventure folds the previous one (2026-09-22; before, the scenes sat in a block at the bottom of the rail).
 - **Create an adventure**: a title, and little else — the rest is written inside.
 - **Write the adventure** in rich text: headings (H1/H2), paragraphs, bold, italic, lists, quotes (to read out
   loud) and dividers.
 - **Insert a PNJ or encounter table** from the editor, with a ready-made template:
   - *PNJ*: name · what it is · what it wants · notes.
   - *Encounter*: PNJ · how many · difficulty · notes.
+- **Fill a row from the Bestiary** (2026-09-22), besides typing it by hand as before: pick an entry of the
+  campaign's Bestiary and the row takes its **name and photo** and stays **linked** to it. Clicking a linked
+  row lets the GM **see its card** or **roll for it** — the same card and the same «Tirar por una criatura» as
+  the Bestiary tab. Placing it on the map from here is NOT part of it (he chose «b», not «c»).
+- ⏳ **NOT BUILT** — **Insert a photo** (agreed 2026-09-22) from the editor bar: upload one from disk or pick
+  one from the campaign's photo library (`specs/modules/photos/SPEC.md`). It is shown at the width of the text
+  and clicking it shows it bigger. An uploaded one goes into the library; removing it from the text does not
+  delete it there. **The plate is drawn and approved; the code is not written** — see § Out of scope.
 - **Press «Índice»** and get a navigation panel beside the text: every **H1** with its **H2s** nested under it.
 - **Link a scene** from the text: a chip that opens it at the table — **for the GM only**: opening is not
   activating, the players stay where they are. From the separate window, the chip opens the table in a new
@@ -80,12 +92,17 @@ cannot, not even by asking for one by its id — see § Permissions.
 | Menu of a scene | Rename · up · down · move to another adventure, with the list of adventures beside it | § 4 · `Aventuras/Carril · MENÚ DE UNA ESCENA · mover a otra aventura` |
 | Archived + delete | «ARCHIVADAS» unfolded with «Sacar del archivo», and the dialog that asks where the scenes go | § 4 · `Aventuras/ARCHIVADAS y BORRAR una aventura con escenas` |
 | Folded rail | The rail folded into a column with only the button to open it («Desplegar aventuras»); the index and the document take the width | § 4 · `Aventuras/Carril PLEGADO · el documento a lo ancho` |
-| Adventure drop-down of the Escena tab's scene rail (built in `maps`) | With two or more non-archived adventures: the drop-down at the very top (no «ESCENAS» label), «+ Escena» right under it, then only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` |
+| Adventure drop-down of the Escena tab's scene rail (built in `maps`) | With two or more non-archived adventures: the drop-down at the very top (no «ESCENAS» label, and since 2026-09-22 **no «AVENTURA» label inside the button either** — only the number and the name), «+ Escena» right under it, then only that adventure's scenes | § 5 · `PL/Escenas · rail · ELEGIR LA AVENTURA arriba del todo` (⏳ to be redrawn without the label) |
+| The rail as a tree | Each adventure one row; the open one unfolds its scenes beneath it, with its «+» and their three dots | ⏳ to be drawn in § 4 |
+| A row filled from the Bestiary | The picker from a PNJ/encounter row, the linked row with its photo, and what clicking it offers (card · roll) | § 4 · `Aventuras/Fila del BESTIARIO · elegir a alguien y lo que ofrece` |
+| Photo block | The editor bar's photo button (upload · from the library) and the photo at text width | ⏳ to be drawn in § 4 |
 
 Approved by him on 2026-09-19 («*aprobado*»); the separate window on 2026-09-20; the rail controls on
 2026-09-21 («*aprobado*»).
 
-**The rail**, left side: the adventures of the campaign, and under them the scenes of the open one. The «+» of
+**The rail**, left side: the adventures of the campaign as a tree — the open one unfolds its scenes right under
+its own row (2026-09-22; until then they sat in a block at the bottom of the rail, which «*a nivel ux no tiene
+sentido*» once there are several adventures). The «+» of
 each block creates. **Foldable, like the table's scene rail**: the button beside the «+» of AVENTURAS folds it
 into a 34 px column with only the button to open it again, and the document takes the width. Like the table's
 rail, it does not remember: entering the tab again shows it open (drawn and approved on 2026-09-22).
@@ -130,6 +147,12 @@ trap, same test to pin it.
   of the open scene, else the running one. `maps` still does not know the adventures module: `TablePage` hands
   the GM's scene a plain list (`SceneAdventure`), like the Bestiary's encounters. Rules and plate: see
   `specs/modules/maps/SPEC.md` § «Rail de escenas».
+- **A row linked to the Bestiary keeps its name written in the document**: if the entry is later deleted from
+  the Bestiary, the row keeps its name and simply loses the link (and the photo that came from the entry) — the
+  same principle as `sceneRef`'s `label`. The link is `npcId`, the hole left on every row since 2026-08-19. The
+  picker offers exactly what the campaign's Bestiary tab lists (the manual's blocks and the GM's own entries).
+- ⏳ **Photos in an adventure** (when built) follow the rules of `specs/modules/photos/SPEC.md`: never shown to
+  players from here; a deleted photo leaves «foto borrada» in its place.
 - Deleting an adventure **does not delete its scenes**: it asks first where they go, or it is archived.
 - The document is **single-author at a time** in v1: no concurrent editing, no CRDT. It saves with a delay, and
   a save that would overwrite someone else's is refused and reported (comparing `updated_at`).
@@ -171,6 +194,10 @@ trap, same test to pin it.
 | Moving a scene with no other adventure | The scene's menu | «Mover a otra aventura» switched off, with the reason underneath |
 | Every adventure archived | The tab | The rail with «ARCHIVADAS», and a line saying none is left in the rail |
 | An action of the rail fails | Network or RLS refused (mark running, order, archive, delete, scenes…) | A line in the rail («No se ha podido hacer…») and the rail reloads what is REALLY in the database, without flashing |
+| The Bestiary of the campaign is empty | The book of a PNJ/encounter row | The picker says so («El Bestiario de esta campaña todavía no tiene nada»); the row is still written by hand |
+| A linked row whose entry was deleted from the Bestiary | Any time after the deletion | The row keeps the name that was written and quietly loses the chain, the photo and the menu — the book comes back, to pick again. Nothing in the document is rewritten |
+| The Bestiary has not answered yet | The tab has just been opened | Linked rows read as plain rows with their written name, and gain their photo and menu as soon as the list lands |
+| Without the game system or the roll port | The notebook is mounted without them (a campaign whose system is not installed; the separate window while it loads) | No book anywhere: the tables are written by hand, exactly as before. The feature is missing in full and in plain sight — never a button that does nothing |
 | A broken part | The editor throws while painting | The net from `core/errors`: the tab falls, not the table |
 | A player who somehow reaches it | Direct URL / id | Nothing: for them the row does not exist |
 
@@ -249,6 +276,7 @@ only way in, and it drops what it does not understand instead of breaking the sc
   { "id": "…", "type": "list", "ordered": false, "items": [[...], ...] },
   { "id": "…", "type": "divider" },
   { "id": "…", "type": "sceneRef", "sceneId": "uuid", "label": "El sótano" },
+  { "id": "…", "type": "image", "photoId": "uuid" },           // 2026-09-22 — pending DBA: exact shape
   { "id": "…", "type": "table", "kind": "npc" | "encounter" | "plain",
     "columns": ["PNJ", "N.º", "Notas"],
     "rows": [ { "cells": [[...], ...], "npcId": null } ] }
@@ -256,8 +284,17 @@ only way in, and it drops what it does not understand instead of breaking the sc
 ```
 
 - `text` is an array of spans `{ "t": "…", "b": true, "i": true }` — bold and italic, and little else.
-- **`npcId` is on every row from day one**, always `null` in v1. It is the hole the Bestiary (H5) will fill
-  without migrating a single document.
+- **`npcId` is on every row from day one**, always `null` in v1. It is the hole the Bestiary (H5) fills from
+  2026-09-22 — a row picked from the Bestiary carries the entry's id there, without migrating a single document.
+- **`image`** (2026-09-22) is `{ id, type: "image", photoId }`: it points at a photo of the campaign's library
+  (`photos_photos`, see `specs/modules/photos/SPEC.md`); the file is never inlined in the JSON. There is no
+  foreign key from inside a JSON document: a deleted photo leaves the block pointing at nothing, and the screen
+  paints «foto borrada».
+- **A row linked to the Bestiary** keeps its `cells` as written (the name included) and carries the entry's id in
+  `npcId`. It is a **string**, not a uuid: the Bestiary lists both its own rows (uuid) and the manual's catalog
+  (ids like `ogre`), and either can be linked. The photo and the card are read from the entry while it exists;
+  if it is deleted, the row keeps its name and loses the link and the photo. **No migration**: both live inside
+  `doc`, which is why `npcId` was left on every row on 2026-08-19.
 - `sceneRef` is what ties the text to the table: a chip with the scene's name in the editor, a button that
   opens it when reading. It carries the `label` it was written with, so a renamed or deleted scene cannot break
   the document.
@@ -273,16 +310,28 @@ only way in, and it drops what it does not understand instead of breaking the sc
 | `maps` (H7) | scenes hang off the adventure (`Scene.adventureId`); `sceneRef` opens one from the text |
 | `table` (H3) | it is a tab of the table, GM only |
 | `journal` (H9) | the shared rich-text editor and the block vocabulary |
-| `bestiary` (H5) | **future**: fill `npcId` and drop an encounter into the scene |
+| `bestiary` (H5) | fill `npcId` from a PNJ/encounter row, and open the entry's card or roll for it (2026-09-22) |
+| `photos` (H13) | the photo block of the editor, and the library it comes from (2026-09-22) |
 
 ## Out of scope
 
 - A hard cap on the number of adventures of a campaign (see § Rules & limits: 50 is a design size, not a lock).
-- Linking real PNJs (needs H5) · dropping an encounter onto the map from the table.
+- Dropping an encounter onto the map from the adventure (he chose «b», not «c», on 2026-09-22).
 - Two GMs editing at once · version history of the document.
-- Images inside the document · import / export.
+- Import / export.
 - Sharing the adventure with the players, or publishing a piece of it into the Bitácora (named as future in
   `journal` H9, and still future).
+
+**Not out of scope, but NOT BUILT YET** (2026-09-30) — written here because § What the user can do described it
+as if it shipped, and someone rebuilding the tool from this document would have built a button that does not
+exist:
+
+- **The photo block inside the document.** `RichTextEditor` exposes `features: { tables, sceneRef, bestiary }`
+  and has **no image block**; `image` is not a `RichBlock` type anywhere in `packages/core`. The plate is drawn
+  and approved (`rolvium.pen` § 4 · `Fotos/En una aventura · el bloque de foto`), the code is not written.
+  ⚠️ Whoever builds it must fix `usage()` first: `SupabasePhotosRepo.ts` asks the database for a block of type
+  `image` carrying a `photoId` that **does not exist yet**, and its test pins the guessed shape, so it stays
+  green even if the real block ends up named differently. The honesty of «Se usa en…» depends on that.
 
 ## Decisions
 
@@ -375,6 +424,27 @@ before his approval, to be corrected if he disagrees:
   action in the scene rail. The scene the table asks to open wins over the last one viewed (`sceneToOpen`).
 - **The separate window's chip opens the table on that scene** through `?scene=`, which the table now reads.
   Before, nothing read it and the table opened wherever the rule above landed.
+- **The separate window waits to KNOW whether there is a game system before painting the notebook.** Having it
+  arrive late would change the notebook's wrapper (with Bestiary / without it) and React would unmount and
+  remount the whole document, taking the cursor and the open index with it. Knowing takes one round trip, and
+  if the campaign never answers the adventure is painted anyway, without the Bestiary: what the GM came for is
+  their text. Caught by this module's own index test while building the Bestiary rows (2026-09-22).
+- **The row menu («Ver su ficha · Tirar por él») lives inside the shared editor; the card and the roll do not.**
+  The editor is `@rolvium/ui` and Notas and Bitácora share it, so it cannot know what a Bestiary is: it asks
+  (`npcLook`) and it tells (`onOpenNpc`, `onRollNpc`). Who answers is `AdventureNpcs`, which is the only place
+  that knows both — and it reuses `EntrySheetModal`, `NpcSheetModal` and `CreatureRollPopover` as they are.
+
+### His, 2026-09-22, after seeing v0.15.0 in production (verbatim)
+
+- «*Quita la palabra adventure del boton ocupa mucho espacio y queda feo.*» — the drop-down of the Escena tab.
+- «*En el editor tengo qu epoder poner fotos*» — and, asked whether also in Notas and Bitácora: «*solo en la
+  aventura*». The library they come from is its own module: `specs/modules/photos/SPEC.md`.
+- «*los encuentros y personajes ademas de una opcion de tabl acom lo pusiste que esta bien deberia poder
+  elegirlos del bestiario*» — asked what a linked row should allow (a: name and photo · b: also see its card or
+  roll · c: also place it on the scene), he answered «*b*».
+- «*El boton del header de adventures tiene que estar antes de escena*».
+- «*las escenas deverian desplegarse debajo de su aventura padre no abajo del todo, si tengo 8 aventuras
+  tendria 8 items de aventura y debajo las escenas de una de ellas , a nivel ux no tiene sentido*».
 
 ### Debt this uncovers
 

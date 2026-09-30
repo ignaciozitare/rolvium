@@ -278,16 +278,18 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
 export function fakeChatPort(seed: { directory?: ChatDirectoryEntry[]; messages?: Record<string, ChatMessage[]>; users?: Record<string, { name: string; avatarUrl: string | null }> } = {}): ChatPort & {
   directory: ChatDirectoryEntry[]; messagesByConv: Record<string, ChatMessage[]>; sent: { conversationId: string; authorId: string; body: string }[];
   read: string[]; opened: { campaignId: string; memberIds: string[] }[]; push: (m: ChatMessage) => void; subscribers: number;
+  photosSent: { conversationId: string; authorId: string; photoId: string; body?: string }[];
 } {
   const directory = seed.directory ? [...seed.directory] : [];
   const messagesByConv: Record<string, ChatMessage[]> = Object.fromEntries(Object.entries(seed.messages ?? {}).map(([k, v]) => [k, [...v]]));
   const sent: { conversationId: string; authorId: string; body: string }[] = [];
   const read: string[] = [];
   const opened: { campaignId: string; memberIds: string[] }[] = [];
+  const photosSent: { conversationId: string; authorId: string; photoId: string; body?: string }[] = [];
   const listeners = new Set<(m: ChatMessage) => void>();
   let nextId = 1;
   return {
-    directory, messagesByConv, sent, read, opened,
+    directory, messagesByConv, sent, read, opened, photosSent,
     get subscribers() { return listeners.size; },
     push: (m: ChatMessage) => { messagesByConv[m.conversationId] = [...(messagesByConv[m.conversationId] ?? []), m]; listeners.forEach(l => l(m)); },
     listDirectory: async () => [...directory],
@@ -299,7 +301,19 @@ export function fakeChatPort(seed: { directory?: ChatDirectoryEntry[]; messages?
       const msg: ChatMessage = {
         id: `msg-${nextId++}`, conversationId, authorId, authorName: author?.name ?? authorId, authorAvatarUrl: author?.avatarUrl ?? null,
         kind: 'text', body, characterId: null, characterName: null, systemId: null, rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null,
-        createdAt: new Date().toISOString(),
+        photoId: null, createdAt: new Date().toISOString(),
+      };
+      messagesByConv[conversationId] = [...(messagesByConv[conversationId] ?? []), msg];
+      listeners.forEach(l => l(msg));
+    },
+    sendPhoto: async (conversationId: string, authorId: string, photoId: string, body?: string) => {
+      photosSent.push({ conversationId, authorId, photoId, ...(body !== undefined ? { body } : {}) });
+      const author = seed.users?.[authorId];
+      const msg: ChatMessage = {
+        id: `msg-${nextId++}`, conversationId, authorId, authorName: author?.name ?? authorId, authorAvatarUrl: author?.avatarUrl ?? null,
+        kind: 'photo', body: body?.trim() ? body.trim() : null, characterId: null, characterName: null, systemId: null,
+        rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null,
+        photoId, createdAt: new Date().toISOString(),
       };
       messagesByConv[conversationId] = [...(messagesByConv[conversationId] ?? []), msg];
       listeners.forEach(l => l(msg));
@@ -438,9 +452,14 @@ export const PROP_COLUMN: Prop = { ...PROP_BASE, id: 'pr-col', packId: PACK_DUNG
 /** Una mesa sin paquete: «Sin clasificar». */
 export const PROP_TABLE: Prop = { ...PROP_BASE, id: 'pr-tab', packId: null, name: 'Mesa larga', category: 'furniture', imageUrl: 'https://x/backgrounds/props/pr-tab.webp', naturalWidth: 240, naturalHeight: 120, createdAt: '2026-09-12T04:00:00Z' };
 /** El roble YA PLANTADO en el almacén, con su copia de la foto y del nombre. */
-export const SCENE_PROP_OAK: SceneProp = { id: 'sp-oak', sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: PROP_OAK.id, imageUrl: PROP_OAK.imageUrl, name: 'Roble', x: 400, y: 300, width: 300, height: 450, rotation: 0, z: 0, blocksSight: false, blocksMove: false, blockShape: 'rect', blockW: 300, blockH: 450, blockDx: 0, blockDy: 0, silhouette: null, createdAt: '2026-09-12T05:00:00Z', updatedAt: '2026-09-12T05:00:00Z' };
+export const SCENE_PROP_OAK: SceneProp = { id: 'sp-oak', sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: PROP_OAK.id, photoId: null, imageUrl: PROP_OAK.imageUrl, name: 'Roble', x: 400, y: 300, width: 300, height: 450, rotation: 0, z: 0, blocksSight: false, blocksMove: false, blockShape: 'rect', blockW: 300, blockH: 450, blockDx: 0, blockDy: 0, silhouette: null, createdAt: '2026-09-12T05:00:00Z', updatedAt: '2026-09-12T05:00:00Z' };
 /** Y una columna plantada encima (z 1) que estorba, en la capa de notas del director. */
 export const SCENE_PROP_COLUMN: SceneProp = { ...SCENE_PROP_OAK, id: 'sp-col', layerId: LAYER_NOTES.id, propId: PROP_COLUMN.id, imageUrl: PROP_COLUMN.imageUrl, name: 'Columna', x: 700, y: 200, width: 100, height: 100, z: 1, blocksSight: true, blocksMove: true, blockShape: 'circle', blockW: 100, blockH: 100, createdAt: '2026-09-12T06:00:00Z' };
+/**
+ * UNA FOTO PUESTA en la escena (H13, rebanada 4). Sin nombre y sin enlace **a propósito**: es lo que la base
+ * obliga, porque esta fila la lee el jugador. Lo que se pinta sale de firmar `photoId` aparte.
+ */
+export const SCENE_PROP_PHOTO: SceneProp = { ...SCENE_PROP_OAK, id: 'sp-photo', propId: null, photoId: 'ph-1', imageUrl: '', name: '', x: 500, y: 500, width: 336, height: 420, z: 2, blockW: 336, blockH: 420, createdAt: '2026-09-28T10:00:00Z', updatedAt: '2026-09-28T10:00:00Z' };
 
 /**
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;

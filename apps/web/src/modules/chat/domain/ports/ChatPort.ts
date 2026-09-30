@@ -15,6 +15,12 @@ export interface ChatPort {
   /** `chat_create_conversation`: reopens the existing 1:1 with the same person, always creates a new group (3+). */
   openConversation(campaignId: string, memberIds: string[]): Promise<string>;
   sendText(conversationId: string, authorId: string, body: string): Promise<void>;
+  /**
+   * MANDAR UNA FOTO de la galería de la campaña (H13). **Sólo el director**, y la base lo vuelve a decir por
+   * su cuenta (`chat_messages_insert`): un jugador que lo intente por la API se encuentra la puerta cerrada,
+   * no sólo el botón escondido. El pie es opcional.
+   */
+  sendPhoto(conversationId: string, authorId: string, photoId: string, body?: string): Promise<void>;
   /** `chat_mark_read`: only ever the caller's own row. */
   markRead(conversationId: string): Promise<void>;
   /** Campaign-wide feed (not scoped to one conversation): callers filter by `conversationId`/`authorId` themselves. */

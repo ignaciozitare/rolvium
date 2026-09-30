@@ -34,7 +34,7 @@ describe('<AdminSettings>', () => {
   });
 
   it('parte de lo guardado, no de lo de serie', async () => {
-    const port = fakePort({ load: vi.fn().mockResolvedValue({ texture: 'max', prop: 'light', background: 'balanced' }) });
+    const port = fakePort({ load: vi.fn().mockResolvedValue({ texture: 'max', prop: 'light', background: 'balanced', photo: 'balanced' }) });
     renderWithProviders(<AdminSettings compressionLevels={port} />);
     await waitFor(() => expect(within(grupo('Texturas')).getByRole('radio', { name: 'Máximo ahorro' })).toHaveAttribute('aria-checked', 'true'));
     expect(within(grupo('Objetos')).getByRole('radio', { name: 'Ligero' })).toHaveAttribute('aria-checked', 'true');
@@ -45,7 +45,7 @@ describe('<AdminSettings>', () => {
     const port = fakePort();
     renderWithProviders(<AdminSettings compressionLevels={port} />);
     await u.click(within(grupo('Objetos')).getByRole('radio', { name: 'Máximo ahorro' }));
-    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'balanced', prop: 'max', background: 'balanced' }));
+    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'balanced', prop: 'max', background: 'balanced', photo: 'balanced' }));
     expect(within(grupo('Objetos')).getByRole('radio', { name: 'Máximo ahorro' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -82,8 +82,8 @@ describe('<AdminSettings>', () => {
     // Todavía no se ha escrito nada: hasta saber qué hay guardado, escribir pisaría los otros dos.
     expect(port.save).not.toHaveBeenCalled();
 
-    await act(async () => { contesta({ texture: 'max', prop: 'max', background: 'max' }); });
-    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'light', prop: 'max', background: 'max' }));
+    await act(async () => { contesta({ texture: 'max', prop: 'max', background: 'max', photo: 'max' }); });
+    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'light', prop: 'max', background: 'max', photo: 'max' }));
     // La lectura llegó tarde y trae «máximo» en texturas: no puede deshacer lo que se acaba de elegir.
     expect(within(grupo('Texturas')).getByRole('radio', { name: 'Ligero' })).toHaveAttribute('aria-checked', 'true');
     expect(port.load).toHaveBeenCalledTimes(1);
@@ -118,12 +118,12 @@ describe('<AdminSettings>', () => {
     const u = userEvent.setup();
     const load = vi.fn()
       .mockRejectedValueOnce(new Error('sin red'))
-      .mockResolvedValue({ texture: 'max', prop: 'max', background: 'max' });
+      .mockResolvedValue({ texture: 'max', prop: 'max', background: 'max', photo: 'max' });
     const port = fakePort({ load });
     renderWithProviders(<AdminSettings compressionLevels={port} />);
 
     await u.click(within(grupo('Texturas')).getByRole('radio', { name: 'Ligero' }));
-    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'light', prop: 'max', background: 'max' }));
+    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'light', prop: 'max', background: 'max', photo: 'max' }));
     // y la pantalla deja de mentir sobre los otros dos
     expect(within(grupo('Objetos')).getByRole('radio', { name: 'Máximo ahorro' })).toHaveAttribute('aria-checked', 'true');
   });
@@ -137,5 +137,19 @@ describe('<AdminSettings>', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(port.save).not.toHaveBeenCalled();
     expect(within(grupo('Texturas')).getByRole('radio', { name: 'Equilibrado' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  /**
+   * LA CUARTA COLUMNA, FOTOS (H13, 2026-09-27). Sus números se midieron con una imagen suya de verdad y los
+   * aprobó; aquí sólo se comprueba que el admin puede elegir el nivel y que se guarda con los otros tres.
+   */
+  it('Fotos es una columna más, con sus tres niveles, y se guarda sin tocar las otras', async () => {
+    const u = userEvent.setup();
+    const port = fakePort({ load: vi.fn().mockResolvedValue({ texture: 'max', prop: 'light', background: 'balanced', photo: 'balanced' }) });
+    renderWithProviders(<AdminSettings compressionLevels={port} />);
+    const grupo = await screen.findByRole('radiogroup', { name: 'Fotos' });
+    expect(within(grupo).getByRole('radio', { name: 'Equilibrado' })).toBeChecked();
+    await u.click(within(grupo).getByRole('radio', { name: 'Ligero' }));
+    await waitFor(() => expect(port.save).toHaveBeenCalledWith({ texture: 'max', prop: 'light', background: 'balanced', photo: 'light' }));
   });
 });

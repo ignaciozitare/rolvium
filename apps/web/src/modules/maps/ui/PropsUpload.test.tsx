@@ -98,7 +98,7 @@ describe('<PropsUpload>', () => {
 
   it('sin `compress`: el preparador de serie comprime al destino `prop` con el nivel guardado en Ajustes', async () => {
     const { compressImage } = await import('@rolvium/ui');
-    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'light', background: 'balanced' });
+    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'light', background: 'balanced', photo: 'balanced' });
     vi.mocked(compressImage).mockResolvedValue({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 1024, height: 512 });
     const u = userEvent.setup();
     const cb = { onAdd: vi.fn(async () => undefined), onClose: vi.fn() };

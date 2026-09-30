@@ -473,6 +473,16 @@ export interface SceneProp {
   layerId: string | null;
   /** De qué pieza de la biblioteca salió. `null` = ya no está en la biblioteca; esto sigue entero. */
   propId: string | null;
+  /**
+   * DE QUÉ FOTO de la galería salió (H13, rebanada 4). `null` = es una pieza normal de la biblioteca.
+   *
+   * Al revés que una pieza, una foto plantada **no se lleva copia de nada**: ni el nombre ni el enlace viajan
+   * en esta fila (la base lo obliga: `name = '' AND image_url = ''`), porque esta fila SÍ la lee el jugador y
+   * el nombre de una foto puede destripar. El enlace se firma aparte y caduca, así que guardarlo sería
+   * guardar basura. Por eso borrar la foto la quita de las escenas (`ON DELETE CASCADE`), que es justo lo
+   * contrario de lo que pasa con una pieza de la biblioteca.
+   */
+  photoId: string | null;
   imageUrl: string;
   name: string;
   /** Centro de la pieza, en px de escena. */

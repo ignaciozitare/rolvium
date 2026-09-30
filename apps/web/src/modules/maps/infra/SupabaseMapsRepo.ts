@@ -21,7 +21,7 @@ interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 interface TextureRow { id: string; name: string; category: TextureCategory; url: string; tile_cells: number; uploaded_by: string | null; created_at: string; updated_at: string }
 interface PropRow { id: string; pack_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; /* § 6.9 — la silueta, en fracciones de la huella. `null` = pieza de antes, o PNG sin contorno */ default_silhouette: Silhouette | null; uploaded_by: string | null; created_at: string; updated_at: string }
-interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; /* rebanada 6 · orden de apilado — opcional a propósito: una fila anterior a la columna no lo trae */ z?: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; /* § 6.9 — copiada de la biblioteca al plantar */ silhouette: Silhouette | null; created_at: string; updated_at: string }
+interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; /* H13 · rebanada 4 — opcional: una fila anterior a la columna no lo trae */ photo_id?: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; /* rebanada 6 · orden de apilado — opcional a propósito: una fila anterior a la columna no lo trae */ z?: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; /* § 6.9 — copiada de la biblioteca al plantar */ silhouette: Silhouette | null; created_at: string; updated_at: string }
 
 const SCENE_COLS = 'id, campaign_id, adventure_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, wall_texture_rotation, floor_texture_rotation, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, band_tip, band_roughness, rock_paint_url, created_at, updated_at';
 const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, floor_paint_url, created_at, updated_at';
@@ -46,7 +46,7 @@ const DRAWING_COLS = 'id, scene_id, campaign_id, author_id, kind, data, color, w
 const LAYER_COLS = 'id, scene_id, campaign_id, kind, name, sort_order, visible, locked, image_url, transform, mask_url, mask_version, paint_url, paint_version, created_at, updated_at';
 const LIGHT_COLS = 'id, scene_id, campaign_id, layer_id, shape, kind, x, y, rotation, cone_angle, color, flicker, range_m, casts_shadow, spin_ms, intensity, created_at, updated_at';
 const PROP_COLS = 'id, pack_id, name, category, image_url, natural_width, natural_height, default_scale, default_blocks_sight, default_blocks_move, default_block_shape, default_silhouette, uploaded_by, created_at, updated_at';
-const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url, name, x, y, width, height, rotation, z, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, silhouette, created_at, updated_at';
+const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, photo_id, image_url, name, x, y, width, height, rotation, z, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, silhouette, created_at, updated_at';
 /** La máscara del pincel vive en el bucket de fondos, bajo la carpeta de la campaña: la política ya lo cubre. */
 const DEFAULT_TRANSFORM: BgTransform = { mode: 'cover', x: 0, y: 0, scale: 1 };
 export const BACKGROUNDS_BUCKET = 'backgrounds';
@@ -195,6 +195,7 @@ export const mapPropRow = (r: PropRow): Prop => ({
 });
 export const mapScenePropRow = (r: ScenePropRow): SceneProp => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, propId: r.prop_id,
+  photoId: r.photo_id ?? null,
   imageUrl: r.image_url, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height, rotation: r.rotation, z: r.z ?? 0,
   blocksSight: r.blocks_sight, blocksMove: r.blocks_move, blockShape: r.block_shape,
   blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy,
@@ -220,7 +221,7 @@ function propPatchRow(p: PropPatch): Record<string, unknown> {
 }
 function scenePropPatchRow(p: ScenePropPatch): Record<string, unknown> {
   const map: Record<string, string> = {
-    layerId: 'layer_id', propId: 'prop_id', imageUrl: 'image_url', name: 'name', x: 'x', y: 'y',
+    layerId: 'layer_id', propId: 'prop_id', photoId: 'photo_id', imageUrl: 'image_url', name: 'name', x: 'x', y: 'y',
     width: 'width', height: 'height', rotation: 'rotation', z: 'z', blocksSight: 'blocks_sight',
     blocksMove: 'blocks_move', blockShape: 'block_shape', blockW: 'block_w', blockH: 'block_h',
     blockDx: 'block_dx', blockDy: 'block_dy', silhouette: 'silhouette',
