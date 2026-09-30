@@ -2,9 +2,19 @@
 
 ## 🎯 Current task
 
-> # 📍 ESTADO (2026-09-30) — 🚀 SUBIENDO A PRODUCCIÓN · **FALTA UN PASO: EL `git push`**
-> ## ⚠️ SU LOCAL ESTÁ EN `main` (ya no en la rama). El merge está hecho EN LOCAL: `e88ee97`.
-> ## ⚠️ `main` va **20 commits por delante** de `origin/main`. Nada de esto está publicado todavía.
+> # 📍 ESTADO (2026-09-30) — ✅ **EN PRODUCCIÓN**
+> ## ⚠️ SU LOCAL ESTÁ EN `main` (ya no en la rama `feat/aventuras-segunda-vuelta`).
+> ## Subido en `4d4bc61`. Vercel despliega solo a producción desde `main`: NO hay que promover a mano.
+> - **web** `rolvium.vercel.app` → READY, sirviendo el paquete nuevo (`index-BLXtmLxG.js`).
+> - **api** `rolvium-api.vercel.app/health` → 200.
+>
+> ### 🤖 Un 403 que NO es una caída, por si vuelve a salir
+> Sondeando la web cada 15 s para esperar el despliegue, Vercel activó su mitigación automática
+> (`x-vercel-mitigated: challenge`, «Vercel Security Checkpoint») **contra esta máquina**. `get_active_attack_status`
+> devuelve «Seawall Config not found»: **no hay cortafuegos activado en el proyecto**, así que un navegador de
+> verdad entra sin problema. Comprobado por el camino autenticado: 200 y el paquete nuevo.
+> **Lección: no sondear `rolvium.vercel.app` en bucle.** Para esperar un despliegue, mirar el estado en la API
+> de Vercel, no aporrear el sitio.
 >
 > ## ✅ LO QUE YA ESTÁ EN PRODUCCIÓN (irreversible, hecho y verificado)
 > **Las 3 migraciones, aplicadas por MCP al proyecto `scfspsiemikfcnqteonq`**, una a una y en orden:
@@ -17,13 +27,11 @@
 > nueva, columnas nulables, políticas). La web que hay publicada no pregunta por `photos_photos`, y la política
 > `chat_messages_insert` se comporta igual que antes para `text` y `roll_ref`. Producción sigue viva (200/200).
 >
-> ## ⛔ LO QUE FALTA, Y POR QUÉ
-> **`git push origin main` lo denegó el clasificador de seguridad del entorno**, sin explicación. No se ha
-> intentado rodear. Hace falta que él lo autorice (o que lo haga él):
-> ```
-> git push origin main
-> ```
-> Y después, **promover en el panel de Vercel** (web y api son dos proyectos distintos).
+> ## ⏳ LO ÚNICO QUE QUEDA ABIERTO
+> - **`rolvium.pen` está MODIFICADO y sin commitear**: él le dio al Cmd+S el 30-09. No se commiteó porque no se
+>   puede abrir para comprobar qué hay dentro (Pencil lleva días sin conectar) y una pestaña vieja puede pisar el
+>   bueno. **Preguntado, sin respuesta.**
+> - **El tope de fotos por campaña**: no hay ninguno. Preguntado dos veces, sin respuesta.
 >
 > ## ✅ QA — tres pasadas, en modo BLOQUEO (su decisión: «*si, bloquea*»)
 > Bloqueó **dos veces, y ninguna por código**:
