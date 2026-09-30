@@ -25,6 +25,10 @@ per campaign, whoever created it) and **player** — and what one sees is never 
 - Open and close the **dice roller**, a floating panel that can be dragged.
 - Use the **side rail**: roll log · chat · notes · campaign journal. And fold it away for room. The GM also has
   the campaign's **photo library** there (`specs/modules/photos/SPEC.md`, 2026-09-22).
+- **Resize the side rail by dragging its edge** (his, 2026-09-28: «*la barra lateral donde esta el regstro y
+  eso deberia poder cambiarse el tamaño arrastrando el borde*»). Between **200 and 560 px**, with the arrow
+  keys too, and **remembered in that browser** — it is a preference of their screen, not of the campaign, so
+  the same person on a 13" laptop and on a big monitor does not get the same rail, and nobody inherits it.
 - **Take and return** the system's shared resources (in Plenilunio, the Fate pool).
 - Open **their sheet in a separate window** (`/table/:id/sheet/:charId`), synced with the table.
 
@@ -43,7 +47,7 @@ per campaign, whoever created it) and **player** — and what one sees is never 
 | Rolvium bar | Thin, on top: ← Campaigns · name · system chip · devices · alerts · avatar | § 4 · LA MESA |
 | Table header | System + campaign · who is connected · role · open sheet apart | § 4 · LA MESA |
 | Shared resources | Centred under the header. Plenilunio: big moons, «in your hand», Return | § 4 · LA MESA |
-| Side rail (272 px) | Dice roller + roll log · chat · notes · journal | § 4 · LA MESA |
+| Side rail | Dice roller + roll log · chat · notes · journal · gallery (GM). **264 px to start with, dragged between 200 and 560** by the grip on its left edge | § 4 · LA MESA |
 | The group (GM) | One row per player, labelled «SOLO DIRECTOR» | § 4 · LA MESA |
 | Sheet in its own window | `/table/:id/sheet/:charId`, with the «synced with the table» note | § 4 · LA MESA |
 | Empty and error states | No active scene · no sheet · pool empty · offline | § 11 · ESTADOS VACÍOS Y ERRORES |

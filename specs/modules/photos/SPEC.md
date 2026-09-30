@@ -51,7 +51,7 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 - **Send it through the chat**, to a conversation (one-to-one or group), from the library or from the chat
   itself.
 
-**In an adventure** (the editor of `adventures`, only there)
+**In an adventure** (the editor of `adventures`, only there) — ⏳ **NOT BUILT YET** (see § Out of scope)
 - **Insert a photo** from the editor bar: upload one from disk, or pick one from the library. An uploaded one
   goes into the library by itself.
 - It is shown at the width of the text; clicking it shows it bigger.
@@ -82,7 +82,7 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 | Dragging it onto the scene | Grabbing it in the grid, the drop on the map, and what is inside the play area vs beside it | § 4 · same plate, column «ARRASTRARLA A LA ESCENA» |
 | Delete dialog | «Se usa en…» with the adventures, scenes and conversations, then confirm | § 4 · `Fotos/Borrar una foto que se usa · y LA FOTO A LO GRANDE` |
 | Photo, bigger | The photo on its own over the table, on the same parchment sheet as the Bestiary's `PhotoModal` | § 4 · same plate, right-hand column |
-| Photo block in an adventure | The photo at text width inside the document, the «foto borrada» gap, and the editor bar's photo button with «Subir una del ordenador» / «De la galería» | § 4 · `Fotos/En una aventura · el bloque de foto` |
+| Photo block in an adventure ⏳ | Drawn and approved, **not built**: the photo at text width inside the document, the «foto borrada» gap, and the editor bar's photo button with «Subir una del ordenador» / «De la galería» | § 4 · `Fotos/En una aventura · el bloque de foto` |
 | Photo in the scene | The selected photo with its corner handles and rotation handle, one beside the play area marked GM-only, and the right-click menu | § 6 · `Fotos/En la escena · puesta, cogida y al lado` |
 | Photo in the chat | A message with a photo, the pill it arrives in, and the attach clip (GM only) with its two ways in | § 4 · `Fotos/En el chat · mandarla y verla` |
 | Compression level in Ajustes | A fourth column «Fotos» next to textures, objects and backgrounds, dark and light | § 14 · `Admin/Ajustes · compresión con FOTOS` |
@@ -240,6 +240,19 @@ moved to touch it → yes; touching the edge exactly → no. A player's ordinary
 - **Cropping** a photo (as in `core/images`: it is scaled whole).
 - Folders or tags in the library (search by name only in v1).
 - Cleaning the files of deleted photos from storage (the same open debt as `core/images`).
+
+**Not out of scope, but NOT BUILT YET** (2026-09-30) — written down because this spec described them as if they
+shipped, and anyone reading it would go looking for them:
+
+- **The photo block inside an adventure.** `RichTextEditor` exposes `features: { tables, sceneRef, bestiary }`
+  and has **no image block**. The plate is drawn and approved; the code is not written. ⚠️ Whoever builds it
+  must also fix `usage()`: `SupabasePhotosRepo.ts` asks the database for a `RichBlock` of type `image` with a
+  `photoId` that **does not exist yet**, and its test pins the guessed shape, so it would stay green even if
+  the real block were named differently. The honesty of the delete warning depends on that.
+- **«A la escena» in the photo's menu.** Dragging is built and is the everyday way in; the button is the way in
+  when the map is not on screen (another tab of the table), and it is not built.
+- **«Reintentar» on a failed upload.** § States & errors promises it; the screen only offers to dismiss the
+  warning.
 
 ## Connections
 

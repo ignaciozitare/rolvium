@@ -3,7 +3,13 @@
 ## 🎯 Current task
 
 > # 📍 ESTADO (2026-09-28, noche) — FOTOS EN LA ESCENA Y EN EL CHAT + EL CARRIL Y EL SALTO DE LÍNEA
-> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Sin mergear. **Sin commitear todavía.**
+> ## Rama `feat/aventuras-segunda-vuelta` (⚠️ SU LOCAL ESTÁ AQUÍ). Commiteado en `9575c6c`.
+> ## 🚀 30-09: él pidió «*subelo todo a prod*» (dos veces) y «*si, bloquea*» para la deriva de spec.
+> QA **bloqueó** por `specs/modules/chat/SPEC.md` (le faltaban 6 de las 9 secciones) y encontró 5 derivas
+> reales de documentación. Todas corregidas: el spec del chat reescrito entero a las nueve secciones en
+> inglés, el carril que se arrastra metido en el spec de `table` (que aún decía «272 px» como un hecho),
+> el índice `specs/SPEC.md` (decía «sin construir» de `photos` y de la 2.ª vuelta de `adventures`) y
+> `ARCHITECTURE.md` (decía «no UI yet» de `photos`, y no mencionaba `usePhotoUrls` ni `photoDrag`).
 >
 > ## ⛔ LA LECCIÓN DEL DÍA, TRES VECES SEGUIDAS: EL FALLO NUNCA ESTUVO EN LA PIEZA, SINO EN EL CABLE
 > 1. Por la mañana: la GALERÍA estaba entera y verde, y **desenchufada** del mapa. Su queja: «*no me sirve de
