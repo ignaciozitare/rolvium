@@ -25,8 +25,10 @@ type Open =
  * («*cambia fotos por galeria*»). Spec: `specs/modules/photos/SPEC.md`.
  * Diseño: `rolvium.pen` § 4 · `Fotos/Biblioteca · el carril · sólo el director` y su lámina hermana de borrar.
  *
- * Aquí se ven, se buscan, se suben, se renombran y se borran las fotos de la campaña. Llevarlas a la escena y
- * mandarlas por el chat son las rebanadas siguientes: **no se pinta un botón que todavía no hace nada**.
+ * Aquí se ven, se buscan, se suben, se renombran y se borran las fotos de la campaña. **Llevarla a la escena se
+ * hace ARRASTRÁNDOLA** al mapa (rebanada 4, 2026-09-28), y mandarla por el chat, desde el clip del propio chat
+ * (rebanada 5). Lo que este menú NO tiene, y por eso no se pinta, son los botones «A la escena» y «Mandarla por
+ * el chat»: **no se pinta un botón que todavía no hace nada**.
  *
  * Reutilización declarada — **NEW (propio del módulo)** para la cola de subidas, a conciencia: `LibraryUpload`
  * de `maps` sube en lote y está muy bien, pero es UNA VENTANA con selector de paquete, y la lámina que él

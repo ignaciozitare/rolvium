@@ -11,7 +11,7 @@
 
 ## Purpose
 
-The GM of a campaign keeps **every photo of the campaign in one place**: the ones they put in an adventure, the
+The GM of a campaign keeps **every photo of the campaign in one place**: the ones they will put in an adventure (⏳ that block is not built yet), the
 ones they send through the chat, and the ones they upload on purpose. From there they **show** a photo to the
 players — dropping it into the scene or sending it through the chat — and find it again later by searching.
 
@@ -37,9 +37,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 - **Upload** photos from disk (or by dragging them in), one or several at a time. Each one is compressed in
   the browser before it is uploaded (§ Rules & limits).
 - **Rename** a photo. It is born with the name of the file it came from, without the extension.
-- **Delete** a photo. It asks first, and says **where it is used** (which adventures, which scenes, which
-  conversations). Then it disappears from the scenes, and the adventures and the chat show «foto borrada»
-  where it was.
+- **Delete** a photo. It asks first, and says **where it is used** (which scenes, which conversations — and
+  which adventures once the photo block exists). Then it disappears from the scenes, and the chat shows
+  «foto borrada» where it was.
 - **See it bigger**, by clicking it.
 - **Remove it from the scene** from the placed photo's right-click menu («Quitarla de la escena»), which is
   **not** deleting it from the library — the two are kept visibly apart in the drawing, because they read the
@@ -50,8 +50,9 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 - ⏳ **NOT BUILT** — **Or send it to the scene from its menu** («A la escena»), which arms it and clicks where
   it goes, the same gesture as «Colocar» from the Bestiary. If the GM is on another tab, the table switches to
   Escena. **The button stays**: it is the way in when the map is not on screen. Dragging does not replace it.
-- **Send it through the chat**, to a conversation (one-to-one or group), from the library or from the chat
-  itself.
+- **Send it through the chat**, to a conversation (one-to-one or group), **from the chat itself**: the clip of
+  the writing row offers «Subir una del ordenador» and «De la galería». ⏳ Starting from the **library's own
+  menu** is not built — the gallery has no way out towards the chat.
 
 **In an adventure** (the editor of `adventures`, only there) — ⏳ **NOT BUILT YET** (see § Out of scope)
 - **Insert a photo** from the editor bar: upload one from disk, or pick one from the library. An uploaded one
@@ -80,7 +81,7 @@ This is the opposite of the objects and textures libraries of `maps`, which belo
 | Screen / part | What it is | Plate |
 |---|---|---|
 | Library tab | The side rail's GALERÍA tab, GM only: search · upload · grid of photos, plus the empty and the uploading states | § 4 · `Fotos/Biblioteca · el carril · sólo el director` |
-| Photo menu | On each photo: rename · to the scene · send through the chat · see it bigger · delete | § 4 · same plate, column «EL MENÚ DE UNA FOTO» |
+| Photo menu | On each photo today: **rename · see it bigger · delete**. ⏳ «A la escena» and «send through the chat» are in the plate, **not built** — «no se pinta un botón que todavía no hace nada» | § 4 · same plate, column «EL MENÚ DE UNA FOTO» |
 | Dragging it onto the scene | Grabbing it in the grid, the drop on the map, and what is inside the play area vs beside it | § 4 · same plate, column «ARRASTRARLA A LA ESCENA» |
 | Delete dialog | «Se usa en…» with the adventures, scenes and conversations, then confirm | § 4 · `Fotos/Borrar una foto que se usa · y LA FOTO A LO GRANDE` |
 | Photo, bigger | The photo on its own over the table, on the same parchment sheet as the Bestiary's `PhotoModal` | § 4 · same plate, right-hand column |
@@ -136,8 +137,9 @@ It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & l
 - The limits of `core/images` apply: 8 MB input file at most, 1.5 MB after compressing; PNG, JPEG, WebP and GIF
   (a GIF keeps its first frame).
 - **Name**: 1 to 120 characters; the file's name without extension by default.
-- **Deleting a photo** removes it from every scene it is placed in; the adventures and conversations that used
-  it keep a «foto borrada» placeholder, so no document or message breaks.
+- **Deleting a photo** removes it from every scene it is placed in; the conversations that used it keep a
+  «foto borrada» placeholder, so no message breaks. ⏳ The same will hold for adventures once the photo block
+  is built: the database already does its half (`ON DELETE SET NULL` on the message, `CASCADE` on the scene).
 - **Removing a photo from an adventure or from the scene never deletes it** from the library.
 - **Only the GM sends photos through the chat.** A message with a photo from a player is refused by the
   database, not only hidden by the screen.
@@ -156,7 +158,7 @@ It was asked, and he answered on 2026-09-27: **«debajo»** — see § Rules & l
 | Delete failed | The database refuses, or the network drops | «No se ha podido borrar.» stays until the GM closes it, and the photo is still there |
 | Cancelling while «where is it used» is still in flight | The GM cancels before the database answers | Nothing: a late answer is dropped and the dialog stays closed |
 | Deleting a photo in use | Its menu → delete | The dialog listing where it is used, then confirm |
-| A deleted photo in an adventure or chat | After deleting it | «foto borrada» in its place |
+| A deleted photo in a chat message | After deleting it | «foto borrada» in its place, and the caption stays. ⏳ Same for an adventure once that block exists |
 | Placing with no scene open ⏳ | «A la escena» with no scene | NOT BUILT (the button does not exist): the table would go to Escena and say there is no scene to place it in |
 | Dragging with no scene open | The map is not there to drop on | There is nothing to drop onto, so nothing happens. ⏳ The button that would be the way in is not built, so today there is simply no way in from another tab |
 | Dropping it outside the map | The drag ends on the chrome around the map | Nothing is placed and nothing is said: a drag that does not land is not a mistake |
@@ -253,6 +255,8 @@ shipped, and anyone reading it would go looking for them:
   the real block were named differently. The honesty of the delete warning depends on that.
 - **«A la escena» in the photo's menu.** Dragging is built and is the everyday way in; the button is the way in
   when the map is not on screen (another tab of the table), and it is not built.
+- **«Mandarla por el chat» from the photo's menu.** Sending a photo IS built, but only from inside the chat
+  (the clip, with its two ways in). The gallery's menu has no way out towards a conversation.
 - **«Reintentar» on a failed upload.** § States & errors promises it; the screen only offers to dismiss the
   warning.
 
@@ -261,7 +265,7 @@ shipped, and anyone reading it would go looking for them:
 | With | What for |
 |---|---|
 | `table` (H3) | hosts the side rail tab; switches to Escena when a photo is placed |
-| `adventures` (H12) | the photo block of the editor; an uploaded photo goes into the library |
+| `adventures` (H12) | ⏳ the photo block of the editor — **not built**; when it is, an uploaded photo goes into the library |
 | `maps` (H7) | the photo placed in the scene: gestures, play-area rule, what reaches the player |
 | `chat` (H8) | the photo attached to a message; only the GM attaches |
 | `core/images` | the shared compressor and the new «Fotos» level |
