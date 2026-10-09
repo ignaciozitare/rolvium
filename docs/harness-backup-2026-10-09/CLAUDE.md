@@ -16,9 +16,7 @@ While writing code, apply all rules in this file without the user asking.
 | You finish any coding task | `.claude/commands/review.md` (thin wrapper — launches the `review` **subagent** in [.claude/agents/review.md](agents/review.md) via the Agent tool) |
 | User requests anything new (module, core, DB, route, package...) | `.claude/commands/scaffold.md` (after spec is confirmed) |
 | User says "ready to merge", "this is done", or "let's merge" | `.claude/commands/qa.md` (orchestrator — asks the user the block/warn + light/dark questions, launches the `qa` **subagent** in [.claude/agents/qa.md](agents/qa.md) for the automated checks) → `.claude/commands/deploy.md` |
-| A merge to `main` carries API code, a migration or authentication code — or the owner asks «¿está seguro esto?» | `.claude/commands/security.md` (launches the `security` **subagent** in [.claude/agents/security.md](agents/security.md)) — **HOOK-ENFORCED on the merge** |
 | User asks to deploy or push to production | `.claude/commands/deploy.md` |
-| User asks for the backlog / «qué queda» / «qué sigue», or gives work for later («apuntá esto») | `.claude/commands/po.md` — owner of every module's backlog. **Never on startup.** |
 | Any code/UI/config/refactor change | **`change-safety` skill — HOOK-ENFORCED** (see below). For visual work, the `ui-reuse` and `design-system` skills apply — invoke them at the START of the task, not mid-way. |
 | After any significant task | Update `WORK_STATE.md` |
 
@@ -77,55 +75,12 @@ AGENT (never asks the owner anything), leaves markdown/specs/`.claude/` open so 
 handoff itself can be written, and fails open on any doubt. Escape hatch:
 `ROLVIUM_SKIP_HANDOFF=1`.
 
-### The process gates (hook-enforced — nothing is skipped unless the OWNER says so)
-
-Since 2026-10-09 this repo uses the **shared harness** (`ignaciozitare/claude-harness`,
-copied into `.claude/` with its `sync.mjs`; version and file hashes in
-`.claude/harness.lock.json`). **Never edit a harness file here**: change it in
-`claude-harness` and re-sync — a local edit is reported and blocks the next update.
-What is «code», «a screen» and «security-sensitive» in this repo is declared in
-[.claude/harness.config.json](harness.config.json). The copy of what was here before
-is in `docs/harness-backup-2026-10-09/` (nothing in it runs).
-
-Two `PreToolUse` hooks hold the order below (learned in the previous project on
-2026-10-02: a session ran every hooked step and skipped every step left to judgement).
-
-- **Before the first edit of product code** (`apps/*/src`, `packages/*/src|locales`,
-  migrations): the `spec` skill must have run in the session.
-- **Before the first edit of anything visible** (`.tsx`/`.css` in `apps/web/src`,
-  `packages/ui`, `packages/system-*`; tests excluded): `ui-reuse`, `design-system` and
-  `design` — **and the approved `rolvium.pen` frames exported and dumped in the session**.
-  Port the design from its EXACT values, never by eye: export the frame(s) to `html-css`
-  with the pencil MCP (`Export(["<id>"], "html-css", "<scratchpad>/<id>.html",
-  {includeLayerNames: true, includeLayerIds: true})`) and read them with
-  `python3 .claude/tools/pen-css-tree.py <file> <id|name:NodeName> [--all]`. Colours,
-  gradients (stops, alpha and direction), radius, sizes, gaps and shadows come from
-  there; data-driven values are measured across all instances (`--all`).
-- **Before code reaches `main`** (a merge with main checked out, any push whose
-  destination is main, `gh pr merge` into main) when it carries product code: the
-  `review` subagent and the `deploy` skill ran; the spec moved with the code (a module's
-  code needs a change in its own `specs/modules/<m>/`, auth → `specs/core/auth/`); if the
-  module has a `BACKLOG.md`, it moved too; and if it carries `apps/api/src`, a migration
-  or `auth`/`identity` code, the `security` subagent ran.
-- **Only the owner skips a step**, by writing in the chat «saltar spec», «saltar diseño»,
-  «saltar review», «saltar deploy», «saltar backlog» or «saltar seguridad» (valid for the
-  rest of that session). Never ask him to skip a step to save time.
-- Emergency escape hatch: `ROLVIUM_SKIP_PROCESS_GATES=1`. Every hook is registered with
-  `$CLAUDE_PROJECT_DIR` (until 2026-10-09 they used a relative path here: after any `cd`
-  the gate was silently OFF).
-- Layers: `npm run boundaries` (hexagonal direction in web and API; anything new fails).
-- Tests: `node .claude/hooks/require-process.test.mjs`.
-
-**The backlog belongs to the PO Agent** ([.claude/commands/po.md](commands/po.md)): one
-`BACKLOG.md` per module under `specs/modules/<m>/`, closed items in `BACKLOG_DONE.md`,
-index in `specs/BACKLOG.md`. Read and shown only when the owner asks.
-
 **No startup actions.** Opening VS Code, the repo, or a Claude session is **not** a
 task. Do not read other files, run commands, or report status on startup. Read
 `WORK_STATE.md` only when the user explicitly asks about status or asks to resume
 work — not automatically.
 
-**Note on subagents:** Review, QA and Security run as real Claude Code **subagents** —
+**Note on subagents:** Review and QA run as real Claude Code **subagents** —
 isolated context, own system prompt, no access to this conversation. The
 wrappers under `.claude/commands/` exist so `/review` and `/qa` still work
 manually and so the automatic triggers above route through a single entry
@@ -134,7 +89,7 @@ slash-command skills because they need to interact with the user mid-flow.
 
 ### The order always is:
 ```
-Spec Agent → DBA Agent → Scaffold Agent → Design Agent → Dev Agent → Review Agent → Security Agent (API / DB / auth) → QA Agent → Deploy Agent
+Spec Agent → DBA Agent → Scaffold Agent → Design Agent → Dev Agent → Review Agent → QA Agent → Deploy Agent
 ```
 Never skip steps. Never start coding without a confirmed spec.
 **Never touch UI code before the Design Agent has produced a `rolvium.pen` blueprint that the user explicitly approved with screenshots.** "I'll fix the `.pen` later" is forbidden — the master goes stale and the design diverges.

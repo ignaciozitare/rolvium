@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // PreToolUse hook — change-safety gate.
 //
-// WHY THIS EXISTS. The measured pattern from 2026-07-29: everything enforced by a
-// hook was followed 100% of the time (the OIH spec gate blocks the Write, so it
-// cannot be skipped); everything left to the agent's judgement was skipped for
+// WHY THIS EXISTS. The pattern measured in a previous project on
+// 2026-07-29: everything enforced by a hook was followed 100% of the time (a
+// read-gate that blocks the Write cannot be skipped); everything left to the
+// agent's judgement was skipped for
 // whole sessions — including `change-safety`, whose entire job is to stop
 // opportunistic edits outside the scope the user asked for. A reminder in a file is
 // the same honour system that already failed. This is not.
@@ -22,7 +23,7 @@
 // never be able to hard-block all work in the repo.
 //
 // Escape hatch (for the owner, not for the agent): set
-//   <PROYECTO>_SKIP_CHANGE_SAFETY=1
+//   ROLVIUM_SKIP_CHANGE_SAFETY=1
 // in the environment to disable this gate completely.
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -30,9 +31,7 @@ import { readFileSync, existsSync } from 'node:fs';
 const SKILL = 'change-safety';
 const allow = () => process.exit(0);
 
-// Escape del dueño: cualquier variable <PROYECTO>_SKIP_CHANGE_SAFETY=1 (HARNESS_, WORKSUITE_, ROLVIUM_…).
-const envFlag = (name) => Object.entries(process.env).some(([k, v]) => v === '1' && new RegExp(`^[A-Z0-9]+_${name}$`).test(k));
-if (envFlag('SKIP_CHANGE_SAFETY')) allow();
+if (process.env.ROLVIUM_SKIP_CHANGE_SAFETY === '1') allow();
 
 function readStdin(stream) {
   return new Promise((resolve) => {
@@ -57,9 +56,8 @@ if (!['Write', 'Edit', 'MultiEdit'].includes(tool)) allow();
 
 const fp = String(input?.tool_input?.file_path || '').replace(/\\/g, '/');
 
-// Writing down understanding must NEVER be blocked — same principle the Momentum
-// gate applies. Docs, specs, the work state and the harness itself stay open, as do
-// scratch files and anything generated.
+// Writing down understanding must NEVER be blocked. Docs, specs, the work state and
+// the harness itself stay open, as do scratch files and anything generated.
 const EXEMPT = [
   /\.mdx?$/i, // any markdown: docs, specs, ADR proposals, WORK_STATE
   /(?:^|\/)specs\//,
@@ -126,7 +124,7 @@ const msg = [
   'After that, nothing else in this session is gated: this exists to stop the skill',
   'being skipped entirely, not to slow down work the user explicitly asked for.',
   '',
-  '(Owner escape hatch: <PROYECTO>_SKIP_CHANGE_SAFETY=1 disables this gate.)',
+  '(Owner escape hatch: ROLVIUM_SKIP_CHANGE_SAFETY=1 disables this gate.)',
 ].join('\n');
 process.stderr.write(msg + '\n');
 process.exit(2);

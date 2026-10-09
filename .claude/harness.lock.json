@@ -1,0 +1,23 @@
+{
+  "harness": "ignaciozitare/claude-harness",
+  "version": "0.1.1",
+  "commit": "3be7ac3",
+  "files": {
+    ".claude/agents/security.md": "62864217aad39b5a",
+    ".claude/commands/po.md": "39e4e299cd5a80a3",
+    ".claude/commands/security.md": "3be61b8e1e905bc5",
+    ".claude/commands/spec.md": "1f751b8f3265cf25",
+    ".claude/hooks/lib/session.mjs": "befa55828a645a18",
+    ".claude/hooks/require-change-safety.mjs": "b2375685629c6b51",
+    ".claude/hooks/require-context-handoff.mjs": "40630237986f0a8e",
+    ".claude/hooks/require-process-before-edit.mjs": "3f591709ac374d22",
+    ".claude/hooks/require-process-before-merge.mjs": "9d254b8f65323744",
+    ".claude/hooks/require-process.test.mjs": "21cad5d06dc327cc",
+    ".claude/hooks/require-qa-before-merge.mjs": "e2d1f1f260400499",
+    ".claude/hooks/require-qa-before-merge.test.mjs": "e7fc0b34fbce1aa5",
+    ".claude/skills/change-safety/SKILL.md": "d8934de8b3e15b7d",
+    ".claude/tools/pen-css-tree.py": "58e6f4340d45effb",
+    "scripts/boundaries.mjs": "6646a0b1c5f56ff3",
+    "scripts/boundaries.test.mjs": "22cf07c3de4ed6c5"
+  }
+}

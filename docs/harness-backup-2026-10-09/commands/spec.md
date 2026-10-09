@@ -15,11 +15,11 @@ Read what the user asked for and silently classify it as one of:
 
 | Type | Examples |
 |---|---|
-| New module | "quiero un módulo nuevo de reservas", "necesito una sección de informes" |
-| Feature inside existing module | "quiero añadir notificaciones", "que se pueda exportar la lista" |
-| Core change | "cambiar cómo funciona el login", "modificar la navegación principal" |
-| Database change | "necesito guardar más datos de los usuarios" |
-| Integration | "conectar con un calendario externo", "importar datos de otra herramienta" |
+| New module | "quiero el módulo de campañas", "necesito una sección de bestiario" |
+| Feature inside existing module | "que se puedan crear fichas de personaje", "que el máster pueda ocultar tiradas" |
+| Core change | "cambiar cómo funciona el login", "modificar la navegación principal", "añadir un permiso nuevo a los roles" |
+| Database change | "necesito guardar más datos del personaje" |
+| Integration | "conectar con Discord", "importar un compendio en JSON" |
 
 Do not tell the user the classification. Just use it internally to know
 which questions to ask.
@@ -51,16 +51,16 @@ ports, or any technical implementation detail — that is the DBA Agent's job.
 
 **Purpose**
 - What problem does this solve? What would happen without it?
-- Who uses this — everyone, or specific roles?
+- Who uses this — everyone, only game masters, only players of a campaign, admins?
 
 **What the user can do**
-- What actions can the user take? (create, edit, delete, search, filter, export...)
-- Are there actions that only some users can do?
+- What actions can the user take? (create, edit, delete, search, filter, share, roll...)
+- Are there actions that only some users can do (e.g. only the GM)?
 
 **How it works**
 - Walk me through how a typical user would use this step by step
 - What happens when something goes wrong? Does the user see an error?
-- Are there states? (pending, active, archived, cancelled...)
+- Are there states? (draft, active, archived, in-session...)
 
 **Rules and limits**
 - Are there things that should never be allowed?
@@ -101,7 +101,7 @@ Once confirmed, determine the correct location:
 
 - New module → `specs/modules/{name}/SPEC.md`
 - Feature in existing module → update `specs/modules/{name}/SPEC.md`
-- Core change → `specs/core/{area}/SPEC.md`
+- Core change → `specs/core/{area}/SPEC.md` (existing: `auth`, `game-system`, `images`, `realtime`, `roles-permissions`, `testing`)
 - Integration → `specs/modules/{name}/SPEC.md` or `specs/core/integrations/SPEC.md`
 
 Save the confirmed spec. Then add a data model section at the bottom marked as pending:
@@ -112,10 +112,6 @@ Save the confirmed spec. Then add a data model section at the bottom marked as p
 ```
 
 Then update the global index at `specs/SPEC.md`.
-
-Then link the work in the backlog: read and execute `.claude/commands/po.md`
-in mode **Enlazar** (the item becomes 🔄 and points to this spec; if no item
-exists yet, the PO Agent creates it).
 
 ---
 
