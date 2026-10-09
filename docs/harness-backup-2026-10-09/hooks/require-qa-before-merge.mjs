@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // PreToolUse hook — QA gate on the MERGE, not on the edit.
 //
-// WHY THIS EXISTS. Commissioned by the owner on 2026-08-10, in his words: «muy mal
-// lo de qa, no te los puedes saltar porque sí. Ponlo en el hook igual que el del
-// diseño». That morning I merged `fix/oih-configurator-three-reports` to `main`
-// with the review subagent passed and the preview green — and skipped QA entirely,
+// WHY THIS EXISTS. Commissioned by the owner in a previous project on
+// 2026-08-10, in his words: «muy mal lo de qa, no te los puedes saltar porque sí.
+// Ponlo en el hook igual que el del diseño». That morning a fix branch was merged
+// to `main` with the review subagent passed and the preview green — and QA skipped entirely,
 // on my own judgement, because he had not typed the words "ready to merge". Two of
 // the three things he then saw on screen were still broken. CLAUDE.md already said
 // QA runs before a merge; leaving it to the agent's judgement is the same honour
@@ -22,15 +22,13 @@
 // parse error — and prints a warning instead. A harness change must never be able
 // to hard-block a merge in an emergency.
 //
-// Owner escape hatch: <PROYECTO>_SKIP_QA=1.
+// Owner escape hatch: ROLVIUM_SKIP_QA=1.
 
 import { readFileSync, existsSync } from 'node:fs';
 
 const allow = () => process.exit(0);
 
-// Escape del dueño: cualquier variable <PROYECTO>_SKIP_QA=1 (HARNESS_, WORKSUITE_, ROLVIUM_…).
-const envFlag = (name) => Object.entries(process.env).some(([k, v]) => v === '1' && new RegExp(`^[A-Z0-9]+_${name}$`).test(k));
-if (envFlag('SKIP_QA')) allow();
+if (process.env.ROLVIUM_SKIP_QA === '1') allow();
 
 function readStdin(stream) {
   return new Promise((resolve) => {
@@ -143,12 +141,12 @@ const msg = [
   'spec compliance, the whole test suite, architecture and security, Supabase',
   'advisors, i18n parity, docs and both builds. A passing review and a green',
   'preview are NOT a substitute; that combination shipped two visible defects to',
-  'the owner on 2026-08-10, which is why this gate exists.',
+  'the owner on 2026-08-10 (in a previous project), which is why this gate exists.',
   '',
   'Run it now — Agent tool, subagent_type: "qa" (the orchestrator `/qa` skill asks',
   'the owner the block/warn and light/dark questions first) — then retry the merge.',
   '',
-  '(Owner escape hatch: <PROYECTO>_SKIP_QA=1 disables this gate.)',
+  '(Owner escape hatch: ROLVIUM_SKIP_QA=1 disables this gate.)',
 ].join('\n');
 process.stderr.write(msg + '\n');
 process.exit(2);

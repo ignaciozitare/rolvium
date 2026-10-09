@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // PreToolUse hook — context-handoff gate («fumarse el contexto» nunca más).
 //
-// EL FALLO QUE CIERRA (medido 2026-08-08): la regla del traspaso de contexto —
+// EL FALLO QUE CIERRA (medido en un proyecto anterior, 2026-08-08): la
+// regla del traspaso de contexto —
 // «cuando el chat está largo: WORK_STATE al día + chat nuevo, nunca seguir» — era
 // de honor, y las reglas de honor se saltan (mismo hallazgo del 2026-07-29 que
 // justificó el gate de change-safety). El agente se pasó una noche entera
@@ -15,7 +16,7 @@
 //   · NO le pregunta nada al dueño — deniega al AGENTE, con la instrucción de
 //     traspasar. El dueño no tiene que estar delante.
 //   · Solo actúa cuando la transcripción REAL de la sesión supera el umbral
-//     (por defecto 6 MB de JSONL — las sesiones que acabaron mal en este repo
+//     (por defecto 6 MB de JSONL — las sesiones que acabaron mal en el proyecto anterior
 //     pasaban de 10). Por debajo, silencio absoluto: cero fricción.
 //   · El traspaso mismo nunca se bloquea: markdown, specs/, .claude/ y scratch
 //     siguen abiertos SIEMPRE (misma lista exenta que change-safety), así el
@@ -25,16 +26,14 @@
 // harness jamás puede colgar el repo entero.
 //
 // Ajustes del dueño:
-//   <PROYECTO>_HANDOFF_LIMIT_MB=<n>  — umbral en MB (por defecto 6)
-//   <PROYECTO>_SKIP_HANDOFF=1        — desactiva el gate por completo
+//   ROLVIUM_HANDOFF_LIMIT_MB=<n>  — umbral en MB (por defecto 6)
+//   ROLVIUM_SKIP_HANDOFF=1        — desactiva el gate por completo
 
 import { existsSync, statSync } from 'node:fs';
 
 const allow = () => process.exit(0);
 
-// Escape del dueño: cualquier variable <PROYECTO>_SKIP_HANDOFF=1 (HARNESS_, WORKSUITE_, ROLVIUM_…).
-const envFlag = (name) => Object.entries(process.env).some(([k, v]) => v === '1' && new RegExp(`^[A-Z0-9]+_${name}$`).test(k));
-if (envFlag('SKIP_HANDOFF')) allow();
+if (process.env.ROLVIUM_SKIP_HANDOFF === '1') allow();
 
 function readStdin(stream) {
   return new Promise((resolve) => {
@@ -76,7 +75,7 @@ if (fp === '' || EXEMPT.some((re) => re.test(fp))) allow();
 const transcriptPath = input?.transcript_path;
 if (!transcriptPath || !existsSync(transcriptPath)) allow();
 
-const limitMb = Number(Object.entries(process.env).find(([k]) => /^[A-Z0-9]+_HANDOFF_LIMIT_MB$/.test(k))?.[1] || '6');
+const limitMb = Number(process.env.ROLVIUM_HANDOFF_LIMIT_MB || '6');
 if (!Number.isFinite(limitMb) || limitMb <= 0) allow();
 
 let sizeMb = 0;
@@ -99,7 +98,7 @@ const msg = [
   'Los edits de código quedan bloqueados en esta sesión. Un chat fresco retomado de',
   'WORK_STATE es más fiable que este contexto: no se pierde nada (git + DB + WORK_STATE).',
   '',
-  '(Ajustes del dueño: <PROYECTO>_HANDOFF_LIMIT_MB=<n> · <PROYECTO>_SKIP_HANDOFF=1.)',
+  '(Ajustes del dueño: ROLVIUM_HANDOFF_LIMIT_MB=<n> · ROLVIUM_SKIP_HANDOFF=1.)',
 ].join('\n');
 process.stderr.write(msg + '\n');
 process.exit(2);

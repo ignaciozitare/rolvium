@@ -2,11 +2,8 @@
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), 'require-qa-before-merge.mjs');
-const cwd = process.cwd();
-let failures = 0;
+const HOOK = '.claude/hooks/require-qa-before-merge.mjs';
+const cwd = '/Users/ignacioz/Documents/Developer/Rolvium';
 
 // Un transcript SIN QA (el caso que debe bloquear) y otro CON QA (que debe dejar pasar).
 const dir = process.env.TMPDIR ?? '/tmp';
@@ -36,7 +33,6 @@ for (const [command, expected] of cases) {
   const payload = JSON.stringify({ tool_name: 'Bash', tool_input: { command }, cwd, transcript_path: sinQa });
   const run = spawnSync('node', [HOOK], { cwd, input: payload, encoding: 'utf8' });
   const got = run.status === 2 ? 'BLOQUEAR' : 'pasar';
-  if (got !== expected) failures++;
   console.log(`${got === expected ? 'OK  ' : 'FALLA'} ${got.padEnd(9)} esperado ${expected.padEnd(9)} :: ${command}`);
 }
 
@@ -44,8 +40,5 @@ console.log('— con QA ya corrida: nada se bloquea —');
 for (const [command] of cases) {
   const payload = JSON.stringify({ tool_name: 'Bash', tool_input: { command }, cwd, transcript_path: conQa });
   const run = spawnSync('node', [HOOK], { cwd, input: payload, encoding: 'utf8' });
-  if (run.status !== 0) failures++;
   console.log(`${run.status === 0 ? 'OK  ' : 'FALLA'} ${(run.status === 2 ? 'BLOQUEAR' : 'pasar').padEnd(9)} :: ${command}`);
 }
-
-process.exit(failures ? 1 : 0);

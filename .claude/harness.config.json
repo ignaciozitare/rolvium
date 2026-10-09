@@ -1,0 +1,12 @@
+{
+  "code": ["apps/[^/]+/src/", "packages/[^/]+/(?:src|locales)/", "supabase/migrations/"],
+  "ui": { "ext": ["tsx", "css"], "paths": ["apps/web/src/", "packages/ui/src/", "packages/system-[^/]+/src/"] },
+  "externalSpec": [],
+  "securitySensitive": ["apps/api/src/", "supabase/migrations/", "apps/web/src/modules/(?:auth|identity)/"],
+  "specFolders": [
+    { "match": "apps/web/src/modules/auth/", "folder": "specs/core/auth/" },
+    { "match": "apps/web/src/modules/([^/]+)/", "folder": "specs/modules/$1/" },
+    { "match": "packages/(system-[^/]+)/", "folder": "specs/modules/$1/" }
+  ],
+  "penExport": true
+}
